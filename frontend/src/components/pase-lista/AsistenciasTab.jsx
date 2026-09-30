@@ -351,7 +351,7 @@ export default function AsistenciasTab({ catalogs, version }) {
                 <tbody>
                   {rows.map(({ clase, asistencias }) => (
                     <tr key={clase.id_clase} onClick={() => setSelected({ tipo: "bd", detalle: detalleDe(clase, asistencias), id: clase.id_clase })} style={{ cursor: "pointer" }}>
-                      <td>{String(clase.inicioClase ?? "").slice(0, 10)}</td>
+                      <td>{String(clase.inicioClase ?? "No Hay").slice(0, 10)}</td>
                       <td>{nombres.cursoById.get(String(clase.id_curso_capacitacion))?.nombre ?? "—"}</td>
                       <td>{(nombres.materiasPorCurso.get(String(clase.id_curso_capacitacion)) ?? []).join(", ") || "—"}</td>
                       <td>{nombres.temaById.get(String(clase.id_tema)) ?? "—"}</td>
