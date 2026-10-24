@@ -8,7 +8,7 @@ import HomeRedirect from "./HomeRedirect"
 import Skeleton from "../components/ui/Skeleton"
 
 const LoginPage = lazy(() => import("../pages/auth/LoginPage"))
-const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"))
+// const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"))
 const DashboardPage = lazy(() => import("../pages/app/DashboardPage"))
 const PaseListaPage = lazy(() => import("../pages/app/PaseListaPage"))
 const EntityPage = lazy(() => import("../pages/app/EntityPage"))
@@ -24,7 +24,7 @@ export default function AppRouter() {
     <Routes>
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/registro" element={<RegisterPage />} />
+        {/* <Route path="/registro" element={<RegisterPage />} /> */}
       </Route>
 
       <Route

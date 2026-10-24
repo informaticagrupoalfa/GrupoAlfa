@@ -56,6 +56,7 @@ export default function LoginForm({
         <button
           className="link-button center"
           type="button"
+          hidden
           onClick={onGoRegister}
           onMouseEnter={onPreloadRegister}
           onFocus={onPreloadRegister}
