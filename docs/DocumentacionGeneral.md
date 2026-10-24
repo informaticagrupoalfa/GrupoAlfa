@@ -395,7 +395,7 @@ Sin contenido en el análisis para este proyecto.
 
 # 11. Reportes
 
-Sin contenido en el análisis para reportes implementados. El análisis menciona la generación de reportes como una necesidad y objetivo futuro, pero no se encontró un módulo de reportes en el proyecto.
+Sin contenido en el análisis para reportes implementados. El análisis menciona la generación de reportes, pero no se encontró un módulo de reportes en el proyecto.
 
 ---
 
@@ -819,7 +819,7 @@ Las descripciones de cada campo se encuentran en las tablas de la sección 13.2.
 - **Recursos:** sustantivos plurales; `POST` para crear, `GET` para consultar, `PUT` para actualizar y `DELETE` para eliminar.
 - **Paginación:** los listados basados en el CRUD genérico aceptan `limit` (por defecto 25, máximo 100) y `offset` (por defecto 0). Los controladores propios de usuarios y estudiantes no aplican paginación.
 - **Validación:** los cuerpos de las peticiones se validan con Zod; los errores devuelven `400`.
-- **Filtros:** algunos recursos aceptan filtros por columnas; las clases aceptan `desde`, `hasta`, `id_curso_capacitacion`, `id_materia` y `id_tema`.
+- **Filtros:** algunos recursos aceptan filtros por columnas; las clases aceptan `desde`, `hasta`, `id_curso_capacitacion`, `id_asesor`, `id_materia` y `id_tema`.
 
 ## 14.2. Endpoints
 
