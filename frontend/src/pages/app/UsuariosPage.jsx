@@ -2,7 +2,6 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react
 import { useCrud } from "../../hooks/useCrud"
 import { ENTITIES } from "../../config/entities"
 import DataTable from "../../components/dashboard/DataTable"
-import Button from "../../components/ui/Button"
 import Skeleton from "../../components/ui/Skeleton"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 import {
@@ -114,6 +113,7 @@ export default function UsuariosPage() {
     () => (Array.isArray(selected?.roles) ? selected.roles : []),
     [selected],
   )
+  const isCreating = modalOpen && selected?.id_usuario == null
 
   const currentRoleFields = useMemo(() => {
     const fields = {
@@ -263,7 +263,7 @@ export default function UsuariosPage() {
           </button>
         </p>
       )}
-      <div className="crud-toolbar">
+      <div className="crud-toolbar usuarios-toolbar">
         <input
           type="search"
           placeholder="Buscar en Usuarios..."
@@ -271,15 +271,45 @@ export default function UsuariosPage() {
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Buscar"
         />
-        <Button size="sm" onClick={openCreate}>
-          Nuevo
-        </Button>
+        <label
+          className={isCreating ? "create-toggle is-active" : "create-toggle"}
+          htmlFor="nuevo-usuario-toggle"
+        >
+          <span className="create-toggle-label">Nuevo usuario</span>
+          <input
+            id="nuevo-usuario-toggle"
+            type="checkbox"
+            role="switch"
+            checked={isCreating}
+            onChange={(event) => {
+              if (event.target.checked) openCreate()
+              else setModalOpen(false)
+            }}
+          />
+          <span className="create-toggle-track" aria-hidden="true" />
+        </label>
       </div>
+      {isCreating && (
+        <Suspense fallback={<Skeleton lines={4} />}>
+          <UsuarioFormModal
+            key={selected?.id_usuario ?? "new"}
+            initial={selected}
+            initialRoles={currentRoles}
+            initialRoleFields={currentRoleFields}
+            roleCatalog={roleCatalog}
+            initialSystemRoles={currentSystemRoles}
+            saving={saving}
+            formError={formError}
+            onClose={() => setModalOpen(false)}
+            onSubmit={handleSubmit}
+          />
+        </Suspense>
+      )}
       <p className="muted">
         {filtered.length} registro(s){filtered.length > PAGE_SIZE ? ` (mostrando ${PAGE_SIZE})` : ""}
       </p>
       <DataTable rows={visible} columns={entity.columns} pk={entity.pk} onEdit={openEdit} onDelete={handleDelete} />
-      {modalOpen && (
+      {modalOpen && selected && (
         <Suspense fallback={<Skeleton lines={4} />}>
           <UsuarioFormModal
             key={selected?.id_usuario ?? "new"}

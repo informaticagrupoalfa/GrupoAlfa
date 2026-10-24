@@ -130,6 +130,7 @@ export default function UsuarioFormModal({
       title={isCreate ? "Nuevo Usuario" : "Editar Usuario"}
       hint="Los roles de acceso definen qué pantallas y APIs puede usar el usuario. Los perfiles agregan datos específicos."
       onClose={onClose}
+      placement={isCreate ? "inline" : "center"}
     >
       <Modal.Body>
         <form onSubmit={handleSubmit}>
