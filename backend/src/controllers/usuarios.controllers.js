@@ -5,6 +5,24 @@ import bcrypt from "bcrypt";
 const PUBLIC_COLUMNS =
   "id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, usuario_vigente";
 
+const rolesSubquery = (alias = "usuarios") => `COALESCE((
+  SELECT json_agg(r.nombre ORDER BY r.nombre)
+  FROM asignacion_rol ar
+  JOIN roles r ON r.id_rol = ar.id_rol
+  WHERE ar.id_usuario = ${alias}.id_usuario
+), '[]'::json) AS roles`;
+
+const getRolesForUser = async (idUsuario) => {
+  const { rows } = await pool.query(
+    `SELECT COALESCE(json_agg(r.nombre ORDER BY r.nombre), '[]'::json) AS roles
+     FROM asignacion_rol ar
+     JOIN roles r ON r.id_rol = ar.id_rol
+     WHERE ar.id_usuario = $1`,
+    [idUsuario]
+  );
+  return Array.isArray(rows[0]?.roles) ? rows[0].roles : [];
+};
+
 const sanitize = (row) => {
   if (!row) return row;
   const { contraseña, ...rest } = row;
@@ -25,7 +43,10 @@ const existePorCorreo = async (correo_electronico) => {
 
 export const getUsuarios = async (req, res, next) => {
   try {
-    const { rows } = await pool.query(`SELECT ${PUBLIC_COLUMNS} FROM usuarios ORDER BY id_usuario ASC`);
+    const { rows } = await pool.query(
+      `SELECT ${PUBLIC_COLUMNS}, ${rolesSubquery("usuarios")}
+       FROM usuarios ORDER BY id_usuario ASC`
+    );
     res.status(200).json(rows);
   } catch (error) {
     next(error);
@@ -38,7 +59,11 @@ export const getUsuarioById = async (req, res, next) => {
     if (Number.isNaN(id)) {
       return res.status(400).json({ message: "ID debe ser numérico" });
     }
-    const { rows } = await pool.query(`SELECT ${PUBLIC_COLUMNS} FROM usuarios WHERE id_usuario = $1`, [id]);
+    const { rows } = await pool.query(
+      `SELECT ${PUBLIC_COLUMNS}, ${rolesSubquery("usuarios")}
+       FROM usuarios WHERE id_usuario = $1`,
+      [id]
+    );
     if (rows.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
@@ -47,6 +72,21 @@ export const getUsuarioById = async (req, res, next) => {
     next(error);
   }
 };
+
+// Catálogo mínimo para pantallas académicas (nombres y carnet, sin datos sensibles).
+export const getUsuarioCatalogo = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre
+       FROM usuarios ORDER BY id_usuario ASC`
+    );
+    res.status(200).json(rows);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMe = (req, res) => res.status(200).json(req.user);
 
 export const createUsuario = async (req, res, next) => {
   try {
@@ -83,7 +123,7 @@ export const createUsuario = async (req, res, next) => {
 
     res.status(201).json({
       estado: "exito",
-      datos: rows[0],
+      datos: { ...rows[0], roles: [] },
       token,
     });
   } catch (error) {
@@ -119,10 +159,11 @@ export const login = async (req, res, next) => {
     }
 
     const token = generateToken(user.id_usuario, res);
+    const roles = await getRolesForUser(user.id_usuario);
 
     res.status(200).json({
       estado: "exito",
-      datos: sanitize(user),
+      datos: { ...sanitize(user), roles },
       token,
     });
   } catch (error) {
@@ -200,9 +241,72 @@ export const updateUsuario = async (req, res, next) => {
       [nro_carnet ?? null, apellido_paterno ?? null, apellido_materno ?? null, nombre ?? null, fecha_nacimiento ?? null, correo_electronico ?? null, contraEncriptada, usuario_vigente ?? null, id]
     );
 
-    return res.json(rows[0]);
+    return res.json({ ...rows[0], roles: await getRolesForUser(id) });
   } catch (error) {
     next(error);
+  }
+};
+
+export const updateUsuarioRoles = async (req, res, next) => {
+  const id = parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ message: "ID debe ser numérico" });
+  }
+
+  const requestedRoles = [
+    ...new Set(
+      (req.body.roles ?? [])
+        .map((role) => String(role).trim())
+        .filter(Boolean)
+    ),
+  ];
+
+  const client = await pool.connect();
+  try {
+    const exists = await client.query(
+      "SELECT 1 FROM usuarios WHERE id_usuario = $1",
+      [id]
+    );
+    if (exists.rows.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    let roleRows = [];
+    if (requestedRoles.length > 0) {
+      const rolesResult = await client.query(
+        "SELECT id_rol, nombre FROM roles WHERE nombre = ANY($1::text[]) ORDER BY nombre",
+        [requestedRoles]
+      );
+      roleRows = rolesResult.rows;
+
+      if (roleRows.length !== requestedRoles.length) {
+        const found = new Set(roleRows.map((role) => role.nombre));
+        const missing = requestedRoles.filter((role) => !found.has(role));
+        return res.status(400).json({
+          error: `Roles inexistentes: ${missing.join(", ")}`,
+        });
+      }
+    }
+
+    await client.query("BEGIN");
+    await client.query("DELETE FROM asignacion_rol WHERE id_usuario = $1", [id]);
+    for (const role of roleRows) {
+      await client.query(
+        "INSERT INTO asignacion_rol (id_rol, id_usuario) VALUES ($1, $2)",
+        [role.id_rol, id]
+      );
+    }
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      id_usuario: id,
+      roles: roleRows.map((role) => role.nombre),
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(error);
+  } finally {
+    client.release();
   }
 };
 

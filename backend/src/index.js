@@ -32,6 +32,7 @@ import { config } from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import { authorizeApi } from "./middleware/apiAuthorization.js";
 
 config();
 
@@ -49,6 +50,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// Autorización por rol para todo /api, antes de registrar los routers.
+app.use("/api", authorizeApi);
 
 app.use("/api", usuariosRoutes);
 app.use("/api", materiasRoutes);

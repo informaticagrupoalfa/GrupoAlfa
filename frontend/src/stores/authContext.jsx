@@ -1,5 +1,6 @@
-import { createContext, useCallback, useMemo, useState } from "react"
+import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
+import { fetchCurrentUser } from "../services/usersService"
 
 const TOKEN_KEY = "ga_token"
 const USER_KEY = "ga_user"
@@ -48,6 +49,25 @@ export function AuthProvider({ children }) {
       // almacenamiento no disponible
     }
   }, [])
+
+  // Refresca los roles y datos del usuario autenticado (también sesiones antiguas
+  // guardadas antes de que el login incluyera los roles).
+  useEffect(() => {
+    if (!token) return undefined
+    let active = true
+
+    fetchCurrentUser()
+      .then((user) => {
+        if (active && user) signIn(user)
+      })
+      .catch((error) => {
+        if (active && error?.response?.status === 401) signOut()
+      })
+
+    return () => {
+      active = false
+    }
+  }, [token, signIn, signOut])
 
   const value = useMemo(
     () => ({ loggedUser, token, signIn, signOut }),

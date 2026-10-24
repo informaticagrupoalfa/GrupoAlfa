@@ -13,7 +13,9 @@ export default function DashboardLayout() {
       ? "Dashboard"
       : key === "pase-lista"
         ? "Llamar lista"
-        : (ENTITIES[key]?.label ?? "Dashboard")
+        : key === "sin-acceso"
+          ? "Acceso denegado"
+          : (ENTITIES[key]?.label ?? "Dashboard")
 
   const handleSignOut = () => {
     signOut()

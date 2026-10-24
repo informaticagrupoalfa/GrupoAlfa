@@ -34,6 +34,9 @@ apiClient.interceptors.response.use(
     } else if (status === 400) {
       error.userMessage =
         error?.response?.data?.message ?? "Datos inválidos. Revisa el formulario."
+    } else if (status === 403) {
+      error.userMessage =
+        error?.response?.data?.error ?? "No tienes permisos para realizar esta acción."
     } else if (status === 404) {
       error.userMessage = "Registro no encontrado."
     } else if (!error?.response) {

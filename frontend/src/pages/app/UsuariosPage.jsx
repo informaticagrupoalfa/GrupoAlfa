@@ -10,10 +10,10 @@ import {
   ROLE_LABELS,
   createRoles,
   fetchRoleMap,
-  formatUserRoles,
   getUserRoles,
   syncRoles,
 } from "../../services/rolesService"
+import { fetchRoleCatalog, updateUsuarioRoles } from "../../services/usersService"
 
 const UsuarioFormModal = lazy(() => import("../../components/features/usuarios/UsuarioFormModal"))
 
@@ -26,9 +26,23 @@ function toIdApoderado(value) {
   return Number.isNaN(n) ? undefined : n
 }
 
+async function persistSystemRoles(idUsuario, roles) {
+  try {
+    await updateUsuarioRoles(idUsuario, roles)
+    return ""
+  } catch (error) {
+    return (
+      error?.userMessage ??
+      error?.response?.data?.error ??
+      "No se pudieron guardar los roles de acceso."
+    )
+  }
+}
+
 export default function UsuariosPage() {
   const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity)
   const [roleMap, setRoleMap] = useState(null)
+  const [roleCatalog, setRoleCatalog] = useState([])
   const [search, setSearch] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -41,6 +55,11 @@ export default function UsuariosPage() {
     } catch {
       setRoleMap(null)
     }
+    try {
+      setRoleCatalog(await fetchRoleCatalog())
+    } catch {
+      setRoleCatalog([])
+    }
   }, [])
 
   useEffect(() => {
@@ -52,9 +71,9 @@ export default function UsuariosPage() {
       items.map((row) => ({
         ...row,
         vigente: row.usuario_vigente ? "Sí" : "No",
-        rol: formatUserRoles(row.id_usuario, roleMap),
+        rol: Array.isArray(row.roles) && row.roles.length > 0 ? row.roles.join(", ") : "—",
       })),
-    [items, roleMap],
+    [items],
   )
 
   const filtered = useMemo(() => {
@@ -90,6 +109,11 @@ export default function UsuariosPage() {
     for (const role of getUserRoles(selected.id_usuario, roleMap)) base[role] = true
     return base
   }, [selected, roleMap])
+
+  const currentSystemRoles = useMemo(
+    () => (Array.isArray(selected?.roles) ? selected.roles : []),
+    [selected],
+  )
 
   const currentRoleFields = useMemo(() => {
     const fields = {
@@ -139,7 +163,7 @@ export default function UsuariosPage() {
   )
 
   const handleSubmit = useCallback(
-    async ({ values, roles, roleFields }) => {
+    async ({ values, roles, roleFields, systemRoles = [] }) => {
       setSaving(true)
       setFormError("")
       setRolesNotice("")
@@ -166,13 +190,18 @@ export default function UsuariosPage() {
             },
             apoderados: roleFields.apoderados,
           })
+          const systemRolesError = await persistSystemRoles(idUsuario, systemRoles)
           setModalOpen(false)
           setSelected(null)
           await reload()
           await refreshRoles()
-          if (roleErrors.length > 0) {
+          if (roleErrors.length > 0 || systemRolesError) {
+            const detail = [
+              ...roleErrors.map((e) => `${ROLE_LABELS[e.role]} (${e.message})`),
+              ...(systemRolesError ? [systemRolesError] : []),
+            ].join("; ")
             setRolesNotice(
-              `Usuario creado, pero falló el rol: ${roleErrors.map((e) => `${ROLE_LABELS[e.role]} (${e.message})`).join("; ")}. Puedes reintentarlo editando el usuario.`,
+              `Usuario creado, pero hubo problemas con sus roles: ${detail}. Puedes reintentarlo editando el usuario.`,
             )
           }
           return
@@ -196,13 +225,18 @@ export default function UsuariosPage() {
           },
           apoderados: roleFields.apoderados,
         }, roleMap)
+        const systemRolesError = await persistSystemRoles(selected.id_usuario, systemRoles)
         setModalOpen(false)
         setSelected(null)
         await reload()
         await refreshRoles()
-        if (roleErrors.length > 0) {
+        if (roleErrors.length > 0 || systemRolesError) {
+          const detail = [
+            ...roleErrors.map((e) => `${ROLE_LABELS[e.role]} (${e.message})`),
+            ...(systemRolesError ? [systemRolesError] : []),
+          ].join("; ")
           setRolesNotice(
-            `Usuario actualizado, pero hubo problemas con roles: ${roleErrors.map((e) => `${ROLE_LABELS[e.role]} (${e.message})`).join("; ")}`,
+            `Usuario actualizado, pero hubo problemas con roles: ${detail}`,
           )
         }
       } catch (err) {
@@ -252,6 +286,8 @@ export default function UsuariosPage() {
             initial={selected}
             initialRoles={currentRoles}
             initialRoleFields={currentRoleFields}
+            roleCatalog={roleCatalog}
+            initialSystemRoles={currentSystemRoles}
             saving={saving}
             formError={formError}
             onClose={() => setModalOpen(false)}

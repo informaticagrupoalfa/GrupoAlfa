@@ -1,11 +1,18 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { ENTITIES, ENTITY_ORDER } from "../../config/entities"
+import { canAccessModule } from "../../config/permissions"
+import { useAuth } from "../../hooks/useAuth"
 import { listResource } from "../../services/academicService"
 import Card from "../ui/Card"
 import Skeleton from "../ui/Skeleton"
 
 export default function DashboardHome({ onNavigate }) {
+  const { loggedUser } = useAuth()
+  const visibleKeys = useMemo(
+    () => ENTITY_ORDER.filter((key) => canAccessModule(loggedUser, key)),
+    [loggedUser],
+  )
   const [counts, setCounts] = useState({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -17,7 +24,7 @@ export default function DashboardHome({ onNavigate }) {
       setError("")
       try {
         const entries = await Promise.all(
-          ENTITY_ORDER.map(async (key) => {
+          visibleKeys.map(async (key) => {
             try {
               const rows = await listResource(ENTITIES[key].endpoint)
               return [key, Array.isArray(rows) ? rows.length : 0]
@@ -37,7 +44,7 @@ export default function DashboardHome({ onNavigate }) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [visibleKeys])
 
   if (isLoading) return <Skeleton lines={5} />
   if (error) return <p className="error-message">{error}</p>
@@ -47,7 +54,7 @@ export default function DashboardHome({ onNavigate }) {
       <h2>Resumen académico</h2>
       <p className="muted">Primera pantalla del panel lateral. Elige un módulo para gestionar.</p>
       <div className="cards">
-        {ENTITY_ORDER.map((key) => (
+        {visibleKeys.map((key) => (
           <Card key={key} onClick={() => onNavigate(key)} label={ENTITIES[key].label}>
             <Card.Header>
               <span className="card-label">{ENTITIES[key].label}</span>

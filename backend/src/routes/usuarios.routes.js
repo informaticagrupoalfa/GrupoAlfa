@@ -2,8 +2,11 @@ import { Router } from "express";
 import {
   getUsuarios,
   getUsuarioById,
+  getUsuarioCatalogo,
+  getMe,
   createUsuario,
   updateUsuario,
+  updateUsuarioRoles,
   deleteUsuario,
   login,
   logout,
@@ -14,6 +17,7 @@ import {
   createUsuarioSchema,
   updateUsuarioSchema,
   loginUsuarioSchema,
+  updateUsuarioRolesSchema,
 } from "../validators/usuariosValidators.js";
 
 const router = Router();
@@ -24,8 +28,11 @@ router.post("/usuarios/login", validateRequest(loginUsuarioSchema), login);
 router.post("/usuarios/logout", logout);
 
 // protegidas
+router.get("/usuarios/me", authMiddleware, getMe);
+router.get("/usuarios/catalogo", authMiddleware, getUsuarioCatalogo);
 router.get("/usuarios", authMiddleware, getUsuarios);
 router.get("/usuarios/:id", authMiddleware, getUsuarioById);
+router.put("/usuarios/:id/roles", authMiddleware, validateRequest(updateUsuarioRolesSchema), updateUsuarioRoles);
 router.put("/usuarios/:id", authMiddleware, validateRequest(updateUsuarioSchema), updateUsuario);
 router.delete("/usuarios/:id", authMiddleware, deleteUsuario);
 

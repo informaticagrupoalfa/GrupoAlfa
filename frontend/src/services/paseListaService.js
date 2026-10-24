@@ -13,7 +13,7 @@ export async function loadPaseListaCatalogs() {
       listResource("capacitaciones").catch(() => []),
       listResource("temas").catch(() => []),
       listResource("estudiantes").catch(() => []),
-      listResource("usuarios").catch(() => []),
+      listResource("usuarios/catalogo").catch(() => []),
       listResource("aulas").catch(() => []),
       listResource("asignaciones-materias").catch(() => []),
     ])
