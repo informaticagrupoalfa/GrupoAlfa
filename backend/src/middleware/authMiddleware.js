@@ -2,6 +2,9 @@ import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
 
 export const authMiddleware = async (req, res, next) => {
+  // La autorización global ya cargó al usuario; evitamos una segunda consulta.
+  if (req.user) return next();
+
   let token;
 
   if (
@@ -21,8 +24,16 @@ export const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const { rows } = await pool.query(
-      `SELECT id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, usuario_vigente
-       FROM usuarios WHERE id_usuario = $1`,
+      `SELECT u.id_usuario, u.nro_carnet, u.apellido_paterno, u.apellido_materno,
+              u.nombre, u.fecha_nacimiento, u.correo_electronico, u.usuario_vigente,
+              COALESCE((
+                SELECT json_agg(r.nombre ORDER BY r.nombre)
+                FROM asignacion_rol ar
+                JOIN roles r ON r.id_rol = ar.id_rol
+                WHERE ar.id_usuario = u.id_usuario
+              ), '[]'::json) AS roles
+       FROM usuarios u
+       WHERE u.id_usuario = $1`,
       [decoded.id]
     );
 

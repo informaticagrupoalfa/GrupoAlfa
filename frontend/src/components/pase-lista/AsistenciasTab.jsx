@@ -340,6 +340,7 @@ export default function AsistenciasTab({ catalogs, version }) {
               <table className="data-table">
                 <thead>
                   <tr>
+                    <th>ID</th>
                     <th>Fecha</th>
                     <th>Curso</th>
                     <th>Materia</th>
@@ -351,7 +352,8 @@ export default function AsistenciasTab({ catalogs, version }) {
                 <tbody>
                   {rows.map(({ clase, asistencias }) => (
                     <tr key={clase.id_clase} onClick={() => setSelected({ tipo: "bd", detalle: detalleDe(clase, asistencias), id: clase.id_clase })} style={{ cursor: "pointer" }}>
-                      <td>{String(clase.inicioClase ?? "No Hay").slice(0, 10)}</td>
+                      <td>{clase.id_clase}</td>
+                      <td>{String(clase.inicioclase ?? "No Hay").slice(0, 10)}</td>
                       <td>{nombres.cursoById.get(String(clase.id_curso_capacitacion))?.nombre ?? "—"}</td>
                       <td>{(nombres.materiasPorCurso.get(String(clase.id_curso_capacitacion)) ?? []).join(", ") || "—"}</td>
                       <td>{nombres.temaById.get(String(clase.id_tema)) ?? "—"}</td>
@@ -383,6 +385,7 @@ export default function AsistenciasTab({ catalogs, version }) {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Fecha</th>
                   <th>Curso</th>
                   <th>Materia</th>
@@ -393,6 +396,7 @@ export default function AsistenciasTab({ catalogs, version }) {
               </thead>
               <tbody>
                 <tr onClick={() => setSelected({ tipo: "local", detalle: detalleLocal })} style={{ cursor: "pointer" }}>
+                  <td>{local?.id_clase ?? "—"}</td>
                   <td>{detalleLocal.fecha || "—"}</td>
                   <td>{detalleLocal.curso || "—"}</td>
                   <td>{detalleLocal.materia}</td>

@@ -18,7 +18,7 @@ export const ENTITIES = {
       { key: "nombre_completo", label: "Nombre" },
       { key: "correo_electronico", label: "Correo" },
       { key: "vigente", label: "Vigente" },
-      { key: "rol", label: "Rol" },
+      { key: "rol", label: "Rol de acceso" },
     ],
     fields: [
       { name: "nro_carnet", label: "Nro de carnet", type: "number", required: true },

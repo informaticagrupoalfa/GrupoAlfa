@@ -30,7 +30,7 @@ function useCatalogs() {
     async function load() {
       const safe = (p) => listResource(p).catch(() => [])
       const [usuarios, estudiantes, administrativos, capacitaciones] = await Promise.all([
-        safe("usuarios"), safe("estudiantes"), safe("administrativos"), safe("capacitaciones"),
+        safe("usuarios/catalogo"), safe("estudiantes"), safe("administrativos"), safe("capacitaciones"),
       ])
       if (mounted) {
         setCatalogs({ usuarios, estudiantes, administrativos, capacitaciones })

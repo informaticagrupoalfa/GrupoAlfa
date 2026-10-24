@@ -18,6 +18,8 @@ export default function UsuarioFormModal({
   initial,
   initialRoles,
   initialRoleFields,
+  roleCatalog = [],
+  initialSystemRoles = [],
   saving,
   formError,
   onClose,
@@ -47,6 +49,9 @@ export default function UsuarioFormModal({
     estudiantes: { ...emptyRoleFields().estudiantes, ...(initialRoleFields?.estudiantes ?? {}) },
     apoderados: { ...emptyRoleFields().apoderados, ...(initialRoleFields?.apoderados ?? {}) },
   }))
+  const [systemRoles, setSystemRoles] = useState(() =>
+    Array.isArray(initialSystemRoles) ? initialSystemRoles : [],
+  )
   const [localError, setLocalError] = useState("")
 
   useEffect(() => {
@@ -60,6 +65,13 @@ export default function UsuarioFormModal({
   const set = (name, value) => setValues((prev) => ({ ...prev, [name]: value }))
 
   const toggleRole = (role) => setRoles((prev) => ({ ...prev, [role]: !prev[role] }))
+
+  const toggleSystemRole = (roleName) =>
+    setSystemRoles((prev) =>
+      prev.includes(roleName)
+        ? prev.filter((name) => name !== roleName)
+        : [...prev, roleName],
+    )
 
   const setRoleField = (role, name, value) =>
     setRoleFields((prev) => ({ ...prev, [role]: { ...prev[role], [name]: value } }))
@@ -110,14 +122,15 @@ export default function UsuarioFormModal({
         return
       }
     }
-    onSubmit({ values, roles, roleFields })
+    onSubmit({ values, roles, roleFields, systemRoles })
   }
 
   return (
     <Modal
       title={isCreate ? "Nuevo Usuario" : "Editar Usuario"}
-      hint="Selecciona uno o varios roles. Se mostrarán los campos de cada rol activado."
+      hint="Los roles de acceso definen qué pantallas y APIs puede usar el usuario. Los perfiles agregan datos específicos."
       onClose={onClose}
+      placement={isCreate ? "inline" : "center"}
     >
       <Modal.Body>
         <form onSubmit={handleSubmit}>
@@ -191,7 +204,27 @@ export default function UsuarioFormModal({
           </div>
 
           <div className="form-row">
-            <span className="form-label" id="roles-label">Roles</span>
+            <span className="form-label" id="system-roles-label">Roles de acceso</span>
+            <div className="toggle-group" role="group" aria-labelledby="system-roles-label">
+              {roleCatalog.map((role) => (
+                <button
+                  key={role.id_rol ?? role.nombre}
+                  type="button"
+                  className={systemRoles.includes(role.nombre) ? "toggle-chip active" : "toggle-chip"}
+                  aria-pressed={systemRoles.includes(role.nombre)}
+                  onClick={() => toggleSystemRole(role.nombre)}
+                >
+                  {role.nombre}
+                </button>
+              ))}
+            </div>
+            <p className="muted">
+              SysAdmin, Rooter y Gerencia administran usuarios. Cajero y Administración acceden a la operación académica.
+            </p>
+          </div>
+
+          <div className="form-row">
+            <span className="form-label" id="roles-label">Perfiles</span>
             <div className="toggle-group" role="group" aria-labelledby="roles-label">
               {ROLE_KEYS.map((role) => (
                 <button
@@ -268,6 +301,8 @@ UsuarioFormModal.propTypes = {
   initial: PropTypes.object,
   initialRoles: PropTypes.object,
   initialRoleFields: PropTypes.object,
+  roleCatalog: PropTypes.arrayOf(PropTypes.object),
+  initialSystemRoles: PropTypes.arrayOf(PropTypes.string),
   saving: PropTypes.bool.isRequired,
   formError: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,

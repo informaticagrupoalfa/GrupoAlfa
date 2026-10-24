@@ -86,4 +86,20 @@ const loginUsuarioSchema = z
     }
   );
 
-export { createUsuarioSchema, updateUsuarioSchema, loginUsuarioSchema };
+const updateUsuarioRolesSchema = z.object({
+  roles: z
+    .array(
+      z
+        .string({ invalid_type_error: "Cada rol debe ser texto" })
+        .trim()
+        .min(1, "El nombre del rol no puede estar vacío")
+    )
+    .max(20, "Se enviaron demasiados roles"),
+});
+
+export {
+  createUsuarioSchema,
+  updateUsuarioSchema,
+  loginUsuarioSchema,
+  updateUsuarioRolesSchema,
+};

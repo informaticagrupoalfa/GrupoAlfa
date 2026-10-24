@@ -21,6 +21,21 @@ export async function fetchUsers() {
   }
 }
 
+export async function fetchCurrentUser() {
+  const response = await apiClient.get("/usuarios/me")
+  return response.data
+}
+
+export async function fetchRoleCatalog() {
+  const response = await apiClient.get("/roles")
+  return Array.isArray(response.data) ? response.data : []
+}
+
+export async function updateUsuarioRoles(idUsuario, roles) {
+  const response = await apiClient.put(`/usuarios/${idUsuario}/roles`, { roles })
+  return Array.isArray(response.data?.roles) ? response.data.roles : []
+}
+
 export async function registerUsuario(payload) {
   try {
     const response = await apiClient.post("/usuarios", payload)

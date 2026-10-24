@@ -16,7 +16,7 @@ const TAB_PRELOAD = { asistencias: loadAsistencias, "tomar-clase": loadTomarClas
 
 export default function PaseListaPage() {
   const [active, setActive] = useState("asistencias")
-  const [catalogs, setCatalogs] = useState({ materias: [], asesores: [], capacitaciones: [], temas: [], estudiantes: [], usuarios: [] })
+  const [catalogs, setCatalogs] = useState({ materias: [], asesores: [], capacitaciones: [], temas: [], estudiantes: [], usuarios: [], aulas: [] })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [listVersion, setListVersion] = useState(0)

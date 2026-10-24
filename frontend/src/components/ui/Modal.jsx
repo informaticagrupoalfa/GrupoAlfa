@@ -24,7 +24,24 @@ ModalFooter.propTypes = {
   children: PropTypes.node.isRequired,
 }
 
-export default function Modal({ title, hint, onClose, children }) {
+export default function Modal({ title, hint, onClose, children, placement = "center" }) {
+  if (placement === "inline") {
+    return (
+      <div className="inline-form" role="region" aria-label={title}>
+        <div className="inline-form-header">
+          <button type="button" className="inline-form-title" onClick={onClose}>
+            <h3>{title}</h3>
+            <span className="inline-form-close" aria-hidden="true">
+              ×
+            </span>
+          </button>
+          {hint && <p className="muted inline-form-hint">{hint}</p>}
+        </div>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -45,6 +62,7 @@ Modal.propTypes = {
   hint: PropTypes.string,
   onClose: PropTypes.func.isRequired,
   children: PropTypes.node.isRequired,
+  placement: PropTypes.oneOf(["center", "inline"]),
 }
 
 Modal.Header = ModalHeader
