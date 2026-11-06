@@ -8,6 +8,8 @@ const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
+  console.error(`[error] ${err.statusCode} ${err.message}`, err.stack);
+
   // pg unique violation
   if (err.code === "23505") {
     err.statusCode = 409;
