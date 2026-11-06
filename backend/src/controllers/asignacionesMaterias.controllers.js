@@ -9,7 +9,7 @@ const CURSO_FK = {
 const CURSO_ALIASES = { id_curso: "id_curso_capacitacion", curso: "id_curso_capacitacion" };
 
 const crud = createCrud({
-  table: "asignaciones_materias",
+  table: "materia_curso_capacitacion",
   pk: "id_asignacion_materia",
   label: "Asignación no encontrada",
   writable: ["id_materia", "id_curso_capacitacion"],

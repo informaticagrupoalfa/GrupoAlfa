@@ -28,7 +28,7 @@ export const authMiddleware = async (req, res, next) => {
               u.nombre, u.fecha_nacimiento, u.correo_electronico, u.usuario_vigente,
               COALESCE((
                 SELECT json_agg(r.nombre ORDER BY r.nombre)
-                FROM asignacion_rol ar
+                FROM usuario_rol ar
                 JOIN roles r ON r.id_rol = ar.id_rol
                 WHERE ar.id_usuario = u.id_usuario
               ), '[]'::json) AS roles

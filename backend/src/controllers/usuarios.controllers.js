@@ -7,7 +7,7 @@ const PUBLIC_COLUMNS =
 
 const rolesSubquery = (alias = "usuarios") => `COALESCE((
   SELECT json_agg(r.nombre ORDER BY r.nombre)
-  FROM asignacion_rol ar
+  FROM usuario_rol ar
   JOIN roles r ON r.id_rol = ar.id_rol
   WHERE ar.id_usuario = ${alias}.id_usuario
 ), '[]'::json) AS roles`;
@@ -15,7 +15,7 @@ const rolesSubquery = (alias = "usuarios") => `COALESCE((
 const getRolesForUser = async (idUsuario) => {
   const { rows } = await pool.query(
     `SELECT COALESCE(json_agg(r.nombre ORDER BY r.nombre), '[]'::json) AS roles
-     FROM asignacion_rol ar
+     FROM usuario_rol ar
      JOIN roles r ON r.id_rol = ar.id_rol
      WHERE ar.id_usuario = $1`,
     [idUsuario]
@@ -289,10 +289,10 @@ export const updateUsuarioRoles = async (req, res, next) => {
     }
 
     await client.query("BEGIN");
-    await client.query("DELETE FROM asignacion_rol WHERE id_usuario = $1", [id]);
+    await client.query("DELETE FROM usuario_rol WHERE id_usuario = $1", [id]);
     for (const role of roleRows) {
       await client.query(
-        "INSERT INTO asignacion_rol (id_rol, id_usuario) VALUES ($1, $2)",
+        "INSERT INTO usuario_rol (id_rol, id_usuario) VALUES ($1, $2)",
         [role.id_rol, id]
       );
     }

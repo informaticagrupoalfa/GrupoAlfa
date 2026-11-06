@@ -6,7 +6,7 @@ const crud = createCrud({
   label: "Rol no encontrado",
   writable: ["nombre"],
   deleteGuards: [
-    { table: "asignacion_rol", fk: "id_rol", message: "No se puede eliminar: el rol tiene asignaciones asociadas" },
+    { table: "usuario_rol", fk: "id_rol", message: "No se puede eliminar: el rol tiene asignaciones asociadas" },
   ],
 });
 

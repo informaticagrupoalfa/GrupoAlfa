@@ -10,10 +10,10 @@ const crud = createCrud({
   dateRange: { column: "inicioClase", desdeParam: "desde", hastaParam: "hasta" },
   customFilters: [
     {
-      // La materia llega vía la puente asignaciones_materias (curso ↔ materia).
+      // La materia llega vía la puente materia_curso_capacitacion (curso ↔ materia).
       param: "id_materia",
       clause: (table, p) =>
-        `EXISTS (SELECT 1 FROM asignaciones_materias am WHERE am.id_curso_capacitacion = ${table}.id_curso_capacitacion AND am.id_materia = ${p})`,
+        `EXISTS (SELECT 1 FROM materia_curso_capacitacion am WHERE am.id_curso_capacitacion = ${table}.id_curso_capacitacion AND am.id_materia = ${p})`,
     },
   ],
   fks: [

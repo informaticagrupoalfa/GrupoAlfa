@@ -1,7 +1,7 @@
 import { createCrud } from "../utils/crudFactory.js";
 
 const crud = createCrud({
-  table: "asignacion_rol",
+  table: "usuario_rol",
   pk: "id_asignacion_rol",
   label: "Asignación de rol no encontrada",
   writable: ["id_rol", "id_usuario"],

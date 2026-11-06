@@ -1,7 +1,7 @@
 import { createCrud } from "../utils/crudFactory.js";
 
 const crud = createCrud({
-  table: "materias_asesores",
+  table: "materia_asesor",
   pk: "id_materia_asesor",
   label: "Asignación no encontrada",
   writable: ["id_asesor", "id_materia"],

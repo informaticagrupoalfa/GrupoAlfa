@@ -10,7 +10,7 @@ const CURSO_FK = {
 const CURSO_ALIASES = { id_curso: "id_curso_capacitacion", curso: "id_curso_capacitacion" };
 
 const asesores = createCrud({
-  table: "asignaciones_asesores",
+  table: "asesor_curso_capacitacion",
   pk: "id_asignacion_asesor",
   label: "Asignación no encontrada",
   writable: ["id_asesor", "id_curso_capacitacion"],
