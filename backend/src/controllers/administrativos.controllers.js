@@ -67,12 +67,6 @@ export const deleteAdministrativo = async (req, res, next) => {
     if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
     const exists = await pool.query("SELECT 1 FROM administrativos WHERE id_administrativo = $1", [id]);
     if (exists.rows.length === 0) return res.status(404).json({ message: "Administrativo no encontrado" });
-    const mens = await pool.query("SELECT 1 FROM mensualidades WHERE id_administrativo = $1 LIMIT 1", [id]);
-    if (mens.rows.length > 0)
-      return res.status(409).json({ error: "No se puede eliminar: el administrativo tiene mensualidades asociadas" });
-    const insc = await pool.query("SELECT 1 FROM inscripciones WHERE id_administrativo = $1 LIMIT 1", [id]);
-    if (insc.rows.length > 0)
-      return res.status(409).json({ error: "No se puede eliminar: el administrativo tiene inscripciones asociadas" });
     await pool.query("DELETE FROM administrativos WHERE id_administrativo = $1", [id]);
     return res.sendStatus(204);
   } catch (error) {

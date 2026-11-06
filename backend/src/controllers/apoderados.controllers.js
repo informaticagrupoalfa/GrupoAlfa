@@ -68,9 +68,6 @@ export const deleteApoderado = async (req, res, next) => {
     if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
     const exists = await pool.query("SELECT 1 FROM apoderados WHERE id_apoderado = $1", [id]);
     if (exists.rows.length === 0) return res.status(404).json({ message: "Apoderado no encontrado" });
-    const est = await pool.query("SELECT 1 FROM estudiantes WHERE id_apoderado = $1 LIMIT 1", [id]);
-    if (est.rows.length > 0)
-      return res.status(409).json({ error: "No se puede eliminar: el apoderado tiene estudiantes asociados" });
     await pool.query("DELETE FROM apoderados WHERE id_apoderado = $1", [id]);
     return res.sendStatus(204);
   } catch (error) {
