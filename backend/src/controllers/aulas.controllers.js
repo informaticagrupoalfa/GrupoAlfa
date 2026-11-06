@@ -4,7 +4,7 @@ const crud = createCrud({
   table: "aulas",
   pk: "id_aula",
   label: "Aula no encontrada",
-  writable: ["capacidad"],
+  writable: ["codigo", "capacidad"],
   deleteGuards: [
     {
       table: "cursos_capacitacion",

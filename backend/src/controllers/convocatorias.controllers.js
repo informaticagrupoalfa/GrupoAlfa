@@ -1,3 +1,4 @@
+import { pool } from "../db.js";
 import { createCrud } from "../utils/crudFactory.js";
 
 const crud = createCrud({
@@ -18,7 +19,20 @@ const crud = createCrud({
   ],
 });
 
-export const getConvocatorias = crud.list;
+export const getConvocatorias = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT c.id_convocatoria, c.id_facultad, c.fecha_inicio, f.nombre AS nombre_facultad
+      FROM convocatorias_preuniversitario c
+      JOIN facultades f ON f.id_facultad = c.id_facultad
+      ORDER BY c.id_convocatoria ASC
+    `);
+    res.status(200).json(rows);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getConvocatoriaById = crud.getById;
 export const createConvocatoria = crud.create;
 export const updateConvocatoria = crud.update;

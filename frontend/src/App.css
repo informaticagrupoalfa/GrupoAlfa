@@ -1305,3 +1305,71 @@ button.small {
   width: 100%;
   min-height: 300px;
 }
+
+/* Searchable Select */
+.searchable-select .form-row {
+  margin-top: 12px;
+}
+
+.searchable-wrapper {
+  position: relative;
+}
+
+.searchable-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  margin-bottom: 2px;
+  font-style: italic;
+}
+
+.searchable-list {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.searchable-list li {
+  padding: 10px 12px;
+  color: #0a2540;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f4f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.searchable-list li:last-child {
+  border-bottom: 0;
+}
+
+.searchable-list li:hover {
+  background: #e0f7fe;
+  color: #1976d2;
+}
+
+.searchable-list .searchable-id {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.searchable-list .searchable-empty {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

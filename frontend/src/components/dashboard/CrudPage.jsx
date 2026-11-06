@@ -75,7 +75,7 @@ export default function CrudPage({ entity }) {
       try {
         const payload = { ...values }
         for (const field of entity.fields) {
-          if (field.type === "number") {
+          if (field.type === "number" || field.type === "select") {
             payload[field.name] =
               payload[field.name] === "" || payload[field.name] == null
                 ? field.required ? Number(payload[field.name]) : undefined

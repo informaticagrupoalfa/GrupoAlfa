@@ -2,11 +2,25 @@ import { memo } from "react"
 import PropTypes from "prop-types"
 import { getDisplayName } from "../../config/entities"
 
+function formatDate(value) {
+  if (!value) return "—"
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return value
+  const day = String(d.getDate()).padStart(2, "0")
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
 const Row = memo(function Row({ row, columns, pk, onEdit, onDelete }) {  return (
     <tr>
       {columns.map((col) => (
         <td key={col.key}>
-          {col.key === "nombre_completo" ? getDisplayName(row) || "—" : (row[col.key] ?? "—")}
+          {col.key === "nombre_completo"
+            ? getDisplayName(row) || "—"
+            : col.type === "date"
+              ? formatDate(row[col.key])
+              : row[col.key] ?? "—"}
         </td>
       ))}
       <td className="actions">

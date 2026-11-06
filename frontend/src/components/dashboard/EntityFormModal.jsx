@@ -3,6 +3,8 @@ import PropTypes from "prop-types"
 import Modal from "../ui/Modal"
 import TextField from "../ui/TextField"
 import Button from "../ui/Button"
+import SearchableSelect from "./SearchableSelect"
+import { apiClient } from "../../services/apiClient"
 
 function normalizeInitialValues(entity, initial) {
   const values = { ...(initial ?? {}) }
@@ -18,10 +20,30 @@ function normalizeInitialValues(entity, initial) {
 export default function EntityFormModal({ entity, initial, saving, formError, onClose, onSubmit }) {
   const [values, setValues] = useState(() => normalizeInitialValues(entity, initial))
   const [localError, setLocalError] = useState("")
+  const [selectOptions, setSelectOptions] = useState({})
 
   useEffect(() => {
     setValues(normalizeInitialValues(entity, initial))
   }, [entity, initial])
+
+  useEffect(() => {
+    const fetchSelectOptions = async () => {
+      const opts = {}
+      for (const field of entity.fields) {
+        if (field.type === "select" && field.optionsEndpoint) {
+          try {
+            const { data } = await apiClient.get(`/${field.optionsEndpoint}`)
+            const rows = Array.isArray(data) ? data : data.datos ?? data.rows ?? []
+            opts[field.name] = rows
+          } catch {
+            opts[field.name] = []
+          }
+        }
+      }
+      setSelectOptions(opts)
+    }
+    fetchSelectOptions()
+  }, [entity])
 
   useEffect(() => {
     const onKey = (event) => {
@@ -70,18 +92,35 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
     >
       <Modal.Body>
         <form onSubmit={handleSubmit}>
-          {entity.fields.map((field) => (
-            <TextField
-              key={field.name}
-              id={`f-${field.name}`}
-              label={field.label}
-              type={field.type}
-              value={values[field.name] ?? ""}
-              onChange={(event) => set(field.name, event.target.value)}
-              maxLength={field.maxLength}
-              required={field.required}
-            />
-          ))}
+          {entity.fields.map((field) => {
+            if (field.type === "select") {
+              const options = selectOptions[field.name] ?? []
+              return (
+                <SearchableSelect
+                  key={field.name}
+                  name={field.name}
+                  label={field.label}
+                  value={values[field.name] ?? ""}
+                  onChange={(val) => set(field.name, val)}
+                  options={options}
+                  optionsValue={field.optionsValue}
+                  required={field.required}
+                />
+              )
+            }
+            return (
+              <TextField
+                key={field.name}
+                id={`f-${field.name}`}
+                label={field.label}
+                type={field.type}
+                value={values[field.name] ?? ""}
+                onChange={(event) => set(field.name, event.target.value)}
+                maxLength={field.maxLength}
+                required={field.required}
+              />
+            )
+          })}
           {(localError || formError) && (
             <p className="error-message" role="alert">{localError || formError}</p>
           )}
