@@ -4,6 +4,7 @@ import { fetchCurrentUser } from "../services/usersService"
 
 const TOKEN_KEY = "ga_token"
 const USER_KEY = "ga_user"
+const ACTIVE_ROLE_KEY = "ga_active_role"
 
 export const AuthContext = createContext(null)
 
@@ -16,8 +17,18 @@ function readUser() {
   }
 }
 
+function readActiveRole() {
+  try {
+    return localStorage.getItem(ACTIVE_ROLE_KEY) || null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [loggedUser, setLoggedUser] = useState(readUser)
+  const storedUser = readUser()
+  const [loggedUser, setLoggedUser] = useState(storedUser)
+  const [activeRole, setActiveRoleState] = useState(readActiveRole)
   const [token, setToken] = useState(() => {
     try {
       return localStorage.getItem(TOKEN_KEY)
@@ -28,6 +39,7 @@ export function AuthProvider({ children }) {
 
   const signIn = useCallback((user, nextToken = null) => {
     setLoggedUser(user)
+    setActiveRoleState(user?.roles?.[0] || null)
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(user))
       if (nextToken) {
@@ -39,12 +51,26 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const switchRole = useCallback((role) => {
+    if (!loggedUser) return
+    const roles = Array.isArray(loggedUser.roles) ? loggedUser.roles : []
+    if (!roles.includes(role)) return
+    setActiveRoleState(role)
+    try {
+      localStorage.setItem(ACTIVE_ROLE_KEY, role)
+    } catch {
+      // almacenamiento no disponible
+    }
+  }, [loggedUser])
+
   const signOut = useCallback(() => {
     setLoggedUser(null)
+    setActiveRoleState(null)
     setToken(null)
     try {
       localStorage.removeItem(USER_KEY)
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(ACTIVE_ROLE_KEY)
     } catch {
       // almacenamiento no disponible
     }
@@ -69,9 +95,11 @@ export function AuthProvider({ children }) {
     }
   }, [token, signIn, signOut])
 
+  const effectiveRole = activeRole || (loggedUser?.roles?.[0] || null)
+
   const value = useMemo(
-    () => ({ loggedUser, token, signIn, signOut }),
-    [loggedUser, token, signIn, signOut],
+    () => ({ loggedUser, token, activeRole: effectiveRole, signIn, switchRole, signOut }),
+    [loggedUser, token, activeRole, effectiveRole, signIn, switchRole, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

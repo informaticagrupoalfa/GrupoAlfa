@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom"
 import BrandLogo from "../ui/BrandLogo"
 import { ENTITIES, ENTITY_ORDER } from "../../config/entities"
-import { canAccessModule } from "../../config/permissions"
+import { canAccessModuleWithRole } from "../../config/permissions"
 import { useAuth } from "../../hooks/useAuth"
 
 const lazyCrud = () => import("./CrudPage.jsx")
@@ -10,13 +10,13 @@ const lazyPaseLista = () => import("../../pages/app/PaseListaPage.jsx")
 const lazyDataExplorer = () => import("../../pages/app/DataExplorerPage.jsx")
 
 export default function Sidebar() {
-  const { loggedUser } = useAuth()
+  const { loggedUser, activeRole } = useAuth()
   const visibleEntities = ENTITY_ORDER.filter(
-    (key) => !ENTITIES[key].hideFromNav && canAccessModule(loggedUser, key),
+    (key) => !ENTITIES[key].hideFromNav && canAccessModuleWithRole(loggedUser, activeRole, key),
   )
 
   const navItems = []
-  if (canAccessModule(loggedUser, "dashboard")) {
+  if (canAccessModuleWithRole(loggedUser, activeRole, "dashboard")) {
     navItems.push({
       key: "dashboard",
       label: "Dashboard",
@@ -32,7 +32,7 @@ export default function Sidebar() {
       preload: lazyCrud,
     })
   })
-  if (canAccessModule(loggedUser, "pase-lista")) {
+  if (canAccessModuleWithRole(loggedUser, activeRole, "pase-lista")) {
     navItems.push({
       key: "pase-lista",
       label: "Llamar lista",
@@ -40,7 +40,7 @@ export default function Sidebar() {
       preload: lazyPaseLista,
     })
   }
-  if (canAccessModule(loggedUser, "datos")) {
+  if (canAccessModuleWithRole(loggedUser, activeRole, "datos")) {
     navItems.push({
       key: "datos",
       label: "Explorador de datos",

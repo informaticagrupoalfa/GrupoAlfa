@@ -1,12 +1,13 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import Sidebar from "../components/dashboard/Sidebar"
 import ModuleNavbar from "../components/dashboard/ModuleNavbar"
+import RoleSelector from "../components/dashboard/RoleSelector"
 import { ENTITIES } from "../config/entities"
 import { getModuleTabConfig } from "../config/moduleTabs"
 import { useAuth } from "../hooks/useAuth"
 
 export default function DashboardLayout() {
-  const { loggedUser, signOut } = useAuth()
+  const { loggedUser, signOut, activeRole } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const key = location.pathname.split("/")[2] ?? "dashboard"
@@ -40,6 +41,8 @@ export default function DashboardLayout() {
           </div>
           <div className="header-user">
             <span className="muted">{loggedUser?.nombre ?? "Usuario"}</span>
+            {activeRole && <span className="muted">({activeRole})</span>}
+            <RoleSelector />
             <Link className="header-profile-link" to="/app/perfil">
               Mi perfil
             </Link>

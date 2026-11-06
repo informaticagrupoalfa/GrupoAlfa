@@ -41,6 +41,13 @@ export function canAccessModule(user, moduleKey) {
   return hasAllowedRole(user, ACCESS_ROLE_GROUPS[group])
 }
 
+export function canAccessModuleWithRole(user, activeRole, moduleKey) {
+  const group = MODULE_ACCESS[moduleKey]
+  if (!group) return false
+  const allowedRoles = ACCESS_ROLE_GROUPS[group]
+  return allowedRoles.includes(activeRole)
+}
+
 export function getDefaultAppPath(user) {
   const moduleKey = DEFAULT_MODULE_ORDER.find((key) => canAccessModule(user, key))
   if (!moduleKey) return "/app/sin-acceso"
