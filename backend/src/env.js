@@ -1,4 +1,9 @@
-import 'dotenv/config';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { config } from "dotenv";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '../.env'), override: true });
 
 /**
  * Lee una variable de entorno obligatoria.
@@ -18,7 +23,7 @@ function toBoolean(value, fallback = false) {
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 /**
  * Parámetros SSL que `pg` interpreta al parsear `DATABASE_URL`.
