@@ -1,24 +1,24 @@
 import { createCrud } from "../utils/crudFactory.js";
 
-const CURSO_FK = {
-  column: "id_curso_capacitacion",
-  table: "cursos_capacitacion",
-  pk: "id_capacitacion",
-  message: "El curso de capacitación no existe",
+const PARALELO_FK = {
+  column: "id_paralelo",
+  table: "paralelos",
+  pk: "id_paralelo",
+  message: "El paralelo no existe",
 };
 // Alias cortos aceptados como filtro (?id_curso= / ?curso=).
-const CURSO_ALIASES = { id_curso: "id_curso_capacitacion", curso: "id_curso_capacitacion" };
+const PARALELO_ALIASES = { id_curso: "id_paralelo", curso: "id_paralelo" };
 
 const asesores = createCrud({
-  table: "asesor_curso_capacitacion",
+  table: "asesor_paralelo",
   pk: "id_asignacion_asesor",
   label: "Asignación no encontrada",
-  writable: ["id_asesor", "id_curso_capacitacion"],
-  filters: ["id_asesor", "id_curso_capacitacion"],
-  filterAliases: CURSO_ALIASES,
+  writable: ["id_asesor", "id_paralelo"],
+  filters: ["id_asesor", "id_paralelo"],
+  filterAliases: PARALELO_ALIASES,
   fks: [
     { column: "id_asesor", table: "asesores", pk: "id_asesor", message: "El asesor no existe" },
-    CURSO_FK,
+    PARALELO_FK,
   ],
 });
 

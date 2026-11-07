@@ -3,7 +3,7 @@ import Skeleton from "../ui/Skeleton"
 import Button from "../ui/Button"
 import TextField from "../ui/TextField"
 import { createResource, listResource } from "../../services/academicService"
-import { guardarListaEnBD, loadEstudiantesPorCurso } from "../../services/paseListaService"
+import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../services/paseListaService"
 import "./TomarClase.css"
 
 // split-dynamic-imports: la tabla solo se carga cuando hay curso seleccionado.
@@ -15,7 +15,7 @@ const initialForm = {
   idAsesor: "",
   horaInicio: "",
   horaFin: "",
-  idCurso: "",
+  idParalelo: "",
   idAula: "",
   fecha: new Date().toISOString().slice(0, 10),
   idTema: "",
@@ -57,9 +57,27 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
     userName(usuariosById.get(String(est.id_usuario))) ??
     `Estudiante ${est.id_estudiante}`
 
+  const paraleloSeleccionado = useMemo(
+    () => (catalogs.paralelos ?? []).find((p) => String(p.id_paralelo) === String(form.idParalelo)),
+    [catalogs.paralelos, form.idParalelo],
+  )
+
+  const materiasDelParalelo = useMemo(() => {
+    if (!paraleloSeleccionado) return null
+    const ids = new Set(
+      (catalogs.materiasCapacitacion ?? [])
+        .filter((mc) => String(mc.id_capacitacion) === String(paraleloSeleccionado.id_capacitacion))
+        .map((mc) => String(mc.id_materia)),
+    )
+    return ids
+  }, [catalogs.materiasCapacitacion, paraleloSeleccionado])
+
   const materiaOptions = useMemo(
-    () => (catalogs.materias ?? []).map((m) => ({ value: m.id_materia, label: m.nombre_materia })),
-    [catalogs.materias],
+    () =>
+      (catalogs.materias ?? [])
+        .filter((m) => !materiasDelParalelo || materiasDelParalelo.has(String(m.id_materia)))
+        .map((m) => ({ value: m.id_materia, label: m.nombre_materia })),
+    [catalogs.materias, materiasDelParalelo],
   )
   const asesorOptions = useMemo(
     () =>
@@ -69,13 +87,13 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
       })),
     [catalogs.asesores, usuariosById],
   )
-  const cursoOptions = useMemo(
+  const paraleloOptions = useMemo(
     () =>
-      (catalogs.capacitaciones ?? []).map((c) => ({
-        value: c.id_capacitacion,
-        label: `${c.nombre}${c.nivel ? ` (${c.nivel})` : ""}`,
+      (catalogs.paralelos ?? []).map((p) => ({
+        value: p.id_paralelo,
+        label: `${p.nombre_paralelo}${p.nivel ? ` (${p.nivel})` : ""}${p.dias ? ` · ${p.dias}` : ""}`,
       })),
-    [catalogs.capacitaciones],
+    [catalogs.paralelos],
   )
   const aulaOptions = useMemo(
     () =>
@@ -94,16 +112,11 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
     [temasLocal, form.idTema],
   )
 
-  const cursoSeleccionado = useMemo(
-    () => (catalogs.capacitaciones ?? []).find((c) => String(c.id_capacitacion) === String(form.idCurso)),
-    [catalogs.capacitaciones, form.idCurso],
-  )
-
-  // Al elegir curso: autocompleta aula/horario y carga la lista de abajo.
+  // Al elegir paralelo: autocompleta aula/horario y carga la lista de abajo.
   useEffect(() => {
     let mounted = true
     async function loadAlumnos() {
-      if (!form.idCurso) {
+      if (!form.idParalelo) {
         setAlumnos([])
         setAlumnosNota("")
         setAsistencia({})
@@ -112,15 +125,15 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
       setLoadingAlumnos(true)
       setGuardado("")
       try {
-        if (cursoSeleccionado) {
+        if (paraleloSeleccionado) {
           setForm((prev) => ({
             ...prev,
-            idAula: prev.idAula || (cursoSeleccionado.id_aula != null ? String(cursoSeleccionado.id_aula) : ""),
-            horaInicio: prev.horaInicio || String(cursoSeleccionado.hora_inicio ?? "").slice(0, 5),
-            horaFin: prev.horaFin || String(cursoSeleccionado.hora_fin ?? "").slice(0, 5),
+            idAula: prev.idAula || (paraleloSeleccionado.id_aula != null ? String(paraleloSeleccionado.id_aula) : ""),
+            horaInicio: prev.horaInicio || String(paraleloSeleccionado.hora_inicio ?? "").slice(0, 5),
+            horaFin: prev.horaFin || String(paraleloSeleccionado.hora_fin ?? "").slice(0, 5),
           }))
         }
-        const matriculas = await loadEstudiantesPorCurso(form.idCurso)
+        const matriculas = await loadEstudiantesPorParalelo(form.idParalelo)
         let lista = []
         let nota = ""
         if (Array.isArray(matriculas) && matriculas.length > 0) {
@@ -130,7 +143,7 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
         } else {
           const todos = await listResource("estudiantes").catch(() => catalogs.estudiantes ?? [])
           lista = Array.isArray(todos) ? todos : []
-          nota = "El backend aún no expone matriculaciones por curso; se muestran todos los estudiantes registrados."
+          nota = "El paralelo no tiene matrículas registradas; se muestran todos los estudiantes."
         }
         if (mounted) {
           setAlumnos(lista)
@@ -149,7 +162,14 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
     loadAlumnos()
     return () => { mounted = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.idCurso])
+  }, [form.idParalelo])
+
+  useEffect(() => {
+    if (!form.idMateria || materiaOptions.length === 0) return
+    if (!materiaOptions.some((m) => String(m.value) === String(form.idMateria))) {
+      setForm((prev) => ({ ...prev, idMateria: "" }))
+    }
+  }, [form.idMateria, materiaOptions])
 
   const setField = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value == null ? "" : String(value) }))
@@ -211,8 +231,8 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
 
   const handleGuardar = async () => {
     if (saving) return
-    if (!form.idMateria || !form.idAsesor || !form.idCurso || !form.idAula || !form.idTema) {
-      setGuardado("Elige materia, asesor, curso, aula y tema avanzado de las sugerencias antes de guardar.")
+    if (!form.idMateria || !form.idAsesor || !form.idParalelo || !form.idAula || !form.idTema) {
+      setGuardado("Elige materia, asesor, paralelo, aula y tema avanzado de las sugerencias antes de guardar.")
       return
     }
     if (!form.horaInicio || !form.horaFin) {
@@ -239,7 +259,7 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
     try {
       const horario = `${form.horaInicio} - ${form.horaFin}`
       const { idClase, fallos } = await guardarListaEnBD({
-        idCurso: form.idCurso,
+        idParalelo: form.idParalelo,
         idAsesor: form.idAsesor,
         idTema: Number(form.idTema),
         fecha: form.fecha,
@@ -256,7 +276,8 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
         horario,
         aula: form.idAula,
         temaAvanzado: temaSeleccionado?.nombre_tema ?? "",
-        curso: cursoSeleccionado?.nombre ?? "",
+        curso: paraleloSeleccionado?.nombre_paralelo ?? "",
+        paralelo: paraleloSeleccionado?.nombre_paralelo ?? "",
         id_clase: idClase,
         lista: marcados,
       }
@@ -284,11 +305,11 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
       <div className="tc-head">
         <div>
           <h3 className="tc-title">
-            {cursoSeleccionado?.nombre ?? "Arma la sesión y pasa lista"}
+            {paraleloSeleccionado?.nombre_paralelo ?? "Arma la sesión y pasa lista"}
           </h3>
           <p className="tc-sub">
-            {cursoSeleccionado
-              ? `${cursoSeleccionado.nombre ?? ""}${cursoSeleccionado.nivel ? ` · ${cursoSeleccionado.nivel}` : ""} · ${alumnos.length} en lista`
+            {paraleloSeleccionado
+              ? `${paraleloSeleccionado.nombre_paralelo ?? ""}${paraleloSeleccionado.nivel ? ` · ${paraleloSeleccionado.nivel}` : ""}${paraleloSeleccionado.dias ? ` · ${paraleloSeleccionado.dias}` : ""} · ${alumnos.length} en lista`
               : "Completa los tres bloques y marca la asistencia abajo."}
           </p>
         </div>
@@ -373,13 +394,13 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
               <h3>Quién y dónde</h3>
               <Suspense fallback={<Skeleton lines={1} />}>
                 <PersonCombobox
-                  key={`curso-${form.idCurso}`}
-                  id="pl-curso"
-                  label="Curso de capacitación"
-                  options={cursoOptions}
-                  value={form.idCurso || null}
-                  onSelect={(v) => setField("idCurso", v)}
-                  placeholder="Escribe para buscar curso..."
+                  key={`paralelo-${form.idParalelo}`}
+                  id="pl-paralelo"
+                  label="Paralelo"
+                  options={paraleloOptions}
+                  value={form.idParalelo || null}
+                  onSelect={(v) => setField("idParalelo", v)}
+                  placeholder="Escribe para buscar paralelo..."
                   hint="Al elegirlo se autocompletan aula y horario."
                 />
               </Suspense>
@@ -430,15 +451,15 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
         </div>
 
         <div>
-          {!form.idCurso ? (
+          {!form.idParalelo ? (
             <div className="tc-empty">
-              <strong>Elige un curso para ver su lista.</strong>
+              <strong>Elige un paralelo para ver su lista.</strong>
               <p style={{ margin: "6px 0 0" }}>Los estudiantes aparecen aquí con un interruptor grande de Presente / Ausente, pensado para marcar rápido en clase.</p>
             </div>
           ) : loadingAlumnos ? (
             <Skeleton lines={5} />
           ) : alumnos.length === 0 ? (
-            <div className="tc-empty">No hay estudiantes registrados en este curso.</div>
+            <div className="tc-empty">No hay estudiantes registrados en este paralelo.</div>
           ) : (
             <Suspense fallback={<Skeleton lines={5} />}>
               <PaseListaTable
@@ -455,7 +476,7 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
         </div>
       </div>
 
-      {form.idCurso && alumnos.length > 0 && (
+      {form.idParalelo && alumnos.length > 0 && (
         <div className="tc-foot">
           <Button type="button" onClick={handleGuardar} disabled={saving}>{saving ? "Guardando..." : `Guardar lista · ${marcados}/${total}`}</Button>
           {guardado && <span className="tc-status" role="status">{guardado}</span>}

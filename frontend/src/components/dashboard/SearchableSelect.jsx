@@ -12,7 +12,7 @@ function defaultOptionLabel(opt) {
       return `${opt.nombre_facultad} - ${dia}/${mes}/${anio}`
     }
   }
-  return opt.codigo ?? opt.nombre ?? opt.nombre_completo ?? opt.id ?? ""
+  return opt.codigo ?? opt.nombre_paralelo ?? opt.nombre_materia ?? opt.nombre_tema ?? opt.nombre ?? opt.nombre_completo ?? opt.id ?? ""
 }
 
 export default function SearchableSelect({

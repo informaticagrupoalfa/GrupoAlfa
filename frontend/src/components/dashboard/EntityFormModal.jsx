@@ -79,7 +79,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
         return
       }
     }
-    if (entity.key === "capacitaciones" && values.hora_inicio && values.hora_fin) {
+    if (entity.key === "paralelos" && values.hora_inicio && values.hora_fin) {
       if (values.hora_fin <= values.hora_inicio) {
         setLocalError("La hora de fin debe ser mayor que la de inicio.")
         return

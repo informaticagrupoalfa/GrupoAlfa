@@ -14,7 +14,17 @@ export default function PaseListaPage() {
   const [searchParams] = useSearchParams()
   const requestedTab = searchParams.get("tab")
   const active = TABS.includes(requestedTab) ? requestedTab : "asistencias"
-  const [catalogs, setCatalogs] = useState({ materias: [], asesores: [], capacitaciones: [], temas: [], estudiantes: [], usuarios: [], aulas: [] })
+  const [catalogs, setCatalogs] = useState({
+    materias: [],
+    asesores: [],
+    capacitaciones: [],
+    paralelos: [],
+    temas: [],
+    estudiantes: [],
+    usuarios: [],
+    aulas: [],
+    materiasCapacitacion: [],
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [listVersion, setListVersion] = useState(0)

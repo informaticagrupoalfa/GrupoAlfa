@@ -28,7 +28,7 @@ const errorHandler = (err, req, res, next) => {
   // pg foreign key violation
   if (err.code === "23503") {
     err.statusCode = 409;
-    err.message = "No se puede eliminar: el usuario tiene registros asociados";
+    err.message = "No se puede eliminar: el registro tiene datos asociados";
   }
 
   // pg invalid text representation (e.g. int)
@@ -38,9 +38,14 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // pg check constraint violation
-  if (err.code === "23514" && err.constraint === "chk_cursos_capacitacion_fechas") {
+  if (err.code === "23514" && err.constraint === "chk_capacitaciones_fechas") {
     err.statusCode = 400;
     err.message = "La fecha de fin no puede ser anterior a la fecha de inicio";
+  }
+
+  if (err.code === "23514" && err.constraint === "chk_paralelos_horas") {
+    err.statusCode = 400;
+    err.message = "La hora de fin debe ser posterior a la hora de inicio";
   }
 
   res.status(err.statusCode).json({

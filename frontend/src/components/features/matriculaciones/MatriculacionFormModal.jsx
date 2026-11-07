@@ -17,14 +17,14 @@ const toNumberOrUndefined = (value) => {
 export default function MatriculacionFormModal({
   initial,
   fetchEstudiantes,
-  cursoOptions,
+  paraleloOptions,
   saving,
   formError,
   onClose,
   onSubmit,
 }) {
   const [idEstudiante, setIdEstudiante] = useState(initial?.id_estudiante ?? null)
-  const [idCurso, setIdCurso] = useState(initial?.id_curso_capacitacion ? String(initial.id_curso_capacitacion) : "")
+  const [idParalelo, setIdParalelo] = useState(initial?.id_paralelo ? String(initial.id_paralelo) : "")
   const [estaVigente, setEstaVigente] = useState(initial?.esta_vigente ?? true)
   const [nroComprobante, setNroComprobante] = useState(initial?.nro_comprobante ?? "")
   const [nroCredencial, setNroCredencial] = useState(initial?.nro_credencial ?? "")
@@ -45,13 +45,13 @@ export default function MatriculacionFormModal({
       setLocalError("Debes elegir un estudiante de las sugerencias.")
       return
     }
-    if (!idCurso) {
-      setLocalError('El campo "Curso de capacitación" es obligatorio.')
+    if (!idParalelo) {
+      setLocalError('El campo "Paralelo" es obligatorio.')
       return
     }
     onSubmit({
       id_estudiante: Number(idEstudiante),
-      id_curso_capacitacion: Number(idCurso),
+      id_paralelo: Number(idParalelo),
       esta_vigente: Boolean(estaVigente),
       nro_comprobante: toNumberOrUndefined(nroComprobante),
       nro_credencial: toNumberOrUndefined(nroCredencial),
@@ -61,7 +61,7 @@ export default function MatriculacionFormModal({
   return (
     <Modal
       title={initial?.id_matriculacion != null ? "Editar matriculación" : "Nueva matriculación"}
-      hint="Relaciona un estudiante con un curso de capacitación."
+      hint="Relaciona un estudiante con un paralelo."
       onClose={onClose}
     >
       <Modal.Body>
@@ -78,11 +78,11 @@ export default function MatriculacionFormModal({
             />
           </Suspense>
           <div className="form-row">
-            <label htmlFor="m-curso">Curso de capacitación</label>
-            <select id="m-curso" value={idCurso} onChange={(e) => setIdCurso(e.target.value)} required>
+            <label htmlFor="m-paralelo">Paralelo</label>
+            <select id="m-paralelo" value={idParalelo} onChange={(e) => setIdParalelo(e.target.value)} required>
               <option value="">Selecciona…</option>
-              {cursoOptions.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {paraleloOptions.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
           </div>
@@ -129,7 +129,7 @@ export default function MatriculacionFormModal({
 MatriculacionFormModal.propTypes = {
   initial: PropTypes.object,
   fetchEstudiantes: PropTypes.func.isRequired,
-  cursoOptions: PropTypes.array.isRequired,
+  paraleloOptions: PropTypes.array.isRequired,
   saving: PropTypes.bool.isRequired,
   formError: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,

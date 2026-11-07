@@ -17,7 +17,7 @@ export const MODULE_TABS = {
   capacitaciones: {
     path: "/app/capacitaciones",
     defaultTab: "capacitaciones",
-    items: buildTabs(["capacitaciones", "convocatorias", "facultades", "aulas", "materias", "temas"]),
+    items: buildTabs(["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias", "temas"]),
   },
   matriculaciones: {
     path: "/app/matriculaciones",

@@ -3,41 +3,61 @@ import { createResource, deleteResource, listResource } from "./academicService"
 /**
  * Catálogos necesarios para el pase de lista.
  * Reutiliza los endpoints CRUD existentes (materias, asesores,
- * capacitaciones, temas, estudiantes, usuarios).
+ * capacitaciones, paralelos, temas, estudiantes, usuarios).
  */
 export async function loadPaseListaCatalogs() {
-  const [materias, asesores, capacitaciones, temas, estudiantes, usuarios, aulas, asignacionesMaterias] =
-    await Promise.all([
-      listResource("materias").catch(() => []),
-      listResource("asesores").catch(() => []),
-      listResource("capacitaciones").catch(() => []),
-      listResource("temas").catch(() => []),
-      listResource("estudiantes").catch(() => []),
-      listResource("usuarios/catalogo").catch(() => []),
-      listResource("aulas").catch(() => []),
-      listResource("asignaciones-materias").catch(() => []),
-    ])
-  return { materias, asesores, capacitaciones, temas, estudiantes, usuarios, aulas, asignacionesMaterias }
+  const [
+    materias,
+    asesores,
+    capacitaciones,
+    paralelos,
+    temas,
+    estudiantes,
+    usuarios,
+    aulas,
+    materiasCapacitacion,
+  ] = await Promise.all([
+    listResource("materias").catch(() => []),
+    listResource("asesores").catch(() => []),
+    listResource("capacitaciones").catch(() => []),
+    listResource("paralelos").catch(() => []),
+    listResource("temas").catch(() => []),
+    listResource("estudiantes").catch(() => []),
+    listResource("usuarios/catalogo").catch(() => []),
+    listResource("aulas").catch(() => []),
+    listResource("materias-capacitacion").catch(() => []),
+  ])
+  return {
+    materias,
+    asesores,
+    capacitaciones,
+    paralelos,
+    temas,
+    estudiantes,
+    usuarios,
+    aulas,
+    materiasCapacitacion,
+  }
 }
 
 /**
- * Estudiantes registrados en un curso de capacitación.
- * Intenta el endpoint de matriculaciones cuando exista
- * (`GET /matriculaciones?id_curso_capacitacion=...` o `/matriculaciones/curso/:id`);
- * si el backend aún no lo expone, devuelve `null` para que la UI
- * aplique el fallback (todos los estudiantes) con aviso.
+ * Estudiantes registrados en un paralelo.
+ * Devuelve `null` si no se puede consultar para que la UI aplique
+ * el fallback (todos los estudiantes) con aviso.
  */
-export async function loadEstudiantesPorCurso(idCurso) {
-  if (!idCurso) return null
-  const params = { id_curso_capacitacion: idCurso, id_curso: idCurso, curso: idCurso }
+export async function loadEstudiantesPorParalelo(idParalelo) {
+  if (!idParalelo) return null
   try {
-    const rows = await listResource("matriculaciones", params)
+    const rows = await listResource("matriculaciones", { id_paralelo: idParalelo })
     if (Array.isArray(rows)) return rows
     return null
   } catch {
     return null
   }
 }
+
+/** Compatibilidad con llamadas antiguas. */
+export const loadEstudiantesPorCurso = loadEstudiantesPorParalelo
 
 /**
  * Resuelve el id de un tema por su nombre (case-insensitive).
@@ -72,10 +92,10 @@ function toApiError(error, fallback) {
  * (presente → hora_entrada; ausente → hora_entrada + permiso false).
  * Devuelve `{ idClase, fallos }`.
  */
-export async function guardarListaEnBD({ idCurso, idAsesor, idTema, fecha, marcados }) {
+export async function guardarListaEnBD({ idParalelo, idAsesor, idTema, fecha, marcados }) {
   const hora = new Date().toTimeString().slice(0, 8)
   const clase = await createResource("clases", {
-    id_curso_capacitacion: Number(idCurso),
+    id_paralelo: Number(idParalelo),
     id_asesor: Number(idAsesor),
     ...(idTema != null ? { id_tema: Number(idTema) } : {}),
     inicioClase: fecha,
@@ -102,11 +122,11 @@ export async function guardarListaEnBD({ idCurso, idAsesor, idTema, fecha, marca
  * `limit`/`offset` los aplica el backend; para detectar página siguiente
  * se pide `limit + 1` (técnica hasMore sin cambiar el formato array).
  */
-export async function fetchClasesFiltradas({ desde, hasta, idCurso, idMateria, idTema, limit, offset }) {
+export async function fetchClasesFiltradas({ desde, hasta, idParalelo, idMateria, idTema, limit, offset }) {
   const params = {}
   if (desde) params.desde = desde
   if (hasta) params.hasta = hasta
-  if (idCurso) params.id_curso_capacitacion = idCurso
+  if (idParalelo) params.id_paralelo = idParalelo
   if (idMateria) params.id_materia = idMateria
   if (idTema) params.id_tema = idTema
   if (limit != null) params.limit = limit

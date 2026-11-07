@@ -4,24 +4,30 @@ const crud = createCrud({
   table: "clases",
   pk: "id_clase",
   label: "Clase no encontrada",
-  writable: ["id_curso_capacitacion", "id_asesor", "id_tema", "inicioClase"],
-  filters: ["id_curso_capacitacion", "id_asesor", "id_tema"],
-  filterAliases: { id_curso: "id_curso_capacitacion", curso: "id_curso_capacitacion" },
+  writable: ["id_paralelo", "id_asesor", "id_tema", "inicioClase"],
+  filters: ["id_paralelo", "id_asesor", "id_tema"],
+  filterAliases: { id_curso: "id_paralelo", curso: "id_paralelo" },
   dateRange: { column: "inicioClase", desdeParam: "desde", hastaParam: "hasta" },
   customFilters: [
     {
-      // La materia llega vía la puente materia_curso_capacitacion (curso ↔ materia).
+      // La materia llega vía la puente materia_capacitacion (paralelo → capacitación ↔ materia).
       param: "id_materia",
       clause: (table, p) =>
-        `EXISTS (SELECT 1 FROM materia_curso_capacitacion am WHERE am.id_curso_capacitacion = ${table}.id_curso_capacitacion AND am.id_materia = ${p})`,
+        `EXISTS (
+          SELECT 1
+          FROM paralelos p
+          JOIN materia_capacitacion mc ON mc.id_capacitacion = p.id_capacitacion
+          WHERE p.id_paralelo = ${table}.id_paralelo
+            AND mc.id_materia = ${p}
+        )`,
     },
   ],
   fks: [
     {
-      column: "id_curso_capacitacion",
-      table: "cursos_capacitacion",
-      pk: "id_capacitacion",
-      message: "El curso de capacitación no existe",
+      column: "id_paralelo",
+      table: "paralelos",
+      pk: "id_paralelo",
+      message: "El paralelo no existe",
     },
     { column: "id_asesor", table: "asesores", pk: "id_asesor", message: "El asesor no existe" },
     { column: "id_tema", table: "temas", pk: "id_tema", message: "El tema no existe" },

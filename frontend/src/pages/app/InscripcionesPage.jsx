@@ -13,13 +13,14 @@ import ErrorFallback from "../../components/ui/ErrorFallback"
 
 const PAGE_SIZE = 25
 
-const CATALOGOS = ["carreras", "capacitaciones", "convocatorias", "administrativos", "apoderados"]
+const CATALOGOS = ["carreras", "capacitaciones", "convocatorias", "paralelos", "administrativos", "apoderados"]
 
 function useInscripcionCatalogos() {
   const [catalogos, setCatalogos] = useState({
     carreras: [],
-    cursos: [],
+    capacitaciones: [],
     convocatorias: [],
+    paralelos: [],
     administrativos: [],
     apoderados: [],
   })
@@ -32,14 +33,14 @@ function useInscripcionCatalogos() {
         if (!mounted) return
         const next = {
           carreras: [],
-          cursos: [],
+          capacitaciones: [],
           convocatorias: [],
+          paralelos: [],
           administrativos: [],
           apoderados: [],
         }
         results.forEach((result, index) => {
-          const key = CATALOGOS[index] === "capacitaciones" ? "cursos" : CATALOGOS[index]
-          next[key] = result.status === "fulfilled" && Array.isArray(result.value)
+          next[CATALOGOS[index]] = result.status === "fulfilled" && Array.isArray(result.value)
             ? result.value
             : []
         })
@@ -54,7 +55,7 @@ function useInscripcionCatalogos() {
   return { ...catalogos, isLoading }
 }
 
-function buildCursosPorCarrera(carreras, convocatorias, cursos) {
+function buildParalelosPorCarrera(carreras, convocatorias, capacitaciones, paralelos) {
   const convocatoriasPorFacultad = new Map()
   convocatorias.forEach((convocatoria) => {
     const key = String(convocatoria.id_facultad)
@@ -62,17 +63,45 @@ function buildCursosPorCarrera(carreras, convocatorias, cursos) {
     convocatoriasPorFacultad.get(key).add(String(convocatoria.id_convocatoria))
   })
 
+  const capacitacionesPorConvocatoria = new Map()
+  capacitaciones
+    .filter((capacitacion) => capacitacion.activo !== false)
+    .forEach((capacitacion) => {
+      const key = String(capacitacion.id_convocatoria)
+      if (!capacitacionesPorConvocatoria.has(key)) capacitacionesPorConvocatoria.set(key, [])
+      capacitacionesPorConvocatoria.get(key).push(capacitacion)
+    })
+
+  const paralelosPorCapacitacion = new Map()
+  paralelos
+    .filter((paralelo) => paralelo.activo !== false)
+    .forEach((paralelo) => {
+      const key = String(paralelo.id_capacitacion)
+      if (!paralelosPorCapacitacion.has(key)) paralelosPorCapacitacion.set(key, [])
+      paralelosPorCapacitacion.get(key).push(paralelo)
+    })
+
   const result = new Map()
   carreras.forEach((carrera) => {
-    const ids = convocatoriasPorFacultad.get(String(carrera.id_facultad)) ?? new Set()
-    const disponibles = cursos
-      .filter((curso) => curso.activo !== false && ids.has(String(curso.id_convocatoria)))
-      .sort((a, b) => {
-        const fechaA = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : Number.MAX_SAFE_INTEGER
-        const fechaB = b.fecha_inicio ? new Date(b.fecha_inicio).getTime() : Number.MAX_SAFE_INTEGER
-        if (fechaA !== fechaB) return fechaA - fechaB
-        return String(a.nombre ?? "").localeCompare(String(b.nombre ?? ""))
-      })
+    const convocatoriaIds = convocatoriasPorFacultad.get(String(carrera.id_facultad)) ?? new Set()
+    const disponibles = []
+    convocatoriaIds.forEach((idConvocatoria) => {
+      for (const capacitacion of capacitacionesPorConvocatoria.get(idConvocatoria) ?? []) {
+        for (const paralelo of paralelosPorCapacitacion.get(String(capacitacion.id_capacitacion)) ?? []) {
+          disponibles.push({ ...paralelo, capacitacion })
+        }
+      }
+    })
+    disponibles.sort((a, b) => {
+      const fechaA = a.capacitacion?.fecha_inicio
+        ? new Date(a.capacitacion.fecha_inicio).getTime()
+        : Number.MAX_SAFE_INTEGER
+      const fechaB = b.capacitacion?.fecha_inicio
+        ? new Date(b.capacitacion.fecha_inicio).getTime()
+        : Number.MAX_SAFE_INTEGER
+      if (fechaA !== fechaB) return fechaA - fechaB
+      return String(a.nombre_paralelo ?? "").localeCompare(String(b.nombre_paralelo ?? ""))
+    })
     result.set(String(carrera.id_carrera), disponibles)
   })
 
@@ -170,8 +199,9 @@ export default function InscripcionesPage() {
   const inscripcionId = searchParams.get("id")
   const {
     carreras,
-    cursos,
+    capacitaciones,
     convocatorias,
+    paralelos,
     administrativos,
     apoderados,
     isLoading,
@@ -187,9 +217,9 @@ export default function InscripcionesPage() {
     carrera.nombre ?? `Carrera ${carrera.id_carrera}`,
   ])), [carreras])
 
-  const cursosPorCarrera = useMemo(
-    () => buildCursosPorCarrera(carreras, convocatorias, cursos),
-    [carreras, convocatorias, cursos],
+  const paralelosPorCarrera = useMemo(
+    () => buildParalelosPorCarrera(carreras, convocatorias, capacitaciones, paralelos),
+    [carreras, convocatorias, capacitaciones, paralelos],
   )
 
   if (isLoading) return <Skeleton lines={6} />
@@ -200,7 +230,7 @@ export default function InscripcionesPage() {
         key={inscripcionId ?? "nueva"}
         inscripcionId={inscripcionId}
         carreraOptions={carreraOptions}
-        cursosPorCarrera={cursosPorCarrera}
+        paralelosPorCarrera={paralelosPorCarrera}
         administrativos={administrativos}
         apoderados={apoderados}
         onSaved={() => navigate("/app/inscripciones?tab=lista")}

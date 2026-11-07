@@ -45,9 +45,9 @@ function formatDateDisplay(value) {
   return `${day}/${month}/${year}`
 }
 
-function horarioCurso(curso) {
-  const inicio = curso?.hora_inicio ? String(curso.hora_inicio).slice(0, 5) : ""
-  const fin = curso?.hora_fin ? String(curso.hora_fin).slice(0, 5) : ""
+function horarioParalelo(paralelo) {
+  const inicio = paralelo?.hora_inicio ? String(paralelo.hora_inicio).slice(0, 5) : ""
+  const fin = paralelo?.hora_fin ? String(paralelo.hora_fin).slice(0, 5) : ""
   if (inicio && fin) return `${inicio} - ${fin}`
   return inicio || fin || ""
 }
@@ -133,7 +133,7 @@ function fromRecord(record) {
 export default function InscripcionRegistroForm({
   inscripcionId,
   carreraOptions,
-  cursosPorCarrera,
+  paralelosPorCarrera,
   administrativos,
   apoderados,
   onSaved,
@@ -152,25 +152,25 @@ export default function InscripcionRegistroForm({
   const [loadError, setLoadError] = useState("")
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState("")
-  const [showCursos, setShowCursos] = useState(false)
-  const [selectedCursoId, setSelectedCursoId] = useState("")
+  const [showParalelos, setShowParalelos] = useState(false)
+  const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
 
-  const cursosCarrera = useMemo(() => {
+  const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
-    return cursosPorCarrera?.get(String(form.id_carrera)) ?? []
-  }, [cursosPorCarrera, form.id_carrera])
+    return paralelosPorCarrera?.get(String(form.id_carrera)) ?? []
+  }, [paralelosPorCarrera, form.id_carrera])
 
-  const selectedCurso = useMemo(
-    () => cursosCarrera.find((curso) => String(curso.id_capacitacion) === selectedCursoId) ?? null,
-    [cursosCarrera, selectedCursoId],
+  const selectedParalelo = useMemo(
+    () => paralelosCarrera.find((paralelo) => String(paralelo.id_paralelo) === selectedParaleloId) ?? null,
+    [paralelosCarrera, selectedParaleloId],
   )
 
   useEffect(() => {
     if (!inscripcionId) {
       setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
-      setShowCursos(false)
-      setSelectedCursoId("")
+      setShowParalelos(false)
+      setSelectedParaleloId("")
       setSelectedApoderadoId("")
       setLoading(false)
       setLoadError("")
@@ -195,10 +195,14 @@ export default function InscripcionRegistroForm({
   }, [inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo])
 
   useEffect(() => {
-    if (selectedCursoId || !form.grupo || cursosCarrera.length === 0) return
-    const match = cursosCarrera.find((curso) => curso.nombre === form.grupo)
-    if (match) setSelectedCursoId(String(match.id_capacitacion))
-  }, [cursosCarrera, form.grupo, selectedCursoId])
+    if (selectedParaleloId || !form.grupo || paralelosCarrera.length === 0) return
+    const match = paralelosCarrera.find((paralelo) => {
+      if (paralelo.nombre_paralelo !== form.grupo) return false
+      if (!form.inicio_clases) return true
+      return dateOnly(paralelo.capacitacion?.fecha_inicio) === form.inicio_clases
+    })
+    if (match) setSelectedParaleloId(String(match.id_paralelo))
+  }, [paralelosCarrera, form.grupo, form.inicio_clases, selectedParaleloId])
 
   useEffect(() => {
     if (selectedApoderadoId || !form.apoderado_nombre_completo || apoderados.length === 0) return
@@ -226,18 +230,18 @@ export default function InscripcionRegistroForm({
       horario: "",
       grupo: "",
     }))
-    setSelectedCursoId("")
-    setShowCursos(false)
+    setSelectedParaleloId("")
+    setShowParalelos(false)
   }
 
-  const handleCursoSelect = (curso) => {
-    setSelectedCursoId(String(curso.id_capacitacion))
+  const handleParaleloSelect = (paralelo) => {
+    setSelectedParaleloId(String(paralelo.id_paralelo))
     setForm((prev) => ({
       ...prev,
-      inicio_clases: dateOnly(curso.fecha_inicio),
-      modalidad: curso.modalidad ?? "",
-      horario: horarioCurso(curso),
-      grupo: curso.nombre ?? "",
+      inicio_clases: dateOnly(paralelo.capacitacion?.fecha_inicio),
+      modalidad: paralelo.modalidad ?? "",
+      horario: horarioParalelo(paralelo),
+      grupo: paralelo.nombre_paralelo ?? "",
     }))
   }
 
@@ -327,8 +331,8 @@ export default function InscripcionRegistroForm({
         : await createResource("inscripciones", payload)
       if (!inscripcionId) {
         setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
-        setShowCursos(false)
-        setSelectedCursoId("")
+        setShowParalelos(false)
+        setSelectedParaleloId("")
         setSelectedApoderadoId("")
       }
       onSaved?.(saved)
@@ -384,44 +388,47 @@ export default function InscripcionRegistroForm({
 
         {form.id_carrera && (
           <div className="inscripcion-course-section">
-            <label className={`create-toggle inscripcion-course-toggle${showCursos ? " is-active" : ""}`} htmlFor="ins-mostrar-cursos">
+            <label className={`create-toggle inscripcion-course-toggle${showParalelos ? " is-active" : ""}`} htmlFor="ins-mostrar-paralelos">
               <span className="create-toggle-label">
-                Cursos de capacitación disponibles
-                {cursosCarrera.length > 0 ? ` (${cursosCarrera.length})` : ""}
+                Paralelos disponibles
+                {paralelosCarrera.length > 0 ? ` (${paralelosCarrera.length})` : ""}
               </span>
               <input
-                id="ins-mostrar-cursos"
+                id="ins-mostrar-paralelos"
                 type="checkbox"
-                checked={showCursos}
-                onChange={(e) => setShowCursos(e.target.checked)}
+                checked={showParalelos}
+                onChange={(e) => setShowParalelos(e.target.checked)}
               />
               <span className="create-toggle-track" aria-hidden="true" />
             </label>
 
-            {showCursos && (
+            {showParalelos && (
               <div className="curso-picker">
-                {cursosCarrera.length === 0 ? (
+                {paralelosCarrera.length === 0 ? (
                   <p className="muted curso-empty">
-                    No hay cursos de capacitación activos para esta carrera.
+                    No hay paralelos activos para esta carrera.
                   </p>
                 ) : (
                   <div className="curso-grid">
-                    {cursosCarrera.map((curso) => {
-                      const selected = String(curso.id_capacitacion) === selectedCursoId
+                    {paralelosCarrera.map((paralelo) => {
+                      const selected = String(paralelo.id_paralelo) === selectedParaleloId
                       return (
                         <button
-                          key={curso.id_capacitacion}
+                          key={paralelo.id_paralelo}
                           type="button"
                           className={`curso-card${selected ? " selected" : ""}`}
-                          onClick={() => handleCursoSelect(curso)}
+                          onClick={() => handleParaleloSelect(paralelo)}
                           aria-pressed={selected}
                         >
-                          <strong>{curso.nombre ?? `Curso ${curso.id_capacitacion}`}</strong>
-                          <span>{curso.nivel ? `Nivel: ${curso.nivel}` : "Sin nivel"}</span>
+                          <strong>{paralelo.nombre_paralelo ?? `Paralelo ${paralelo.id_paralelo}`}</strong>
+                          <span>{paralelo.nivel ? `Nivel: ${paralelo.nivel}` : "Sin nivel"}</span>
                           <span>
-                            {curso.modalidad ?? "Sin modalidad"} · {horarioCurso(curso) || "Sin horario"}
+                            {paralelo.modalidad ?? "Sin modalidad"} · {horarioParalelo(paralelo) || "Sin horario"}
                           </span>
-                          <span>Inicio: {formatDateDisplay(curso.fecha_inicio) || "Por definir"}</span>
+                          <span>{paralelo.dias ? `Días: ${paralelo.dias}` : "Días por definir"}</span>
+                          <span>
+                            Inicio: {formatDateDisplay(paralelo.capacitacion?.fecha_inicio) || "Por definir"}
+                          </span>
                         </button>
                       )
                     })}
@@ -434,13 +441,13 @@ export default function InscripcionRegistroForm({
 
         <div className="form-grid-two" style={{ marginTop: 14 }}>
           <ReadOnlyField
-            label="Curso / grupo"
-            value={selectedCurso?.nombre ?? form.grupo}
-            placeholder="Selecciona un curso"
+            label="Paralelo"
+            value={selectedParalelo?.nombre_paralelo ?? form.grupo}
+            placeholder="Selecciona un paralelo"
           />
           <ReadOnlyField
             label="Nivel"
-            value={selectedCurso?.nivel}
+            value={selectedParalelo?.nivel}
             placeholder="—"
           />
           <ReadOnlyField
@@ -456,6 +463,11 @@ export default function InscripcionRegistroForm({
           <ReadOnlyField
             label="Horario"
             value={form.horario}
+            placeholder="—"
+          />
+          <ReadOnlyField
+            label="Días"
+            value={selectedParalelo?.dias}
             placeholder="—"
           />
           <TextField
@@ -701,7 +713,7 @@ InscripcionRegistroForm.propTypes = {
       label: PropTypes.string.isRequired,
     }),
   ).isRequired,
-  cursosPorCarrera: PropTypes.instanceOf(Map).isRequired,
+  paralelosPorCarrera: PropTypes.instanceOf(Map).isRequired,
   administrativos: PropTypes.arrayOf(PropTypes.object).isRequired,
   apoderados: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSaved: PropTypes.func,

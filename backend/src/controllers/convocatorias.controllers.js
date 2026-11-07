@@ -12,9 +12,9 @@ const crud = createCrud({
   ],
   deleteGuards: [
     {
-      table: "cursos_capacitacion",
+      table: "capacitaciones",
       fk: "id_convocatoria",
-      message: "No se puede eliminar: la convocatoria tiene cursos de capacitación asociados",
+      message: "No se puede eliminar: la convocatoria tiene capacitaciones asociadas",
     },
   ],
 });

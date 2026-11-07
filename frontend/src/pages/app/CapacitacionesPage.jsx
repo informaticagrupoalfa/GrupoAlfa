@@ -7,13 +7,14 @@ import { getCapacitacionesActivas } from "../../services/academicService"
 const loadCrud = () => import("../../components/dashboard/CrudPage.jsx")
 const CrudPanel = lazy(loadCrud)
 
-const TABS = ["capacitaciones", "convocatorias", "facultades", "aulas", "materias", "temas"]
+const TABS = ["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias", "temas"]
 const TAB_HINTS = {
-  capacitaciones: "Cursos de capacitación. Requieren convocatoria y aula existentes.",
+  capacitaciones: "Capacitaciones asociadas a una convocatoria y a un rango de fechas.",
+  paralelos: "Paralelos de una capacitación: aula, nivel, modalidad, horario y días.",
   convocatorias: "Convocatorias de preuniversitario. Requieren facultad existente.",
   facultades: "Facultades a las que pertenecen carreras y convocatorias.",
-  aulas: "Aulas donde se dictan los cursos.",
-  materias: "Materias que conforman los cursos.",
+  aulas: "Aulas donde se dictan los paralelos.",
+  materias: "Materias que conforman las capacitaciones.",
   temas: "Temas asociados a una materia.",
 }
 
@@ -25,7 +26,7 @@ export default function CapacitacionesPage() {
   const [capacitacionActiva, setCapacitacionActiva] = useState(null)
 
   useEffect(() => {
-    if (active === "materias") {
+    if (active === "materias" || active === "paralelos") {
       getCapacitacionesActivas().then((rows) => {
         if (rows.length > 0) setCapacitacionActiva(rows[0])
         else setCapacitacionActiva(null)
@@ -39,11 +40,15 @@ export default function CapacitacionesPage() {
 
   return (
     <section>
-      {capacitacionActiva && active === "materias" && (
+      {capacitacionActiva && (active === "materias" || active === "paralelos") && (
         <div className="curso-activo">
-          <strong>Curso de capacitación activo:</strong> {capacitacionActiva.nombre}
+          <strong>Capacitación activa:</strong>{" "}
+          {capacitacionActiva.nombre_facultad
+            ? `${capacitacionActiva.nombre_facultad} - ${String(capacitacionActiva.fecha_inicio ?? "").slice(0, 10)}`
+            : `Capacitación ${capacitacionActiva.id_capacitacion}`}
           &nbsp;|&nbsp;
-          {capacitacionActiva.fecha_inicio} &rarr; {capacitacionActiva.fecha_fin || "sin fecha fin"}
+          {String(capacitacionActiva.fecha_inicio ?? "").slice(0, 10)} &rarr;{" "}
+          {capacitacionActiva.fecha_fin ? String(capacitacionActiva.fecha_fin).slice(0, 10) : "sin fecha fin"}
         </div>
       )}
       <p className="muted">{TAB_HINTS[active]}</p>

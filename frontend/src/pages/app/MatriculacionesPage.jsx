@@ -25,17 +25,27 @@ function userLabel(u) {
 }
 
 function useCatalogs() {
-  const [catalogs, setCatalogs] = useState({ usuarios: [], estudiantes: [], administrativos: [], capacitaciones: [] })
+  const [catalogs, setCatalogs] = useState({
+    usuarios: [],
+    estudiantes: [],
+    administrativos: [],
+    capacitaciones: [],
+    paralelos: [],
+  })
   const [isLoading, setIsLoading] = useState(true)
   useEffect(() => {
     let mounted = true
     async function load() {
       const safe = (p) => listResource(p).catch(() => [])
-      const [usuarios, estudiantes, administrativos, capacitaciones] = await Promise.all([
-        safe("usuarios/catalogo"), safe("estudiantes"), safe("administrativos"), safe("capacitaciones"),
+      const [usuarios, estudiantes, administrativos, capacitaciones, paralelos] = await Promise.all([
+        safe("usuarios/catalogo"),
+        safe("estudiantes"),
+        safe("administrativos"),
+        safe("capacitaciones"),
+        safe("paralelos"),
       ])
       if (mounted) {
-        setCatalogs({ usuarios, estudiantes, administrativos, capacitaciones })
+        setCatalogs({ usuarios, estudiantes, administrativos, capacitaciones, paralelos })
         setIsLoading(false)
       }
     }
@@ -57,14 +67,29 @@ function useOptions(catalogs) {
       value: a.id_administrativo,
       label: userLabel(usersById.get(String(a.id_usuario))) || `Administrativo ${a.id_administrativo}`,
     }))
-    const cursoOptions = (catalogs.capacitaciones ?? []).map((c) => ({
-      value: c.id_capacitacion,
-      label: `${c.nombre}${c.nivel ? ` (${c.nivel})` : ""}`,
-    }))
+    const capacitacionById = new Map(
+      (catalogs.capacitaciones ?? []).map((c) => [String(c.id_capacitacion), c]),
+    )
+    const paraleloOptions = (catalogs.paralelos ?? []).map((p) => {
+      const capacitacion = capacitacionById.get(String(p.id_capacitacion))
+      const contexto = capacitacion?.nombre_facultad
+        ? ` — ${capacitacion.nombre_facultad}`
+        : ""
+      const nivel = p.nivel ? ` (${p.nivel})` : ""
+      return {
+        value: p.id_paralelo,
+        label: `${p.nombre_paralelo}${nivel}${contexto}`,
+      }
+    })
     const estudianteById = new Map((catalogs.estudiantes ?? []).map((e) => [String(e.id_estudiante), userLabel(usersById.get(String(e.id_usuario))) || `Estudiante ${e.id_estudiante}`]))
     const administrativoById = new Map((catalogs.administrativos ?? []).map((a) => [String(a.id_administrativo), userLabel(usersById.get(String(a.id_usuario))) || `Administrativo ${a.id_administrativo}`]))
-    const cursoById = new Map((catalogs.capacitaciones ?? []).map((c) => [String(c.id_capacitacion), c.nombre ?? `Curso ${c.id_capacitacion}`]))
-    return { estudianteOptions, administrativoOptions, cursoOptions, estudianteById, administrativoById, cursoById }
+    const paraleloById = new Map(
+      (catalogs.paralelos ?? []).map((p) => [
+        String(p.id_paralelo),
+        `${p.nombre_paralelo}${p.nivel ? ` (${p.nivel})` : ""}`,
+      ]),
+    )
+    return { estudianteOptions, administrativoOptions, paraleloOptions, estudianteById, administrativoById, paraleloById }
   }, [catalogs])
 }
 
@@ -79,7 +104,7 @@ function MatriculacionesTab({ options }) {
   const rows = useMemo(() => items.map((row) => ({
     ...row,
     estudiante: options.estudianteById.get(String(row.id_estudiante)) ?? row.id_estudiante,
-    curso: options.cursoById.get(String(row.id_curso_capacitacion)) ?? row.id_curso_capacitacion,
+    paralelo: options.paraleloById.get(String(row.id_paralelo)) ?? row.id_paralelo,
     vigente: row.esta_vigente ? "Sí" : "No",
   })), [items, options])
 
@@ -141,7 +166,7 @@ function MatriculacionesTab({ options }) {
             key={selected?.id_matriculacion ?? "new"}
             initial={selected}
             fetchEstudiantes={fetchEstudiantes}
-            cursoOptions={options.cursoOptions}
+            paraleloOptions={options.paraleloOptions}
             saving={saving}
             formError={formError}
             onClose={() => setModalOpen(false)}
@@ -233,10 +258,10 @@ const OPTION_PROP = PropTypes.shape({
 const OPTIONS_PROP = PropTypes.shape({
   estudianteOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
   administrativoOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
-  cursoOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
+  paraleloOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
   estudianteById: PropTypes.instanceOf(Map).isRequired,
   administrativoById: PropTypes.instanceOf(Map).isRequired,
-  cursoById: PropTypes.instanceOf(Map).isRequired,
+  paraleloById: PropTypes.instanceOf(Map).isRequired,
 }).isRequired
 
 MatriculacionesTab.propTypes = { options: OPTIONS_PROP }
@@ -255,7 +280,7 @@ export default function MatriculacionesPage() {
     <section>
       <p className="muted">
         {active === "matriculaciones"
-          ? "Relaciona estudiantes con cursos de capacitación."
+          ? "Relaciona estudiantes con paralelos de capacitación."
           : "Registra los pagos mensuales de los estudiantes."}
       </p>
       {active === "matriculaciones"

@@ -7,7 +7,7 @@ const fk = (label) =>
     .positive(`El ${label} debe ser mayor a 0`);
 
 const claseSchema = z.object({
-  id_curso_capacitacion: fk("id_curso_capacitacion"),
+  id_paralelo: fk("id_paralelo"),
   id_asesor: fk("id_asesor"),
   id_tema: fk("id_tema").optional(),
   inicioClase: z

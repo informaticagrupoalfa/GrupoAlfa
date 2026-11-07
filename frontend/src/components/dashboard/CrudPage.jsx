@@ -63,13 +63,13 @@ export default function CrudPage({ entity, defaultParams }) {
       if (entity.key === "capacitaciones" && row?.[entity.pk] != null) {
         try {
           const { data } = await apiClient.get("/materias-capacitacion", {
-            params: { id_curso_capacitacion: row[entity.pk] },
+            params: { id_capacitacion: row[entity.pk] },
           })
           const rows = Array.isArray(data) ? data : []
           const ids = rows.map((r) => r.id_materia)
           setMateriasSeleccionadas(ids)
           const map = {}
-          for (const r of rows) map[r.id_materia] = r.id_asignacion_materia_convocatoria
+          for (const r of rows) map[r.id_materia] = r.id_asignacion_materia
           setMateriaAsignaciones(map)
         } catch {
           setMateriasSeleccionadas([])
@@ -121,7 +121,7 @@ export default function CrudPage({ entity, defaultParams }) {
             if (!(idMateria in materiaAsignaciones)) {
               await apiClient.post("/materias-capacitacion", {
                 id_materia: idMateria,
-                id_curso_capacitacion: savedId,
+                id_capacitacion: savedId,
               })
             }
           }

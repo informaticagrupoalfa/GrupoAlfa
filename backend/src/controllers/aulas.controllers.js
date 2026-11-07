@@ -7,9 +7,9 @@ const crud = createCrud({
   writable: ["codigo", "capacidad"],
   deleteGuards: [
     {
-      table: "cursos_capacitacion",
+      table: "paralelos",
       fk: "id_aula",
-      message: "No se puede eliminar: el aula tiene cursos de capacitación asociados",
+      message: "No se puede eliminar: el aula tiene paralelos asociados",
     },
   ],
 });

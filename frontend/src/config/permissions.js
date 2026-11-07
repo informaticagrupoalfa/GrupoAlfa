@@ -10,6 +10,7 @@ export const MODULE_ACCESS = {
   dashboard: "management",
   usuarios: "management",
   capacitaciones: "academic",
+  paralelos: "academic",
   convocatorias: "academic",
   facultades: "academic",
   aulas: "academic",

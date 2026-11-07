@@ -8,7 +8,7 @@ const fk = (label) =>
 
 const asignacionMateriasSchema = z.object({
   id_materia: fk("id_materia"),
-  id_curso_capacitacion: fk("id_curso_capacitacion"),
+  id_capacitacion: fk("id_capacitacion"),
 });
 
 export const createAsignacionMateriasSchema = asignacionMateriasSchema;

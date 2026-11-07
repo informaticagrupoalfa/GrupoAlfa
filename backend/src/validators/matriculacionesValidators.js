@@ -8,7 +8,7 @@ const fk = (label) =>
 
 const matriculacionSchema = z.object({
   id_estudiante: fk("id_estudiante"),
-  id_curso_capacitacion: fk("id_curso_capacitacion"),
+  id_paralelo: fk("id_paralelo"),
   esta_vigente: z.boolean().optional(),
   nro_comprobante: z.coerce
     .number({ invalid_type_error: "El nro de comprobante debe ser numérico" })

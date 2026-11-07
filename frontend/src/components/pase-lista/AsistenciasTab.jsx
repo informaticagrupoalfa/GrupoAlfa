@@ -91,7 +91,7 @@ function ListaDetalleModal({ detalle, onClose, onDelete }) {
 
 const FILTER_TABS = [
   { key: "fecha", label: "Fecha" },
-  { key: "curso", label: "Curso" },
+  { key: "paralelo", label: "Paralelo" },
   { key: "materia", label: "Materia" },
   { key: "tema", label: "Tema" },
 ]
@@ -100,7 +100,7 @@ export default function AsistenciasTab({ catalogs, version }) {
   const [activeFilters, setActiveFilters] = useState([])
   const [desde, setDesde] = useState("")
   const [hasta, setHasta] = useState("")
-  const [idCurso, setIdCurso] = useState("")
+  const [idParalelo, setIdParalelo] = useState("")
   const [idMateria, setIdMateria] = useState("")
   const [idTema, setIdTema] = useState("")
   const [offset, setOffset] = useState(0)
@@ -120,7 +120,9 @@ export default function AsistenciasTab({ catalogs, version }) {
     }
     const materiaById = new Map((catalogs.materias ?? []).map((m) => [String(m.id_materia), m.nombre_materia]))
     const temaById = new Map((catalogs.temas ?? []).map((t) => [String(t.id_tema), t.nombre_tema]))
-    const cursoById = new Map((catalogs.capacitaciones ?? []).map((c) => [String(c.id_capacitacion), c]))
+    const capacitacionById = new Map((catalogs.capacitaciones ?? []).map((c) => [String(c.id_capacitacion), c]))
+    const paraleloById = new Map((catalogs.paralelos ?? []).map((p) => [String(p.id_paralelo), p]))
+    const aulaById = new Map((catalogs.aulas ?? []).map((a) => [String(a.id_aula), a.codigo ?? `Aula ${a.id_aula}`]))
     const asesorById = new Map(
       (catalogs.asesores ?? []).map((a) => [
         String(a.id_asesor),
@@ -133,13 +135,29 @@ export default function AsistenciasTab({ catalogs, version }) {
         userName(usersById.get(String(e.id_usuario))) || `Estudiante ${e.id_estudiante}`,
       ]),
     )
-    const materiasPorCurso = new Map()
-    for (const am of catalogs.asignacionesMaterias ?? []) {
-      const key = String(am.id_curso_capacitacion)
-      if (!materiasPorCurso.has(key)) materiasPorCurso.set(key, [])
-      materiasPorCurso.get(key).push(materiaById.get(String(am.id_materia)) ?? `Materia ${am.id_materia}`)
+    const materiasPorCapacitacion = new Map()
+    for (const mc of catalogs.materiasCapacitacion ?? []) {
+      const key = String(mc.id_capacitacion)
+      if (!materiasPorCapacitacion.has(key)) materiasPorCapacitacion.set(key, [])
+      materiasPorCapacitacion.get(key).push(materiaById.get(String(mc.id_materia)) ?? `Materia ${mc.id_materia}`)
     }
-    return { materiaById, temaById, cursoById, asesorById, estudianteById, materiasPorCurso }
+    const materiasPorParalelo = new Map()
+    for (const p of catalogs.paralelos ?? []) {
+      materiasPorParalelo.set(
+        String(p.id_paralelo),
+        materiasPorCapacitacion.get(String(p.id_capacitacion)) ?? [],
+      )
+    }
+    return {
+      materiaById,
+      temaById,
+      capacitacionById,
+      paraleloById,
+      aulaById,
+      asesorById,
+      estudianteById,
+      materiasPorParalelo,
+    }
   }, [catalogs])
 
   const toggleFilter = (key) => {
@@ -147,7 +165,7 @@ export default function AsistenciasTab({ catalogs, version }) {
       const has = prev.includes(key)
       if (has) {
         if (key === "fecha") { setDesde(""); setHasta("") }
-        if (key === "curso") setIdCurso("")
+        if (key === "paralelo") setIdParalelo("")
         if (key === "materia") setIdMateria("")
         if (key === "tema") setIdTema("")
       }
@@ -171,7 +189,7 @@ export default function AsistenciasTab({ catalogs, version }) {
         const clases = await fetchClasesFiltradas({
           desde: activeFilters.includes("fecha") ? desde : "",
           hasta: activeFilters.includes("fecha") ? hasta : "",
-          idCurso: activeFilters.includes("curso") ? idCurso : "",
+          idParalelo: activeFilters.includes("paralelo") ? idParalelo : "",
           idMateria: activeFilters.includes("materia") ? idMateria : "",
           idTema: activeFilters.includes("tema") ? idTema : "",
           limit: PAGE_SIZE + 1,
@@ -193,22 +211,24 @@ export default function AsistenciasTab({ catalogs, version }) {
     }
     load()
     return () => { mounted = false }
-  }, [activeFilters, desde, hasta, idCurso, idMateria, idTema, offset, version])
+  }, [activeFilters, desde, hasta, idParalelo, idMateria, idTema, offset, version])
 
   useEffect(() => {
     setLocal(readLocal())
   }, [version])
 
   const detalleDe = (clase, asistencias) => {
-    const curso = nombres.cursoById.get(String(clase.id_curso_capacitacion))
-    const materias = nombres.materiasPorCurso.get(String(clase.id_curso_capacitacion)) ?? []
+    const paralelo = nombres.paraleloById.get(String(clase.id_paralelo))
+    const materias = nombres.materiasPorParalelo.get(String(clase.id_paralelo)) ?? []
     return {
       fecha: String(clase.inicioClase ?? "").slice(0, 10),
-      curso: curso?.nombre ?? `Curso ${clase.id_curso_capacitacion}`,
+      curso: paralelo?.nombre_paralelo ?? `Paralelo ${clase.id_paralelo}`,
       materia: materias.length > 0 ? materias.join(", ") : "—",
       asesor: nombres.asesorById.get(String(clase.id_asesor)) ?? "—",
-      horario: [curso?.hora_inicio, curso?.hora_fin].filter(Boolean).join(" - "),
-      aula: curso?.id_aula != null ? String(curso.id_aula) : "—",
+      horario: [paralelo?.hora_inicio, paralelo?.hora_fin].filter(Boolean).join(" - "),
+      aula: paralelo?.id_aula != null
+        ? nombres.aulaById.get(String(paralelo.id_aula)) ?? String(paralelo.id_aula)
+        : "—",
       tema: nombres.temaById.get(String(clase.id_tema)) ?? "—",
       guardadoEn: null,
       lista: asistencias.map((a) => ({
@@ -222,11 +242,13 @@ export default function AsistenciasTab({ catalogs, version }) {
   const detalleLocal = local
     ? {
         fecha: local.fecha,
-        curso: local.curso,
+        curso: local.curso ?? local.paralelo,
         materia: nombres.materiaById.get(String(local.idMateria)) ?? "—",
         asesor: nombres.asesorById.get(String(local.idAsesor)) ?? "—",
         horario: local.horario,
-        aula: local.aula,
+        aula: local.aula != null
+          ? nombres.aulaById.get(String(local.aula)) ?? String(local.aula)
+          : "—",
         tema: local.temaAvanzado,
         guardadoEn: local.guardadoEn,
         lista: local.lista,
@@ -288,13 +310,15 @@ export default function AsistenciasTab({ catalogs, version }) {
               </div>
             </>
           )}
-          {activeFilters.includes("curso") && (
+          {activeFilters.includes("paralelo") && (
             <div className="form-row">
-              <label htmlFor="as-curso">Curso</label>
-              <select id="as-curso" value={idCurso} onChange={(e) => setFilterValue(setIdCurso)(e.target.value)}>
+              <label htmlFor="as-paralelo">Paralelo</label>
+              <select id="as-paralelo" value={idParalelo} onChange={(e) => setFilterValue(setIdParalelo)(e.target.value)}>
                 <option value="">Todos</option>
-                {(catalogs.capacitaciones ?? []).map((c) => (
-                  <option key={c.id_capacitacion} value={c.id_capacitacion}>{c.nombre}{c.nivel ? ` (${c.nivel})` : ""}</option>
+                {(catalogs.paralelos ?? []).map((p) => (
+                  <option key={p.id_paralelo} value={p.id_paralelo}>
+                    {p.nombre_paralelo}{p.nivel ? ` (${p.nivel})` : ""}
+                  </option>
                 ))}
               </select>
             </div>
@@ -342,7 +366,7 @@ export default function AsistenciasTab({ catalogs, version }) {
                   <tr>
                     <th>ID</th>
                     <th>Fecha</th>
-                    <th>Curso</th>
+                    <th>Paralelo</th>
                     <th>Materia</th>
                     <th>Tema avanzado</th>
                     <th>Presentes</th>
@@ -354,8 +378,8 @@ export default function AsistenciasTab({ catalogs, version }) {
                     <tr key={clase.id_clase} onClick={() => setSelected({ tipo: "bd", detalle: detalleDe(clase, asistencias), id: clase.id_clase })} style={{ cursor: "pointer" }}>
                       <td>{clase.id_clase}</td>
                       <td>{String(clase.inicioclase ?? "No Hay").slice(0, 10)}</td>
-                      <td>{nombres.cursoById.get(String(clase.id_curso_capacitacion))?.nombre ?? "—"}</td>
-                      <td>{(nombres.materiasPorCurso.get(String(clase.id_curso_capacitacion)) ?? []).join(", ") || "—"}</td>
+                      <td>{nombres.paraleloById.get(String(clase.id_paralelo))?.nombre_paralelo ?? "—"}</td>
+                      <td>{(nombres.materiasPorParalelo.get(String(clase.id_paralelo)) ?? []).join(", ") || "—"}</td>
                       <td>{nombres.temaById.get(String(clase.id_tema)) ?? "—"}</td>
                       <td>{asistencias.filter((a) => a.permiso !== false).length}</td>
                       <td>{asistencias.filter((a) => a.permiso === false).length}</td>
@@ -387,7 +411,7 @@ export default function AsistenciasTab({ catalogs, version }) {
                 <tr>
                   <th>ID</th>
                   <th>Fecha</th>
-                  <th>Curso</th>
+                  <th>Paralelo</th>
                   <th>Materia</th>
                   <th>Tema avanzado</th>
                   <th>Presentes</th>

@@ -62,13 +62,13 @@ export const getMaterias = async (req, res, next) => {
       conditions.push(
         `EXISTS (
           SELECT 1
-          FROM materia_curso_capacitacion mcc
-          JOIN cursos_capacitacion cc
-            ON cc.id_capacitacion = mcc.id_curso_capacitacion
-          WHERE mcc.id_materia = m.id_materia
-            AND cc.activo = true
-            AND cc.fecha_inicio <= $${values.length}
-            AND ($${values.length} <= cc.fecha_fin OR cc.fecha_fin IS NULL)
+          FROM materia_capacitacion mc
+          JOIN capacitaciones c
+            ON c.id_capacitacion = mc.id_capacitacion
+          WHERE mc.id_materia = m.id_materia
+            AND c.activo = true
+            AND c.fecha_inicio <= $${values.length}
+            AND ($${values.length} <= c.fecha_fin OR c.fecha_fin IS NULL)
         )`,
       );
     }

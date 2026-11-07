@@ -8,7 +8,7 @@ const fk = (label) =>
 
 const asignacionAsesoresSchema = z.object({
   id_asesor: fk("id_asesor"),
-  id_curso_capacitacion: fk("id_curso_capacitacion"),
+  id_paralelo: fk("id_paralelo"),
 });
 
 export const createAsignacionAsesoresSchema = asignacionAsesoresSchema;

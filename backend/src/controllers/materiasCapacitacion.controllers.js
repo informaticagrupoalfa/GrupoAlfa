@@ -1,14 +1,19 @@
 import { createCrud } from "../utils/crudFactory.js";
 
 const crud = createCrud({
-  table: "materia_curso_capacitacion",
+  table: "materia_capacitacion",
   pk: "id_asignacion_materia",
   label: "Asignación no encontrada",
-  writable: ["id_materia", "id_curso_capacitacion"],
-  filters: ["id_materia", "id_curso_capacitacion"],
+  writable: ["id_materia", "id_capacitacion"],
+  filters: ["id_materia", "id_capacitacion"],
   fks: [
     { column: "id_materia", table: "materias", pk: "id_materia", message: "La materia no existe" },
-    { column: "id_curso_capacitacion", table: "cursos_capacitacion", pk: "id_capacitacion", message: "El curso de capacitación no existe" },
+    {
+      column: "id_capacitacion",
+      table: "capacitaciones",
+      pk: "id_capacitacion",
+      message: "La capacitación no existe",
+    },
   ],
 });
 
