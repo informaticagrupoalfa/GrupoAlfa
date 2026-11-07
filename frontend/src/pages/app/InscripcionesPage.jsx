@@ -1,91 +1,63 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { useCrud } from "../../hooks/useCrud"
-import { ENTITIES, getDisplayName } from "../../config/entities"
+import { ENTITIES } from "../../config/entities"
+import { getModuleTabConfig, resolveModuleTab } from "../../config/moduleTabs"
 import { listResource } from "../../services/academicService"
+import InscripcionRegistroForm from "../../components/features/inscripciones/InscripcionRegistroForm"
 import DataTable from "../../components/dashboard/DataTable"
 import Pagination from "../../components/ui/Pagination"
-import Button from "../../components/ui/Button"
 import Skeleton from "../../components/ui/Skeleton"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 
-const loadInscripcionModal = () => import("../../components/features/inscripciones/InscripcionFormModal")
-const InscripcionFormModal = lazy(loadInscripcionModal)
-
 const PAGE_SIZE = 25
 
-function userLabel(u) {
-  if (!u) return ""
-  return getDisplayName(u) || u.correo_electronico || `Usuario ${u.id_usuario ?? ""}`
-}
-
-function useCatalogs() {
-  const [catalogs, setCatalogs] = useState({ usuarios: [], estudiantes: [], administrativos: [] })
+function useCarreras() {
+  const [carreras, setCarreras] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
-    async function load() {
-      const safe = (p) => listResource(p).catch(() => [])
-      const [usuarios, estudiantes, administrativos] = await Promise.all([
-        safe("usuarios/catalogo"), safe("estudiantes"), safe("administrativos"),
-      ])
-      if (mounted) {
-        setCatalogs({ usuarios, estudiantes, administrativos })
-        setIsLoading(false)
-      }
-    }
-    load()
+    listResource("carreras")
+      .then((rows) => {
+        if (mounted) setCarreras(Array.isArray(rows) ? rows : [])
+      })
+      .catch(() => {
+        if (mounted) setCarreras([])
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false)
+      })
     return () => { mounted = false }
   }, [])
 
-  return { catalogs, isLoading }
+  return { carreras, isLoading }
 }
 
-function useOptions(catalogs) {
-  return useMemo(() => {
-    const usersById = new Map((catalogs.usuarios ?? []).map((u) => [String(u.id_usuario), u]))
-    const estudianteOptions = (catalogs.estudiantes ?? []).map((e) => {
-      const user = usersById.get(String(e.id_usuario))
-      const carnet = user?.nro_carnet != null ? ` — Carnet: ${user.nro_carnet}` : ""
-      return { value: e.id_estudiante, label: `${userLabel(user)}${carnet}` }
-    })
-    const administrativoOptions = (catalogs.administrativos ?? []).map((a) => ({
-      value: a.id_administrativo,
-      label: userLabel(usersById.get(String(a.id_usuario))) || `Administrativo ${a.id_administrativo}`,
-    }))
-    const estudianteById = new Map((catalogs.estudiantes ?? []).map((e) => [
-      String(e.id_estudiante),
-      userLabel(usersById.get(String(e.id_usuario))) || `Estudiante ${e.id_estudiante}`,
-    ]))
-    const administrativoById = new Map((catalogs.administrativos ?? []).map((a) => [
-      String(a.id_administrativo),
-      userLabel(usersById.get(String(a.id_usuario))) || `Administrativo ${a.id_administrativo}`,
-    ]))
-    return { estudianteOptions, administrativoOptions, estudianteById, administrativoById }
-  }, [catalogs])
-}
-
-function InscripcionesTab({ options }) {
+function InscripcionesLista({ carreraById }) {
+  const navigate = useNavigate()
   const entity = ENTITIES.inscripciones
-  const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity)
+  const { items, isLoading, error, reload, remove } = useCrud(entity)
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState("")
 
-  const rows = useMemo(() => items.map((row) => ({
-    ...row,
-    estudiante: row.id_estudiante == null
-      ? "—"
-      : options.estudianteById.get(String(row.id_estudiante)) ?? row.id_estudiante,
-    administrativo: row.id_administrativo == null
-      ? "—"
-      : options.administrativoById.get(String(row.id_administrativo)) ?? row.id_administrativo,
-    recalculo: row.recalculo ? "Sí" : "No",
-    preparacion_previa: row.preparacion_previa ? "Sí" : "No",
-  })), [items, options])
+  const rows = useMemo(() => items.map((row) => {
+    const nombreCompleto = [row.nombre, row.apellido_paterno, row.apellido_materno]
+      .filter(Boolean)
+      .join(" ")
+    const medio = row.como_se_entero_detalle
+      ? `${row.como_se_entero_de_nosotros ?? ""} (${row.como_se_entero_detalle})`
+      : row.como_se_entero_de_nosotros
+    return {
+      ...row,
+      nombre_completo: nombreCompleto,
+      carrera: row.id_carrera == null
+        ? "—"
+        : carreraById.get(String(row.id_carrera)) ?? row.id_carrera,
+      como_se_entero_de_nosotros: medio,
+    }
+  }), [items, carreraById])
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -111,19 +83,8 @@ function InscripcionesTab({ options }) {
     }
   }
 
-  const handleSubmit = async (payload) => {
-    setSaving(true)
-    setFormError("")
-    try {
-      await save(payload)
-      setModalOpen(false)
-      setSelected(null)
-      await reload()
-    } catch (err) {
-      setFormError(err.userMessage ?? err?.response?.data?.error ?? "No se pudo guardar.")
-    } finally {
-      setSaving(false)
-    }
+  const handleEdit = (row) => {
+    navigate(`/app/inscripciones?tab=registro&id=${row.id_inscripcion}`)
   }
 
   if (isLoading) return <Skeleton lines={6} />
@@ -139,68 +100,54 @@ function InscripcionesTab({ options }) {
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           aria-label="Buscar"
         />
-        <Button
-          size="sm"
-          onClick={() => { setSelected(null); setFormError(""); setModalOpen(true) }}
-          onMouseEnter={loadInscripcionModal}
-          onFocus={loadInscripcionModal}
-        >
-          Nuevo
-        </Button>
       </div>
       <p className="muted">{filtered.length} registro(s)</p>
       <DataTable
         rows={visible}
         columns={entity.columns}
         pk={entity.pk}
-        onEdit={(row) => { setSelected(row); setFormError(""); setModalOpen(true) }}
+        onEdit={handleEdit}
         onDelete={handleDelete}
       />
       <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
-      {modalOpen && (
-        <Suspense fallback={<Skeleton lines={4} />}>
-          <InscripcionFormModal
-            key={selected?.id_inscripcion ?? "new"}
-            initial={selected}
-            estudianteOptions={options.estudianteOptions}
-            administrativoOptions={options.administrativoOptions}
-            saving={saving}
-            formError={formError}
-            onClose={() => setModalOpen(false)}
-            onSubmit={handleSubmit}
-          />
-        </Suspense>
-      )}
     </section>
   )
 }
 
-const OPTION_PROP = PropTypes.shape({
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  label: PropTypes.string.isRequired,
-})
-
-const OPTIONS_PROP = PropTypes.shape({
-  estudianteOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
-  administrativoOptions: PropTypes.arrayOf(OPTION_PROP).isRequired,
-  estudianteById: PropTypes.instanceOf(Map).isRequired,
-  administrativoById: PropTypes.instanceOf(Map).isRequired,
-}).isRequired
-
-InscripcionesTab.propTypes = { options: OPTIONS_PROP }
+InscripcionesLista.propTypes = {
+  carreraById: PropTypes.instanceOf(Map).isRequired,
+}
 
 export default function InscripcionesPage() {
-  const { catalogs, isLoading } = useCatalogs()
-  const options = useOptions(catalogs)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tabConfig = getModuleTabConfig("inscripciones")
+  const activeTab = resolveModuleTab(tabConfig, searchParams.toString())
+  const inscripcionId = searchParams.get("id")
+  const { carreras, isLoading } = useCarreras()
+
+  const carreraOptions = useMemo(() => carreras.map((carrera) => ({
+    value: carrera.id_carrera,
+    label: carrera.nombre ?? `Carrera ${carrera.id_carrera}`,
+  })), [carreras])
+
+  const carreraById = useMemo(() => new Map(carreras.map((carrera) => [
+    String(carrera.id_carrera),
+    carrera.nombre ?? `Carrera ${carrera.id_carrera}`,
+  ])), [carreras])
 
   if (isLoading) return <Skeleton lines={6} />
 
-  return (
-    <section>
-      <p className="muted">
-        Registra el origen y la preparación previa de los estudiantes que se inscriben.
-      </p>
-      <InscripcionesTab options={options} />
-    </section>
-  )
+  if (activeTab === "registro") {
+    return (
+      <InscripcionRegistroForm
+        key={inscripcionId ?? "nueva"}
+        inscripcionId={inscripcionId}
+        carreraOptions={carreraOptions}
+        onSaved={() => navigate("/app/inscripciones?tab=lista")}
+      />
+    )
+  }
+
+  return <InscripcionesLista carreraById={carreraById} />
 }

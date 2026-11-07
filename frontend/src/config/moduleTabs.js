@@ -24,6 +24,14 @@ export const MODULE_TABS = {
     defaultTab: "matriculaciones",
     items: buildTabs(["matriculaciones", "mensualidades"]),
   },
+  inscripciones: {
+    path: "/app/inscripciones",
+    defaultTab: "registro",
+    items: [
+      { key: "registro", label: "Registro de usuario" },
+      { key: "lista", label: "Registros" },
+    ],
+  },
   "pase-lista": {
     path: "/app/pase-lista",
     defaultTab: "asistencias",

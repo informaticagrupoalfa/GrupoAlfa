@@ -6,10 +6,10 @@ const fk = (label) =>
     .int(`El ${label} debe ser un entero`)
     .positive(`El ${label} debe ser mayor a 0`);
 
-const materiasConvocatoriaSchema = z.object({
-  id_convocatoria: fk("id_convocatoria"),
+const materiaFacultadSchema = z.object({
   id_materia: fk("id_materia"),
+  id_facultad: fk("id_facultad"),
 });
 
-export const createMateriasConvocatoriaSchema = materiasConvocatoriaSchema;
-export const updateMateriasConvocatoriaSchema = materiasConvocatoriaSchema.partial();
+export const createMateriaFacultadSchema = materiaFacultadSchema;
+export const updateMateriaFacultadSchema = materiaFacultadSchema.partial();

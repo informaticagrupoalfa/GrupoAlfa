@@ -1,25 +1,83 @@
 import { pool } from "../db.js";
 
-const hoy = new Date().toISOString().split("T")[0];
+/**
+ * Devuelve las materias junto con las facultades donde se dictan.
+ * La relación es N:N mediante materia_facultad.
+ */
+const SELECT_MATERIAS = `
+  SELECT m.id_materia,
+         m.nombre_materia,
+         COALESCE(
+           jsonb_agg(
+             DISTINCT jsonb_build_object(
+               'id_facultad', f.id_facultad,
+               'nombre', f.nombre
+             )
+           ) FILTER (WHERE f.id_facultad IS NOT NULL),
+           '[]'::jsonb
+         ) AS facultades
+  FROM materias m
+  LEFT JOIN materia_facultad mf ON mf.id_materia = m.id_materia
+  LEFT JOIN facultades f ON f.id_facultad = mf.id_facultad
+`;
+
+const GROUP_BY = "GROUP BY m.id_materia, m.nombre_materia";
+
+const parseId = (value) => {
+  const id = Number.parseInt(value, 10);
+  return Number.isNaN(id) || id <= 0 ? null : id;
+};
+
+const fetchMateria = async (id) => {
+  const { rows } = await pool.query(
+    `${SELECT_MATERIAS} WHERE m.id_materia = $1 ${GROUP_BY}`,
+    [id],
+  );
+  return rows[0] ?? null;
+};
 
 export const getMaterias = async (req, res, next) => {
   try {
-    const { activas } = req.query;
+    const conditions = [];
+    const values = [];
 
-    if (activas === "true") {
-      const { rows } = await pool.query(
-        `SELECT DISTINCT m.id_materia, m.nombre_materia
-         FROM materias m
-         JOIN convocatoria_materia cm ON cm.id_materia = m.id_materia
-         JOIN cursos_capacitacion cc ON cc.id_convocatoria = cm.id_convocatoria
-         WHERE cc.fecha_inicio <= $1 AND ($1 <= cc.fecha_fin OR cc.fecha_fin IS NULL)
-         ORDER BY m.nombre_materia ASC`,
-        [hoy],
+    if (req.query.id_facultad !== undefined && req.query.id_facultad !== "") {
+      const idFacultad = parseId(req.query.id_facultad);
+      if (idFacultad === null) {
+        return res.status(400).json({ message: "id_facultad debe ser un entero mayor a 0" });
+      }
+      values.push(idFacultad);
+      conditions.push(
+        `EXISTS (
+          SELECT 1
+          FROM materia_facultad mf_filtro
+          WHERE mf_filtro.id_materia = m.id_materia
+            AND mf_filtro.id_facultad = $${values.length}
+        )`,
       );
-      return res.status(200).json(rows);
     }
 
-    const { rows } = await pool.query("SELECT * FROM materias ORDER BY id_materia ASC");
+    if (req.query.activas === "true") {
+      values.push(new Date().toISOString().slice(0, 10));
+      conditions.push(
+        `EXISTS (
+          SELECT 1
+          FROM materia_curso_capacitacion mcc
+          JOIN cursos_capacitacion cc
+            ON cc.id_capacitacion = mcc.id_curso_capacitacion
+          WHERE mcc.id_materia = m.id_materia
+            AND cc.activo = true
+            AND cc.fecha_inicio <= $${values.length}
+            AND ($${values.length} <= cc.fecha_fin OR cc.fecha_fin IS NULL)
+        )`,
+      );
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const { rows } = await pool.query(
+      `${SELECT_MATERIAS} ${where} ${GROUP_BY} ORDER BY m.id_materia ASC`,
+      values,
+    );
     res.status(200).json(rows);
   } catch (error) {
     next(error);
@@ -28,11 +86,13 @@ export const getMaterias = async (req, res, next) => {
 
 export const getMateriaById = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
-    const { rows } = await pool.query("SELECT * FROM materias WHERE id_materia = $1", [id]);
-    if (rows.length === 0) return res.status(404).json({ message: "Materia no encontrada" });
-    res.json(rows[0]);
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ message: "ID debe ser numérico" });
+
+    const materia = await fetchMateria(id);
+    if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
+
+    res.json(materia);
   } catch (error) {
     next(error);
   }
@@ -42,10 +102,11 @@ export const createMateria = async (req, res, next) => {
   try {
     const { nombre_materia } = req.body;
     const { rows } = await pool.query(
-      "INSERT INTO materias (nombre_materia) VALUES ($1) RETURNING *",
-      [nombre_materia]
+      "INSERT INTO materias (nombre_materia) VALUES ($1) RETURNING id_materia",
+      [nombre_materia],
     );
-    res.status(201).json(rows[0]);
+    const materia = await fetchMateria(rows[0].id_materia);
+    res.status(201).json(materia);
   } catch (error) {
     next(error);
   }
@@ -53,16 +114,20 @@ export const createMateria = async (req, res, next) => {
 
 export const updateMateria = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ message: "ID debe ser numérico" });
+
     const { nombre_materia } = req.body;
     const { rows } = await pool.query(
-      `UPDATE materias SET nombre_materia = COALESCE($1, nombre_materia)
-       WHERE id_materia = $2 RETURNING *`,
-      [nombre_materia ?? null, id]
+      `UPDATE materias
+       SET nombre_materia = COALESCE($1, nombre_materia)
+       WHERE id_materia = $2
+       RETURNING id_materia`,
+      [nombre_materia ?? null, id],
     );
     if (rows.length === 0) return res.status(404).json({ message: "Materia no encontrada" });
-    res.json(rows[0]);
+
+    res.json(await fetchMateria(id));
   } catch (error) {
     next(error);
   }
@@ -70,10 +135,12 @@ export const updateMateria = async (req, res, next) => {
 
 export const deleteMateria = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ message: "ID debe ser numérico" });
+
     const { rowCount } = await pool.query("DELETE FROM materias WHERE id_materia = $1", [id]);
     if (rowCount === 0) return res.status(404).json({ message: "Materia no encontrada" });
+
     return res.sendStatus(204);
   } catch (error) {
     next(error);

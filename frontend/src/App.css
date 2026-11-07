@@ -1179,6 +1179,73 @@ button.small {
   grid-column: 1 / -1;
 }
 
+.inscripcion-form {
+  display: grid;
+  gap: 16px;
+}
+
+.inscripcion-form-header {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.inscripcion-form-header h2 {
+  margin: 0;
+  color: #0a2540;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.inscripcion-form-header p {
+  margin: 6px 0 0;
+}
+
+.inscripcion-form .card h3 {
+  margin: 0 0 12px;
+  color: #0a2540;
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #0a2540;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #2196f3;
+}
+
+.inscripcion-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.inscripcion-form-actions button {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .form-grid-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .combobox-wrap {
   position: relative;
 }
