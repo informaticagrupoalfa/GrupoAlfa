@@ -1240,6 +1240,92 @@ button.small {
   margin-top: 0;
 }
 
+.inscripcion-course-section {
+  background: #f5fbff;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.inscripcion-course-toggle {
+  width: 100%;
+}
+
+.inscripcion-course-toggle .create-toggle-label {
+  flex: 1;
+}
+
+.curso-picker {
+  margin-top: 12px;
+}
+
+.curso-empty {
+  margin: 0;
+  font-size: 14px;
+}
+
+.curso-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.curso-card {
+  display: grid;
+  gap: 4px;
+  margin-top: 0;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 8px;
+  color: #0a2540;
+  text-align: left;
+}
+
+.curso-card:hover:not(:disabled) {
+  border-color: #2196f3;
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.16);
+}
+
+.curso-card.selected {
+  background: #e0f7fe;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.curso-card strong {
+  font-size: 14px;
+}
+
+.curso-card span {
+  color: #5b6b82;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.readonly-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.readonly-label {
+  color: #5b6b82;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.readonly-value {
+  min-height: 46px;
+  padding: 12px 14px;
+  background: #f5fbff;
+  border: 1px dashed #b3e5fc;
+  border-radius: 4px;
+  color: #0a2540;
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   .form-grid-two {
     grid-template-columns: minmax(0, 1fr);

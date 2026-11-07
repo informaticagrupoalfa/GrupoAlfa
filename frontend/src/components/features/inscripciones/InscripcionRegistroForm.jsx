@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import TextField from "../../ui/TextField"
+import ReadOnlyField from "../../ui/ReadOnlyField"
 import Button from "../../ui/Button"
 import Skeleton from "../../ui/Skeleton"
 import ErrorFallback from "../../ui/ErrorFallback"
@@ -32,6 +33,25 @@ function todayISO() {
   return `${year}-${month}-${day}`
 }
 
+function dateOnly(value) {
+  return value ? String(value).slice(0, 10) : ""
+}
+
+function formatDateDisplay(value) {
+  const date = dateOnly(value)
+  if (!date) return ""
+  const [year, month, day] = date.split("-")
+  if (!year || !month || !day) return date
+  return `${day}/${month}/${year}`
+}
+
+function horarioCurso(curso) {
+  const inicio = curso?.hora_inicio ? String(curso.hora_inicio).slice(0, 5) : ""
+  const fin = curso?.hora_fin ? String(curso.hora_fin).slice(0, 5) : ""
+  if (inicio && fin) return `${inicio} - ${fin}`
+  return inicio || fin || ""
+}
+
 function toNumberOrUndefined(value) {
   if (value === "" || value == null) return undefined
   const n = Number(value)
@@ -44,9 +64,10 @@ function textOrUndefined(value) {
   return trimmed === "" ? undefined : trimmed
 }
 
-function buildEmptyForm(elaboradoPor) {
+function buildEmptyForm(elaboradoPor, idAdministrativo) {
   return {
     id_carrera: "",
+    id_administrativo: idAdministrativo ?? "",
     nro_comprobante: "",
     nro_credencial: "",
     recalculo: false,
@@ -77,9 +98,9 @@ function buildEmptyForm(elaboradoPor) {
 }
 
 function fromRecord(record) {
-  const dateOnly = (value) => (value ? String(value).slice(0, 10) : "")
   return {
     id_carrera: record.id_carrera ?? "",
+    id_administrativo: record.id_administrativo ?? "",
     nro_comprobante: record.nro_comprobante ?? "",
     nro_credencial: record.nro_credencial ?? "",
     recalculo: Boolean(record.recalculo),
@@ -109,18 +130,48 @@ function fromRecord(record) {
   }
 }
 
-export default function InscripcionRegistroForm({ inscripcionId, carreraOptions, onSaved }) {
+export default function InscripcionRegistroForm({
+  inscripcionId,
+  carreraOptions,
+  cursosPorCarrera,
+  administrativos,
+  apoderados,
+  onSaved,
+}) {
   const { loggedUser } = useAuth()
-  const defaultElaborado = useMemo(() => fullName(loggedUser), [loggedUser])
-  const [form, setForm] = useState(() => buildEmptyForm(defaultElaborado))
+  const defaultAdministrativo = useMemo(
+    () => administrativos.find((admin) => String(admin.id_usuario) === String(loggedUser?.id_usuario)) ?? null,
+    [administrativos, loggedUser],
+  )
+  const defaultElaborado = useMemo(
+    () => (defaultAdministrativo ? fullName(defaultAdministrativo) : fullName(loggedUser)),
+    [defaultAdministrativo, loggedUser],
+  )
+  const [form, setForm] = useState(() => buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
   const [loading, setLoading] = useState(Boolean(inscripcionId))
   const [loadError, setLoadError] = useState("")
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState("")
+  const [showCursos, setShowCursos] = useState(false)
+  const [selectedCursoId, setSelectedCursoId] = useState("")
+  const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
+
+  const cursosCarrera = useMemo(() => {
+    if (!form.id_carrera) return []
+    return cursosPorCarrera?.get(String(form.id_carrera)) ?? []
+  }, [cursosPorCarrera, form.id_carrera])
+
+  const selectedCurso = useMemo(
+    () => cursosCarrera.find((curso) => String(curso.id_capacitacion) === selectedCursoId) ?? null,
+    [cursosCarrera, selectedCursoId],
+  )
 
   useEffect(() => {
     if (!inscripcionId) {
-      setForm(buildEmptyForm(defaultElaborado))
+      setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
+      setShowCursos(false)
+      setSelectedCursoId("")
+      setSelectedApoderadoId("")
       setLoading(false)
       setLoadError("")
       return undefined
@@ -141,9 +192,73 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
       })
 
     return () => { mounted = false }
-  }, [inscripcionId, defaultElaborado])
+  }, [inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo])
+
+  useEffect(() => {
+    if (selectedCursoId || !form.grupo || cursosCarrera.length === 0) return
+    const match = cursosCarrera.find((curso) => curso.nombre === form.grupo)
+    if (match) setSelectedCursoId(String(match.id_capacitacion))
+  }, [cursosCarrera, form.grupo, selectedCursoId])
+
+  useEffect(() => {
+    if (selectedApoderadoId || !form.apoderado_nombre_completo || apoderados.length === 0) return
+    const match = apoderados.find((apoderado) =>
+      fullName(apoderado) === form.apoderado_nombre_completo &&
+      (!form.apoderado_celular || String(apoderado.celular ?? "") === String(form.apoderado_celular)),
+    )
+    if (match) setSelectedApoderadoId(String(match.id_apoderado))
+  }, [apoderados, form.apoderado_nombre_completo, form.apoderado_celular, selectedApoderadoId])
+
+  useEffect(() => {
+    if (form.id_administrativo || !form.elaborado_por || administrativos.length === 0) return
+    const match = administrativos.find((admin) => fullName(admin) === form.elaborado_por)
+    if (match) setForm((prev) => ({ ...prev, id_administrativo: String(match.id_administrativo) }))
+  }, [administrativos, form.id_administrativo, form.elaborado_por])
 
   const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }))
+
+  const handleCarreraChange = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      id_carrera: value,
+      inicio_clases: "",
+      modalidad: "",
+      horario: "",
+      grupo: "",
+    }))
+    setSelectedCursoId("")
+    setShowCursos(false)
+  }
+
+  const handleCursoSelect = (curso) => {
+    setSelectedCursoId(String(curso.id_capacitacion))
+    setForm((prev) => ({
+      ...prev,
+      inicio_clases: dateOnly(curso.fecha_inicio),
+      modalidad: curso.modalidad ?? "",
+      horario: horarioCurso(curso),
+      grupo: curso.nombre ?? "",
+    }))
+  }
+
+  const handleAdministrativoChange = (value) => {
+    const admin = administrativos.find((item) => String(item.id_administrativo) === String(value)) ?? null
+    setForm((prev) => ({
+      ...prev,
+      id_administrativo: value,
+      elaborado_por: admin ? fullName(admin) : "",
+    }))
+  }
+
+  const handleApoderadoChange = (value) => {
+    const apoderado = apoderados.find((item) => String(item.id_apoderado) === String(value)) ?? null
+    setSelectedApoderadoId(value)
+    setForm((prev) => ({
+      ...prev,
+      apoderado_nombre_completo: apoderado ? fullName(apoderado) : "",
+      apoderado_celular: apoderado?.celular ?? "",
+    }))
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -176,6 +291,7 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
 
     const payload = {
       id_carrera: toNumberOrUndefined(form.id_carrera),
+      id_administrativo: toNumberOrUndefined(form.id_administrativo),
       nro_comprobante: toNumberOrUndefined(form.nro_comprobante),
       nro_credencial: toNumberOrUndefined(form.nro_credencial),
       recalculo: Boolean(form.recalculo),
@@ -210,7 +326,10 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
         ? await updateResource("inscripciones", inscripcionId, payload)
         : await createResource("inscripciones", payload)
       if (!inscripcionId) {
-        setForm(buildEmptyForm(defaultElaborado))
+        setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
+        setShowCursos(false)
+        setSelectedCursoId("")
+        setSelectedApoderadoId("")
       }
       onSaved?.(saved)
     } catch (error) {
@@ -246,7 +365,7 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
             <select
               id="ins-carrera"
               value={form.id_carrera}
-              onChange={(e) => set("id_carrera", e.target.value)}
+              onChange={(e) => handleCarreraChange(e.target.value)}
             >
               <option value="">Selecciona…</option>
               {carreraOptions.map((option) => (
@@ -261,43 +380,90 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
             value={form.nro_comprobante}
             onChange={(e) => set("nro_comprobante", e.target.value)}
           />
+        </div>
+
+        {form.id_carrera && (
+          <div className="inscripcion-course-section">
+            <label className={`create-toggle inscripcion-course-toggle${showCursos ? " is-active" : ""}`} htmlFor="ins-mostrar-cursos">
+              <span className="create-toggle-label">
+                Cursos de capacitación disponibles
+                {cursosCarrera.length > 0 ? ` (${cursosCarrera.length})` : ""}
+              </span>
+              <input
+                id="ins-mostrar-cursos"
+                type="checkbox"
+                checked={showCursos}
+                onChange={(e) => setShowCursos(e.target.checked)}
+              />
+              <span className="create-toggle-track" aria-hidden="true" />
+            </label>
+
+            {showCursos && (
+              <div className="curso-picker">
+                {cursosCarrera.length === 0 ? (
+                  <p className="muted curso-empty">
+                    No hay cursos de capacitación activos para esta carrera.
+                  </p>
+                ) : (
+                  <div className="curso-grid">
+                    {cursosCarrera.map((curso) => {
+                      const selected = String(curso.id_capacitacion) === selectedCursoId
+                      return (
+                        <button
+                          key={curso.id_capacitacion}
+                          type="button"
+                          className={`curso-card${selected ? " selected" : ""}`}
+                          onClick={() => handleCursoSelect(curso)}
+                          aria-pressed={selected}
+                        >
+                          <strong>{curso.nombre ?? `Curso ${curso.id_capacitacion}`}</strong>
+                          <span>{curso.nivel ? `Nivel: ${curso.nivel}` : "Sin nivel"}</span>
+                          <span>
+                            {curso.modalidad ?? "Sin modalidad"} · {horarioCurso(curso) || "Sin horario"}
+                          </span>
+                          <span>Inicio: {formatDateDisplay(curso.fecha_inicio) || "Por definir"}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="form-grid-two" style={{ marginTop: 14 }}>
+          <ReadOnlyField
+            label="Curso / grupo"
+            value={selectedCurso?.nombre ?? form.grupo}
+            placeholder="Selecciona un curso"
+          />
+          <ReadOnlyField
+            label="Nivel"
+            value={selectedCurso?.nivel}
+            placeholder="—"
+          />
+          <ReadOnlyField
+            label="Inicio de clases"
+            value={formatDateDisplay(form.inicio_clases)}
+            placeholder="—"
+          />
+          <ReadOnlyField
+            label="Modalidad"
+            value={form.modalidad}
+            placeholder="—"
+          />
+          <ReadOnlyField
+            label="Horario"
+            value={form.horario}
+            placeholder="—"
+          />
           <TextField
             id="ins-credencial"
             label="Nº de credencial"
             type="number"
             value={form.nro_credencial}
             onChange={(e) => set("nro_credencial", e.target.value)}
-          />
-          <TextField
-            id="ins-inicio-clases"
-            label="Inicio de clases"
-            type="date"
-            value={form.inicio_clases}
-            onChange={(e) => set("inicio_clases", e.target.value)}
-          />
-          <TextField
-            id="ins-modalidad"
-            label="Modalidad"
-            type="text"
-            value={form.modalidad}
-            onChange={(e) => set("modalidad", e.target.value)}
-            maxLength={50}
-          />
-          <TextField
-            id="ins-horario"
-            label="Horario"
-            type="text"
-            value={form.horario}
-            onChange={(e) => set("horario", e.target.value)}
-            maxLength={100}
-          />
-          <TextField
-            id="ins-grupo"
-            label="Grupo"
-            type="text"
-            value={form.grupo}
-            onChange={(e) => set("grupo", e.target.value)}
-            maxLength={50}
           />
         </div>
         <div className="form-row-inline" style={{ marginTop: 14 }}>
@@ -413,21 +579,33 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
       <section className="card">
         <h3>Datos del apoderado</h3>
         <div className="form-grid-two">
-          <TextField
+          <div className="form-row">
+            <label htmlFor="ins-apoderado">Apoderado registrado</label>
+            <select
+              id="ins-apoderado"
+              value={selectedApoderadoId}
+              onChange={(e) => handleApoderadoChange(e.target.value)}
+            >
+              <option value="">Sin apoderado</option>
+              {apoderados.map((apoderado) => (
+                <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
+                  {fullName(apoderado)}
+                  {apoderado.celular ? ` · ${apoderado.celular}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ReadOnlyField
             id="ins-apoderado-nombre"
             label="Nombre completo"
-            type="text"
             value={form.apoderado_nombre_completo}
-            onChange={(e) => set("apoderado_nombre_completo", e.target.value)}
-            maxLength={200}
+            placeholder="Selecciona un apoderado"
           />
-          <TextField
+          <ReadOnlyField
             id="ins-apoderado-celular"
             label="Celular"
-            type="text"
             value={form.apoderado_celular}
-            onChange={(e) => set("apoderado_celular", e.target.value)}
-            maxLength={20}
+            placeholder="—"
           />
           <TextField
             id="ins-apoderado-parentesco"
@@ -471,14 +649,21 @@ export default function InscripcionRegistroForm({ inscripcionId, carreraOptions,
       <section className="card">
         <h3>Datos administrativos</h3>
         <div className="form-grid-two">
-          <TextField
-            id="ins-elaborado-por"
-            label="Elaborado por"
-            type="text"
-            value={form.elaborado_por}
-            onChange={(e) => set("elaborado_por", e.target.value)}
-            maxLength={150}
-          />
+          <div className="form-row">
+            <label htmlFor="ins-elaborado-por">Elaborado por</label>
+            <select
+              id="ins-elaborado-por"
+              value={form.id_administrativo || ""}
+              onChange={(e) => handleAdministrativoChange(e.target.value)}
+            >
+              <option value="">Selecciona…</option>
+              {administrativos.map((admin) => (
+                <option key={admin.id_administrativo} value={admin.id_administrativo}>
+                  {fullName(admin)}
+                </option>
+              ))}
+            </select>
+          </div>
           <TextField
             id="ins-sucursal"
             label="Sucursal"
@@ -516,5 +701,8 @@ InscripcionRegistroForm.propTypes = {
       label: PropTypes.string.isRequired,
     }),
   ).isRequired,
+  cursosPorCarrera: PropTypes.instanceOf(Map).isRequired,
+  administrativos: PropTypes.arrayOf(PropTypes.object).isRequired,
+  apoderados: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSaved: PropTypes.func,
 }

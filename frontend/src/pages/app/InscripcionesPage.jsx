@@ -13,18 +13,37 @@ import ErrorFallback from "../../components/ui/ErrorFallback"
 
 const PAGE_SIZE = 25
 
-function useCarreras() {
-  const [carreras, setCarreras] = useState([])
+const CATALOGOS = ["carreras", "capacitaciones", "convocatorias", "administrativos", "apoderados"]
+
+function useInscripcionCatalogos() {
+  const [catalogos, setCatalogos] = useState({
+    carreras: [],
+    cursos: [],
+    convocatorias: [],
+    administrativos: [],
+    apoderados: [],
+  })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
-    listResource("carreras")
-      .then((rows) => {
-        if (mounted) setCarreras(Array.isArray(rows) ? rows : [])
-      })
-      .catch(() => {
-        if (mounted) setCarreras([])
+    Promise.allSettled(CATALOGOS.map((endpoint) => listResource(endpoint)))
+      .then((results) => {
+        if (!mounted) return
+        const next = {
+          carreras: [],
+          cursos: [],
+          convocatorias: [],
+          administrativos: [],
+          apoderados: [],
+        }
+        results.forEach((result, index) => {
+          const key = CATALOGOS[index] === "capacitaciones" ? "cursos" : CATALOGOS[index]
+          next[key] = result.status === "fulfilled" && Array.isArray(result.value)
+            ? result.value
+            : []
+        })
+        setCatalogos(next)
       })
       .finally(() => {
         if (mounted) setIsLoading(false)
@@ -32,7 +51,32 @@ function useCarreras() {
     return () => { mounted = false }
   }, [])
 
-  return { carreras, isLoading }
+  return { ...catalogos, isLoading }
+}
+
+function buildCursosPorCarrera(carreras, convocatorias, cursos) {
+  const convocatoriasPorFacultad = new Map()
+  convocatorias.forEach((convocatoria) => {
+    const key = String(convocatoria.id_facultad)
+    if (!convocatoriasPorFacultad.has(key)) convocatoriasPorFacultad.set(key, new Set())
+    convocatoriasPorFacultad.get(key).add(String(convocatoria.id_convocatoria))
+  })
+
+  const result = new Map()
+  carreras.forEach((carrera) => {
+    const ids = convocatoriasPorFacultad.get(String(carrera.id_facultad)) ?? new Set()
+    const disponibles = cursos
+      .filter((curso) => curso.activo !== false && ids.has(String(curso.id_convocatoria)))
+      .sort((a, b) => {
+        const fechaA = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : Number.MAX_SAFE_INTEGER
+        const fechaB = b.fecha_inicio ? new Date(b.fecha_inicio).getTime() : Number.MAX_SAFE_INTEGER
+        if (fechaA !== fechaB) return fechaA - fechaB
+        return String(a.nombre ?? "").localeCompare(String(b.nombre ?? ""))
+      })
+    result.set(String(carrera.id_carrera), disponibles)
+  })
+
+  return result
 }
 
 function InscripcionesLista({ carreraById }) {
@@ -124,7 +168,14 @@ export default function InscripcionesPage() {
   const tabConfig = getModuleTabConfig("inscripciones")
   const activeTab = resolveModuleTab(tabConfig, searchParams.toString())
   const inscripcionId = searchParams.get("id")
-  const { carreras, isLoading } = useCarreras()
+  const {
+    carreras,
+    cursos,
+    convocatorias,
+    administrativos,
+    apoderados,
+    isLoading,
+  } = useInscripcionCatalogos()
 
   const carreraOptions = useMemo(() => carreras.map((carrera) => ({
     value: carrera.id_carrera,
@@ -136,6 +187,11 @@ export default function InscripcionesPage() {
     carrera.nombre ?? `Carrera ${carrera.id_carrera}`,
   ])), [carreras])
 
+  const cursosPorCarrera = useMemo(
+    () => buildCursosPorCarrera(carreras, convocatorias, cursos),
+    [carreras, convocatorias, cursos],
+  )
+
   if (isLoading) return <Skeleton lines={6} />
 
   if (activeTab === "registro") {
@@ -144,6 +200,9 @@ export default function InscripcionesPage() {
         key={inscripcionId ?? "nueva"}
         inscripcionId={inscripcionId}
         carreraOptions={carreraOptions}
+        cursosPorCarrera={cursosPorCarrera}
+        administrativos={administrativos}
+        apoderados={apoderados}
         onSaved={() => navigate("/app/inscripciones?tab=lista")}
       />
     )
