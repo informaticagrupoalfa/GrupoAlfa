@@ -10,13 +10,6 @@ const crud = createCrud({
   fks: [
     { column: "id_facultad", table: "facultades", pk: "id_facultad", message: "La facultad no existe" },
   ],
-  deleteGuards: [
-    {
-      table: "capacitaciones",
-      fk: "id_convocatoria",
-      message: "No se puede eliminar: la convocatoria tiene capacitaciones asociadas",
-    },
-  ],
 });
 
 export const getConvocatorias = async (req, res, next) => {
@@ -24,7 +17,7 @@ export const getConvocatorias = async (req, res, next) => {
     const { rows } = await pool.query(`
       SELECT c.id_convocatoria, c.id_facultad, c.fecha_inicio, f.nombre AS nombre_facultad
       FROM convocatorias_preuniversitario c
-      JOIN facultades f ON f.id_facultad = c.id_facultad
+      LEFT JOIN facultades f ON f.id_facultad = c.id_facultad
       ORDER BY c.id_convocatoria ASC
     `);
     res.status(200).json(rows);

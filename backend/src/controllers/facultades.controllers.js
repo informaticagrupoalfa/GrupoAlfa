@@ -5,14 +5,6 @@ const crud = createCrud({
   pk: "id_facultad",
   label: "Facultad no encontrada",
   writable: ["nombre"],
-  deleteGuards: [
-    { table: "carreras", fk: "id_facultad", message: "No se puede eliminar: la facultad tiene carreras asociadas" },
-    {
-      table: "convocatorias_preuniversitario",
-      fk: "id_facultad",
-      message: "No se puede eliminar: la facultad tiene convocatorias asociadas",
-    },
-  ],
 });
 
 export const getFacultades = crud.list;

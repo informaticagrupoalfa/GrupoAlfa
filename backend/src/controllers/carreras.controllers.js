@@ -9,9 +9,6 @@ const crud = createCrud({
   fks: [
     { column: "id_facultad", table: "facultades", pk: "id_facultad", message: "La facultad no existe" },
   ],
-  deleteGuards: [
-    { table: "postulaciones", fk: "id_carrera", message: "No se puede eliminar: la carrera tiene postulaciones asociadas" },
-  ],
 });
 
 export const getCarreras = crud.list;

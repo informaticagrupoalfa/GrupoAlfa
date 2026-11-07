@@ -32,9 +32,6 @@ const crud = createCrud({
     { column: "id_asesor", table: "asesores", pk: "id_asesor", message: "El asesor no existe" },
     { column: "id_tema", table: "temas", pk: "id_tema", message: "El tema no existe" },
   ],
-  deleteGuards: [
-    { table: "avances", fk: "id_clase", message: "No se puede eliminar: la clase tiene avances asociados" },
-  ],
 });
 
 export const getClases = crud.list;

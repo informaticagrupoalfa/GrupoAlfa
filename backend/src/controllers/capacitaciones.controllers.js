@@ -9,8 +9,8 @@ const SELECT_CAPACITACION = `
          cv.id_facultad,
          f.nombre AS nombre_facultad
   FROM capacitaciones c
-  JOIN convocatorias_preuniversitario cv ON cv.id_convocatoria = c.id_convocatoria
-  JOIN facultades f ON f.id_facultad = cv.id_facultad
+  LEFT JOIN convocatorias_preuniversitario cv ON cv.id_convocatoria = c.id_convocatoria
+  LEFT JOIN facultades f ON f.id_facultad = cv.id_facultad
 `;
 
 export const getCapacitaciones = async (req, res, next) => {
@@ -102,13 +102,6 @@ export const deleteCapacitacion = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
-
-    const paralelos = await pool.query("SELECT 1 FROM paralelos WHERE id_capacitacion = $1 LIMIT 1", [id]);
-    if (paralelos.rows.length > 0) {
-      return res.status(409).json({
-        error: "No se puede eliminar: la capacitación tiene paralelos asociados",
-      });
-    }
 
     const { rowCount } = await pool.query("DELETE FROM capacitaciones WHERE id_capacitacion = $1", [id]);
     if (rowCount === 0) return res.status(404).json({ message: "Capacitación no encontrada" });
