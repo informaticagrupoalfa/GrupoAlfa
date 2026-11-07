@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth"
 const lazyCrud = () => import("./CrudPage.jsx")
 const lazyHome = () => import("./DashboardHome.jsx")
 const lazyPaseLista = () => import("../../pages/app/PaseListaPage.jsx")
+const lazyInscripciones = () => import("../../pages/app/InscripcionesPage.jsx")
 const lazyDataExplorer = () => import("../../pages/app/DataExplorerPage.jsx")
 
 export default function Sidebar() {
@@ -29,7 +30,7 @@ export default function Sidebar() {
       key,
       label: ENTITIES[key].label,
       to: ENTITIES[key].path,
-      preload: lazyCrud,
+      preload: key === "inscripciones" ? lazyInscripciones : lazyCrud,
     })
   })
   if (canAccessModuleWithRole(loggedUser, activeRole, "pase-lista")) {

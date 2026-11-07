@@ -1,6 +1,6 @@
 import { authMiddleware } from "./authMiddleware.js";
 import { hasAnyRole } from "./roleMiddleware.js";
-import { ACADEMIC_ROLES, MANAGEMENT_ROLES } from "../config/roles.js";
+import { ACADEMIC_ROLES, INSCRIPCIONES_ROLES, MANAGEMENT_ROLES } from "../config/roles.js";
 
 const PUBLIC_ROUTES = new Set([
   "POST /usuarios",
@@ -25,6 +25,9 @@ const isManagementRoute = (path) =>
   path === "/datos" ||
   path.startsWith("/datos/");
 
+const isInscripcionesRoute = (path) =>
+  path === "/inscripciones" || path.startsWith("/inscripciones/");
+
 const isAuthenticatedOnlyRoute = (method, path) =>
   method === "GET" && path === "/usuarios/me";
 
@@ -47,9 +50,11 @@ export const authorizeApi = (req, res, next) => {
       return next();
     }
 
-    const allowedRoles = isManagementRoute(path)
-      ? MANAGEMENT_ROLES
-      : ACADEMIC_ROLES;
+    const allowedRoles = isInscripcionesRoute(path)
+      ? INSCRIPCIONES_ROLES
+      : isManagementRoute(path)
+        ? MANAGEMENT_ROLES
+        : ACADEMIC_ROLES;
 
     if (!hasAnyRole(req.user, allowedRoles)) {
       return res.status(403).json({

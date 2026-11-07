@@ -1,6 +1,7 @@
 export const ACCESS_ROLE_GROUPS = {
   management: ["SysAdmin", "Rooter", "Gerencia"],
   academic: ["SysAdmin", "Rooter", "Gerencia", "Cajero", "Administración"],
+  enrollment: ["SysAdmin", "Administración"],
   sysadmin: ["SysAdmin"],
 }
 
@@ -18,6 +19,7 @@ export const MODULE_ACCESS = {
   estudiantes: "academic",
   matriculaciones: "academic",
   mensualidades: "academic",
+  inscripciones: "enrollment",
   "pase-lista": "academic",
   datos: "sysadmin",
 }

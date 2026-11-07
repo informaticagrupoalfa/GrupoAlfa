@@ -244,6 +244,33 @@ export const ENTITIES = {
     tabs: ["matriculaciones", "mensualidades"],
     hint: "Relaciona un estudiante con un curso de capacitación. Usa el buscador por nombre para elegir al estudiante.",
   },
+  inscripciones: {
+    key: "inscripciones",
+    label: "Inscripciones",
+    path: "/app/inscripciones",
+    endpoint: "inscripciones",
+    pk: "id_inscripcion",
+    columns: [
+      { key: "id_inscripcion", label: "ID" },
+      { key: "estudiante", label: "Estudiante" },
+      { key: "administrativo", label: "Administrativo" },
+      { key: "como_se_entero_de_nosotros", label: "Cómo se enteró" },
+      { key: "recalculo", label: "Recalculó" },
+      { key: "preparacion_previa", label: "Preparación previa" },
+      { key: "tiempo_de_preparacion_meses", label: "Tiempo (meses)" },
+      { key: "lugar_de_preparacion", label: "Lugar de preparación" },
+    ],
+    fields: [
+      { name: "id_estudiante", label: "Estudiante", type: "number", required: false },
+      { name: "id_administrativo", label: "Administrativo", type: "number", required: false },
+      { name: "como_se_entero_de_nosotros", label: "Cómo se enteró de nosotros", type: "text", required: false, maxLength: 255 },
+      { name: "recalculo", label: "Recalculó", type: "checkbox", required: false, inline: true },
+      { name: "preparacion_previa", label: "Preparación previa", type: "checkbox", required: false, inline: true },
+      { name: "tiempo_de_preparacion_meses", label: "Tiempo de preparación (meses)", type: "number", required: false },
+      { name: "lugar_de_preparacion", label: "Lugar de preparación", type: "text", required: false, maxLength: 255 },
+    ],
+    hint: "Registra el origen y la preparación previa de un estudiante. Usa los buscadores por nombre.",
+  },
   mensualidades: {
     key: "mensualidades",
     label: "Mensualidades",
@@ -262,7 +289,7 @@ export const ENTITIES = {
   },
 }
 
-export const ENTITY_ORDER = ["usuarios", "materias", "asesores", "capacitaciones", "matriculaciones", "temas", "estudiantes"]
+export const ENTITY_ORDER = ["usuarios", "materias", "asesores", "capacitaciones", "matriculaciones", "inscripciones", "temas", "estudiantes"]
 
 export function getDisplayName(row) {
   const parts = [row.nombre, row.apellido_paterno, row.apellido_materno].filter(Boolean)

@@ -22,3 +22,9 @@ export const ACADEMIC_ROLES = Object.freeze([
   ROLE_NAMES.CAJERO,
   ROLE_NAMES.ADMINISTRACION,
 ]);
+
+// Inscripciones: módulo exclusivo de SysAdmin y Administración.
+export const INSCRIPCIONES_ROLES = Object.freeze([
+  ROLE_NAMES.SYS_ADMIN,
+  ROLE_NAMES.ADMINISTRACION,
+]);
