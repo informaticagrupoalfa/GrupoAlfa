@@ -1,10 +1,9 @@
-import { Suspense, lazy } from "react"
+import { Suspense, lazy, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { ENTITIES } from "../../config/entities"
 import Skeleton from "../../components/ui/Skeleton"
+import { getCapacitacionesActivas } from "../../services/academicService"
 
-// split-component-lazy: el CRUD (pesado: tabla + modal + formulario) vive en su
-// propio chunk y solo se monta la pestaña activa — las inactivas no piden datos.
 const loadCrud = () => import("../../components/dashboard/CrudPage.jsx")
 const CrudPanel = lazy(loadCrud)
 
@@ -23,12 +22,33 @@ export default function CapacitacionesPage() {
   const requestedTab = searchParams.get("tab")
   const active = TABS.includes(requestedTab) ? requestedTab : "capacitaciones"
   const entity = ENTITIES[active]
+  const [capacitacionActiva, setCapacitacionActiva] = useState(null)
+
+  useEffect(() => {
+    if (active === "materias") {
+      getCapacitacionesActivas().then((rows) => {
+        if (rows.length > 0) setCapacitacionActiva(rows[0])
+        else setCapacitacionActiva(null)
+      })
+    } else {
+      setCapacitacionActiva(null)
+    }
+  }, [active])
+
+  const defaultParams = active === "materias" ? { activas: "true" } : undefined
 
   return (
     <section>
+      {capacitacionActiva && active === "materias" && (
+        <div className="curso-activo">
+          <strong>Curso de capacitación activo:</strong> {capacitacionActiva.nombre}
+          &nbsp;|&nbsp;
+          {capacitacionActiva.fecha_inicio} &rarr; {capacitacionActiva.fecha_fin || "sin fecha fin"}
+        </div>
+      )}
       <p className="muted">{TAB_HINTS[active]}</p>
       <Suspense fallback={<Skeleton lines={6} />}>
-        <CrudPanel key={entity.key} entity={entity} />
+        <CrudPanel key={entity.key} entity={entity} defaultParams={defaultParams} />
       </Suspense>
     </section>
   )

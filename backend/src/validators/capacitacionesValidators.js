@@ -34,6 +34,7 @@ const capacitacionSchema = z.object({
     .optional(),
   hora_inicio: z.string().trim().regex(horaRegex, "La hora de inicio debe tener formato HH:MM").optional(),
   hora_fin: z.string().trim().regex(horaRegex, "La hora de fin debe tener formato HH:MM").optional(),
+  activo: z.boolean().optional(),
 });
 
 const validarFechas = (data) =>

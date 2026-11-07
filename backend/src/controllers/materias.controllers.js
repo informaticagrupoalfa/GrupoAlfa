@@ -1,7 +1,24 @@
 import { pool } from "../db.js";
 
+const hoy = new Date().toISOString().split("T")[0];
+
 export const getMaterias = async (req, res, next) => {
   try {
+    const { activas } = req.query;
+
+    if (activas === "true") {
+      const { rows } = await pool.query(
+        `SELECT DISTINCT m.id_materia, m.nombre_materia
+         FROM materias m
+         JOIN convocatoria_materia cm ON cm.id_materia = m.id_materia
+         JOIN cursos_capacitacion cc ON cc.id_convocatoria = cm.id_convocatoria
+         WHERE cc.fecha_inicio <= $1 AND ($1 <= cc.fecha_fin OR cc.fecha_fin IS NULL)
+         ORDER BY m.nombre_materia ASC`,
+        [hoy],
+      );
+      return res.status(200).json(rows);
+    }
+
     const { rows } = await pool.query("SELECT * FROM materias ORDER BY id_materia ASC");
     res.status(200).json(rows);
   } catch (error) {

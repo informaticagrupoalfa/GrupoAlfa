@@ -28,6 +28,7 @@ import avancesRoutes from "./routes/avances.routes.js";
 import mensualidadesRoutes from "./routes/mensualidades.routes.js";
 import asistenciasRoutes from "./routes/asistencias.routes.js";
 import datosRoutes from "./routes/datos.routes.js";
+import materiasCapacitacionRoutes from "./routes/materiasCapacitacion.routes.js";
 import morgan from "morgan";
 import { config } from "dotenv";
 import cors from "cors";
@@ -90,6 +91,7 @@ app.use("/api", avancesRoutes);
 app.use("/api", mensualidadesRoutes);
 app.use("/api", asistenciasRoutes);
 app.use("/api", datosRoutes);
+app.use("/api", materiasCapacitacionRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -698,6 +698,103 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
 }
 
+.curso-activo {
+  background: #e3f7e9;
+  border: 1px solid #9fd9b4;
+  border-radius: 6px;
+  color: #1f7a43;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin: 0 32px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Campos en fila (inline) */
+.inline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 6px;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #2196f3;
+}
+
+.inline-field label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0a2540;
+}
+
+/* Materia multi-selector */
+.materia-multi {
+  margin: 12px 0;
+}
+
+.materia-label {
+  display: block;
+  color: #5b6b82;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.materia-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.materia-chip {
+  padding: 6px 12px;
+  border: 1px solid #b3e5fc;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0a2540;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.materia-chip:hover {
+  border-color: #2196f3;
+  background: #e0f7fe;
+}
+
+.materia-chip.active {
+  background: #2196f3;
+  border-color: #2196f3;
+  color: #ffffff;
+}
+
+.materia-count {
+  margin-top: 8px;
+  color: #5b6b82;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

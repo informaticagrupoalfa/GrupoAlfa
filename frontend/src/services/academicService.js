@@ -23,3 +23,8 @@ export async function updateResource(endpoint, id, payload) {
 export async function deleteResource(endpoint, id) {
   await apiClient.delete(`/${endpoint}/${id}`)
 }
+
+export async function getCapacitacionesActivas() {
+  const response = await apiClient.get("/capacitaciones/activas")
+  return Array.isArray(response.data) ? response.data : []
+}

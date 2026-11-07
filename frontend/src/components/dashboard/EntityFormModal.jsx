@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import Modal from "../ui/Modal"
 import TextField from "../ui/TextField"
@@ -17,10 +17,13 @@ function normalizeInitialValues(entity, initial) {
   return values
 }
 
-export default function EntityFormModal({ entity, initial, saving, formError, onClose, onSubmit }) {
+export default function EntityFormModal({ entity, initial, saving, formError, onClose, onSubmit, extra }) {
   const [values, setValues] = useState(() => normalizeInitialValues(entity, initial))
   const [localError, setLocalError] = useState("")
   const [selectOptions, setSelectOptions] = useState({})
+
+  const inlineFields = useMemo(() => entity.fields.filter((f) => f.inline), [entity.fields])
+  const normalFields = useMemo(() => entity.fields.filter((f) => !f.inline), [entity.fields])
 
   useEffect(() => {
     setValues(normalizeInitialValues(entity, initial))
@@ -29,7 +32,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
   useEffect(() => {
     const fetchSelectOptions = async () => {
       const opts = {}
-      for (const field of entity.fields) {
+      for (const field of normalFields) {
         if (field.type === "select" && field.optionsEndpoint) {
           try {
             const { data } = await apiClient.get(`/${field.optionsEndpoint}`)
@@ -43,7 +46,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
       setSelectOptions(opts)
     }
     fetchSelectOptions()
-  }, [entity])
+  }, [entity, normalFields])
 
   useEffect(() => {
     const onKey = (event) => {
@@ -58,7 +61,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
   const handleSubmit = (event) => {
     event.preventDefault()
     setLocalError("")
-    for (const field of entity.fields) {
+    for (const field of normalFields) {
       const value = values[field.name]
       if (field.required && (value === "" || value == null)) {
         setLocalError(`El campo "${field.label}" es obligatorio.`)
@@ -66,6 +69,13 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
       }
       if (field.maxLength && String(value ?? "").length > field.maxLength) {
         setLocalError(`"${field.label}" supera ${field.maxLength} caracteres.`)
+        return
+      }
+    }
+    for (const field of inlineFields) {
+      const value = values[field.name]
+      if (field.required && (value === "" || value == null)) {
+        setLocalError(`El campo "${field.label}" es obligatorio.`)
         return
       }
     }
@@ -92,7 +102,39 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
     >
       <Modal.Body>
         <form onSubmit={handleSubmit}>
-          {entity.fields.map((field) => {
+          {inlineFields.length > 0 && (
+            <div className="inline-row">
+              {inlineFields.map((field) => {
+                if (field.type === "checkbox") {
+                  return (
+                    <div key={field.name} className="inline-field checkbox-field">
+                      <input
+                        id={`f-${field.name}`}
+                        type="checkbox"
+                        checked={values[field.name] === true || values[field.name] === "true"}
+                        onChange={(event) => set(field.name, event.target.checked)}
+                      />
+                      <label htmlFor={`f-${field.name}`}>{field.label}</label>
+                    </div>
+                  )
+                }
+                return (
+                  <TextField
+                    key={field.name}
+                    id={`f-${field.name}`}
+                    label={field.label}
+                    type={field.type}
+                    value={values[field.name] ?? ""}
+                    onChange={(event) => set(field.name, event.target.value)}
+                    maxLength={field.maxLength}
+                    required={field.required}
+                    inline
+                  />
+                )
+              })}
+            </div>
+          )}
+          {normalFields.map((field) => {
             if (field.type === "select") {
               const options = selectOptions[field.name] ?? []
               return (
@@ -121,6 +163,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
               />
             )
           })}
+          {extra}
           {(localError || formError) && (
             <p className="error-message" role="alert">{localError || formError}</p>
           )}
@@ -145,4 +188,5 @@ EntityFormModal.propTypes = {
   formError: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
+  extra: PropTypes.element,
 }

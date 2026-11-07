@@ -6,19 +6,23 @@ import Button from "../ui/Button"
 import Pagination from "../ui/Pagination"
 import Skeleton from "../ui/Skeleton"
 import ErrorFallback from "../ui/ErrorFallback"
+import MateriaMultiSelector from "./MateriaMultiSelector"
+import { apiClient } from "../../services/apiClient"
 
 const EntityFormModal = lazy(() => import("./EntityFormModal.jsx"))
 
 const PAGE_SIZE = 25
 
-export default function CrudPage({ entity }) {
-  const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity)
+export default function CrudPage({ entity, defaultParams }) {
+  const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity, defaultParams)
   const [search, setSearch] = useState("")
   const [filterMateria, setFilterMateria] = useState("")
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState("")
+  const [materiasSeleccionadas, setMateriasSeleccionadas] = useState([])
+  const [materiaAsignaciones, setMateriaAsignaciones] = useState({})
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -44,16 +48,36 @@ export default function CrudPage({ entity }) {
   const openCreate = useCallback(() => {
     setSelected(null)
     setFormError("")
+    setMateriasSeleccionadas([])
+    setMateriaAsignaciones({})
     setModalOpen(true)
   }, [setSelected])
 
   const openEdit = useCallback(
-    (row) => {
+    async (row) => {
       setSelected(row)
       setFormError("")
+      setMateriasSeleccionadas([])
+      setMateriaAsignaciones({})
       setModalOpen(true)
+      if (entity.key === "capacitaciones" && row?.[entity.pk] != null) {
+        try {
+          const { data } = await apiClient.get("/materias-capacitacion", {
+            params: { id_curso_capacitacion: row[entity.pk] },
+          })
+          const rows = Array.isArray(data) ? data : []
+          const ids = rows.map((r) => r.id_materia)
+          setMateriasSeleccionadas(ids)
+          const map = {}
+          for (const r of rows) map[r.id_materia] = r.id_asignacion_materia_convocatoria
+          setMateriaAsignaciones(map)
+        } catch {
+          setMateriasSeleccionadas([])
+          setMateriaAsignaciones({})
+        }
+      }
     },
-    [setSelected],
+    [entity, setSelected],
   )
 
   const handleDelete = useCallback(
@@ -84,9 +108,27 @@ export default function CrudPage({ entity }) {
           }
           if (payload[field.name] === "") delete payload[field.name]
         }
-        await save(payload)
+        const saved = await save(payload)
+        if (entity.key === "capacitaciones") {
+          const savedId = saved.id_capacitacion
+          const seleccionadas = new Set(Array.isArray(materiasSeleccionadas) ? materiasSeleccionadas : [])
+          for (const [idMateria, idAsignacion] of Object.entries(materiaAsignaciones)) {
+            if (!seleccionadas.has(Number(idMateria))) {
+              await apiClient.delete(`/materias-capacitacion/${idAsignacion}`)
+            }
+          }
+          for (const idMateria of materiasSeleccionadas) {
+            if (!(idMateria in materiaAsignaciones)) {
+              await apiClient.post("/materias-capacitacion", {
+                id_materia: idMateria,
+                id_curso_capacitacion: savedId,
+              })
+            }
+          }
+        }
         setModalOpen(false)
         setSelected(null)
+        setMateriasSeleccionadas([])
         await reload(entity.key === "temas" && filterMateria ? { id_materia: filterMateria } : undefined)
       } catch (err) {
         setFormError(err.userMessage ?? "No se pudo guardar.")
@@ -94,13 +136,21 @@ export default function CrudPage({ entity }) {
         setSaving(false)
       }
     },
-    [entity, save, reload, filterMateria, setSelected],
+    [entity, materiasSeleccionadas, materiaAsignaciones, reload, filterMateria, setSelected, save],
   )
 
   const applyFilter = () => {
     setPage(1)
     reload(entity.key === "temas" && filterMateria ? { id_materia: filterMateria } : undefined)
   }
+
+  const extraComponent =
+    entity.key === "capacitaciones" ? (
+      <MateriaMultiSelector
+        value={materiasSeleccionadas}
+        onChange={setMateriasSeleccionadas}
+      />
+    ) : null
 
   if (isLoading) return <Skeleton lines={6} />
   if (error) {
@@ -155,6 +205,7 @@ export default function CrudPage({ entity }) {
             formError={formError}
             onClose={() => setModalOpen(false)}
             onSubmit={handleSubmit}
+            extra={extraComponent}
           />
         </Suspense>
       )}
@@ -164,4 +215,5 @@ export default function CrudPage({ entity }) {
 
 CrudPage.propTypes = {
   entity: PropTypes.object.isRequired,
+  defaultParams: PropTypes.object,
 }
