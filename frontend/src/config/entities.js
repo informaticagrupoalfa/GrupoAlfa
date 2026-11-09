@@ -109,8 +109,9 @@ export const ENTITIES = {
     pk: "id_capacitacion",
     columns: [
       { key: "id_capacitacion", label: "ID" },
-      { key: "id_convocatoria", label: "Convocatoria" },
-      { key: "nombre_facultad", label: "Facultad" },
+      { key: "id_convocatoria", label: "Convocatoria (ID)", isForeign: true },
+      { key: "fecha_inicio_convocatoria", label: "Inicio convocatoria", type: "date", isForeign: true },
+      { key: "nombre_facultad", label: "Facultad", isForeign: true },
       { key: "fecha_inicio", label: "Inicio", type: "date" },
       { key: "fecha_fin", label: "Fin", type: "date" },
       { key: "activo", label: "Activo", type: "checkbox" },
@@ -139,8 +140,9 @@ export const ENTITIES = {
       { key: "hora_inicio", label: "Hora inicio", type: "time" },
       { key: "hora_fin", label: "Hora fin", type: "time" },
       { key: "dias", label: "Días" },
-      { key: "id_capacitacion", label: "Capacitación" },
-      { key: "id_aula", label: "Aula" },
+      { key: "capacitacion_info", label: "Capacitación", isForeign: true },
+      { key: "aula_codigo", label: "Aula (código)", isForeign: true },
+      { key: "aula_capacidad", label: "Capacidad aula", isForeign: true },
       { key: "activo", label: "Activo", type: "checkbox" },
     ],
     fields: [
@@ -166,7 +168,7 @@ export const ENTITIES = {
     pk: "id_convocatoria",
     columns: [
       { key: "id_convocatoria", label: "ID" },
-      { key: "id_facultad", label: "Facultad (ID)" },
+      { key: "nombre_facultad", label: "Facultad", isForeign: true },
       { key: "fecha_inicio", label: "Inicio", type: "date" },
     ],
     fields: [

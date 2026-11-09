@@ -6,6 +6,7 @@ const SELECT_CAPACITACION = `
          c.fecha_inicio,
          c.fecha_fin,
          c.activo,
+         cv.fecha_inicio AS fecha_inicio_convocatoria,
          cv.id_facultad,
          f.nombre AS nombre_facultad
   FROM capacitaciones c

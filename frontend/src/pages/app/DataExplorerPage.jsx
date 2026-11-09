@@ -153,7 +153,9 @@ export default function DataExplorerPage() {
                 <thead>
                   <tr>
                     {columns.map((column) => (
-                      <th key={column}>{column}</th>
+                      <th key={column.name} className={column.isForeign ? "th-foreign" : "th-own"}>
+                        {column.label ?? column.name}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -161,9 +163,9 @@ export default function DataExplorerPage() {
                   {rows.map((row, rowIndex) => (
                     <tr key={`${page}-${rowIndex}`}>
                       {columns.map((column) => {
-                        const text = formatCell(row[column])
+                        const text = formatCell(row[column.name])
                         return (
-                          <td key={column} className="data-cell" title={text}>
+                          <td key={column.name} className={`data-cell${column.isForeign ? " td-foreign" : ""}`} title={text}>
                             {text}
                           </td>
                         )

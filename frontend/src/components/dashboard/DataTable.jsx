@@ -15,7 +15,7 @@ function formatDate(value) {
 const Row = memo(function Row({ row, columns, pk, onEdit, onDelete }) {  return (
     <tr>
       {columns.map((col) => (
-        <td key={col.key}>
+        <td key={col.key} className={col.isForeign ? "td-foreign" : undefined}>
           {col.key === "nombre_completo"
             ? getDisplayName(row) || "—"
             : col.type === "date"
@@ -51,7 +51,7 @@ export default function DataTable({ rows, columns, pk, onEdit, onDelete }) {
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col.key}>{col.label}</th>
+              <th key={col.key} className={col.isForeign ? "th-foreign" : undefined}>{col.label}</th>
             ))}
             <th>Acciones</th>
           </tr>

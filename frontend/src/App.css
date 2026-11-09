@@ -966,6 +966,16 @@ button:disabled {
   color: #ffffff;
 }
 
+/* Campos FK / tablas referenciadas - naranja claro */
+.data-table th.th-foreign {
+  background: #ff9800;
+  color: #ffffff;
+}
+
+.data-table td.td-foreign {
+  background-color: rgba(255, 152, 0, 0.05);
+}
+
 .data-explorer {
   display: grid;
   gap: 16px;
