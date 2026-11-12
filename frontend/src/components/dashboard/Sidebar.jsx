@@ -9,6 +9,7 @@ const lazyHome = () => import("./DashboardHome.jsx")
 const lazyPaseLista = () => import("../../pages/app/PaseListaPage.jsx")
 const lazyInscripciones = () => import("../../pages/app/InscripcionesPage.jsx")
 const lazyDataExplorer = () => import("../../pages/app/DataExplorerPage.jsx")
+const lazyEstudiantes = () => import("../../pages/app/EstudiantesPage.jsx")
 
 export default function Sidebar() {
   const { loggedUser, activeRole } = useAuth()
@@ -47,6 +48,14 @@ export default function Sidebar() {
       label: "Explorador de datos",
       to: "/app/datos",
       preload: lazyDataExplorer,
+    })
+  }
+  if (canAccessModuleWithRole(loggedUser, activeRole, "estudiantes")) {
+    navItems.push({
+      key: "estudiantes",
+      label: "Estudiantes",
+      to: "/app/estudiantes",
+      preload: lazyEstudiantes,
     })
   }
 

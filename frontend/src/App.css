@@ -24,10 +24,6 @@ body {
   margin: 0;
 }
 
-button,
-input {
-  font: inherit;
-}
 
 .login-page {
   align-items: center;
@@ -155,7 +151,6 @@ button {
   border-radius: 4px;
   cursor: pointer;
   font-weight: 700;
-  margin-top: 20px;
   padding: 14px 18px;
   transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
@@ -428,16 +423,20 @@ button:disabled {
   align-items: flex-start;
   gap: 16px;
   padding: 32px 32px 0;
+  flex-wrap: wrap;
 }
 
 .dashboard-header h1 {
   font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin: 0;
 }
 
 .header-user {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  min-width: 200px;
 }
 
 .header-profile-link {
@@ -1337,6 +1336,19 @@ button.small {
 }
 
 @media (max-width: 720px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 24px 20px 0;
+  }
+
+  .header-user {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
   .form-grid-two {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1455,6 +1467,12 @@ button.small {
   .dashboard {
     flex-direction: column;
   }
+  .header-user {
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    width: 100%;
+  }
 
   .sidebar {
     width: 100%;
@@ -1497,11 +1515,6 @@ button.small {
   .module-navbar {
     padding-left: 20px;
     padding-right: 20px;
-  }
-
-  .header-user {
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 
   .profile-card {
@@ -1666,3 +1679,273 @@ button.small {
   font-size: 13px;
   text-align: center;
 }
+
+.registro-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.registro-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #eef3f9;
+  vertical-align: top;
+}
+
+.registro-table td label {
+  font-weight: 700;
+  font-size: 12px;
+  color: #0b2f5b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.registro-table td label {
+  text-align: right;
+  display: block;
+}
+
+.registro-table td:nth-child(1),
+.registro-table td:nth-child(3) {
+  width: 22%;
+}
+
+.registro-table td:nth-child(2),
+.registro-table td:nth-child(4) {
+  width: 28%;
+}
+
+.registro-table td[colSpan="4"],
+.registro-table td[colspan="4"] {
+  text-align: left;
+  font-weight: 700;
+  font-size: 12px;
+  color: #0b2f5b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding-top: 10px;
+  padding-bottom: 2px;
+}
+
+.registro-table td[colSpan="3"],
+.registro-table td[colspan="3"] {
+  text-align: left;
+}
+
+.registro-table input,
+.registro-table select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.registro-table input[type="checkbox"],
+.registro-table input[type="radio"] {
+  width: auto;
+  margin: 0;
+}
+
+.registro-table .radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin: 0;
+  padding: 0;
+}
+
+.registro-table .radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0a2540;
+  cursor: pointer;
+}
+
+/* Página Estudiantes - matriz de tarjetas */
+.estudiantes-page {
+  padding: 24px 32px 48px;
+}
+
+.estudiantes-toolbar {
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 6px;
+}
+.estudiantes-toolbar div{
+  align-items: center;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  padding: 4px;
+  width: 100%;
+}
+.estudiantes-toolbar div > *{
+  width: 100%;
+  font-size: 0.8rem;
+  margin: 5px;
+}
+
+
+.estudiantes-toolbar label {
+  margin-top: 0;
+  color: #0b2f5b;
+  white-space: nowrap;
+}
+.estudiantes-total {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1976d2;
+}
+
+.estudiantes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.estudiante-card {
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 6px 18px rgba(33, 150, 243, 0.08);
+}
+
+.skeleton-card {
+  opacity: 0.6;
+}
+
+.campo-valor {
+  display: grid;
+  gap: 2px;
+}
+
+.campo-valor .label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6b82;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.campo-valor .valor {
+  font-size: 13px;
+  color: #0a2540;
+  overflow-wrap: anywhere;
+}
+
+.campo-extra {
+  display: grid;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px dashed #dbe5f2;
+  margin-top: 6px;
+  background: #e0f7fe;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.campo-extra .label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1976d2;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.campo-extra .valor {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a2540;
+}
+
+@media (max-width: 1200px) {
+  .estudiantes-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .estudiantes-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .estudiantes-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+  }
+  .estudiantes-toolbar div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .estudiantes-toolbar div > * {
+    font-size: 0.85rem;
+    margin: 3px 0;
+  }
+  .estudiantes-toolbar label {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 720px) {
+  .estudiantes-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .estudiante-card {
+    padding: 12px;
+    gap: 3px;
+  }
+  .estudiante-card .campo-valor .label {
+    font-size: 10px;
+  }
+  .estudiante-card .campo-valor .valor {
+    font-size: 12px;
+  }
+  .estudiantes-page {
+    padding: 16px 20px 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .estudiantes-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .estudiantes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+  .estudiantes-toolbar div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .estudiantes-toolbar div > * {
+    width: 100%;
+    font-size: 0.85rem;
+    margin: 3px 0;
+  }
+  .estudiantes-toolbar input[type="search"],
+  .estudiantes-toolbar select {
+    width: 100%;
+    min-width: auto;
+  }
+  .estudiante-card {
+    padding: 12px;
+  }
+}
+

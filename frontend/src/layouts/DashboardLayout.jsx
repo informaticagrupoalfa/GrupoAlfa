@@ -40,15 +40,23 @@ export default function DashboardLayout() {
             <h1>{title}</h1>
           </div>
           <div className="header-user">
-            <span className="muted">{loggedUser?.nombre ?? "Usuario"}</span>
-            {activeRole && <span className="muted">({activeRole})</span>}
-            <RoleSelector />
-            <Link className="header-profile-link" to="/app/perfil">
-              Mi perfil
-            </Link>
-            <button className="secondary-button small" type="button" onClick={handleSignOut}>
-              Cerrar sesión
-            </button>
+            <div>
+              <span className="muted">{loggedUser?.nombre ?? "Usuario"}</span>
+              {activeRole && <span className="muted"> ({activeRole})</span>}
+            </div>
+            <div>
+              <RoleSelector />
+            </div>
+            <div>
+              <Link className="header-profile-link" to="/app/perfil">
+                Mi perfil
+              </Link>
+            </div>
+            <div>
+              <button className="secondary-button small" type="button" onClick={handleSignOut}>
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </header>
         <ModuleNavbar config={tabConfig} />
