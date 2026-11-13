@@ -28,3 +28,8 @@ export async function getCapacitacionesActivas() {
   const response = await apiClient.get("/capacitaciones/activas")
   return Array.isArray(response.data) ? response.data : []
 }
+
+export async function registrarEstudiante(payload) {
+  const response = await apiClient.post("/inscripciones/registrar-estudiante", payload)
+  return response.data
+}

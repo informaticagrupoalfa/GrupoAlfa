@@ -14,15 +14,21 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === "23505") {
     err.statusCode = 409;
     const detail = err.detail || "";
-    if (detail.includes("correo_electronico")) {
-      err.message = "El correo electrónico ya existe";
-    } else if (detail.includes("nro_carnet")) {
-      err.message = "El nro de carnet ya existe";
-    } else if (detail.includes("id_usuario")) {
-      err.message = "El id de usuario ya existe";
-    } else {
-      err.message = "Registro duplicado";
-    }
+    const columnMatch = detail.match(/Key \((.*?)\)=/);
+    const column = columnMatch ? columnMatch[1] : null;
+    const columnLabels = {
+      nro_carnet: "nro de carnet",
+      correo_electronico: "correo electrónico",
+      id_usuario: "id de usuario",
+      id_estudiante: "id de estudiante",
+      id_inscripcion: "id de inscripción",
+      id_apoderado: "id de apoderado",
+      id_matriculacion: "id de matrícula",
+      id_mensualidad: "id de mensualidad",
+      nro_telefono: "número de teléfono",
+    };
+    const label = column ? (columnLabels[column] || column) : "campo";
+    err.message = `El ${label} ya está en uso`;
   }
 
   // pg foreign key violation

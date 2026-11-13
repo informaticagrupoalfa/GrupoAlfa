@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import PropTypes from "prop-types"
+import { useSearchParams } from "react-router-dom"
 import Button from "../../ui/Button"
 import Skeleton from "../../ui/Skeleton"
 import ErrorFallback from "../../ui/ErrorFallback"
 import { useAuth } from "../../../hooks/useAuth"
 import {
-  createResource,
   getResourceById,
-  updateResource,
+  registrarEstudiante,
 } from "../../../services/academicService"
 
 const MEDIOS = [
@@ -66,6 +66,7 @@ function buildEmptyForm(elaboradoPor, idAdministrativo) {
   return {
     id_carrera: "",
     id_administrativo: idAdministrativo ?? "",
+    id_paralelo: "",
     nro_comprobante: "",
     nro_credencial: "",
     recalculo: false,
@@ -166,6 +167,7 @@ export default function InscripcionRegistroForm({
     [defaultAdministrativo, loggedUser],
   )
   const [form, setForm] = useState(() => buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState(Boolean(inscripcionId))
   const [loadError, setLoadError] = useState("")
   const [saving, setSaving] = useState(false)
@@ -173,7 +175,7 @@ export default function InscripcionRegistroForm({
   const [showParalelos, setShowParalelos] = useState(false)
   const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
-  const [fotoFile, setFotoFile] = useState(null)
+  const [fotoBase64, setFotoBase64] = useState(null)
 
   const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
@@ -191,7 +193,7 @@ export default function InscripcionRegistroForm({
       setShowParalelos(false)
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
-      setFotoFile(null)
+      setFotoBase64(null)
       setLoading(false)
       setLoadError("")
       return undefined
@@ -239,6 +241,94 @@ export default function InscripcionRegistroForm({
     if (match) setForm((prev) => ({ ...prev, id_administrativo: String(match.id_administrativo) }))
   }, [administrativos, form.id_administrativo, form.elaborado_por])
 
+  const isRestoring = useRef(false)
+
+  useEffect(() => {
+    if (inscripcionId) return
+    const params = {}
+    for (const [key, value] of searchParams.entries()) {
+      params[key] = value
+    }
+    if (Object.keys(params).length === 0) return
+    isRestoring.current = true
+    setForm((prev) => ({
+      ...prev,
+      ci: params.ci ?? prev.ci,
+      apellido_paterno: params.apellido_paterno ?? prev.apellido_paterno,
+      apellido_materno: params.apellido_materno ?? prev.apellido_materno,
+      nombre: params.nombre ?? prev.nombre,
+      fecha_nacimiento: params.fecha_nacimiento ?? prev.fecha_nacimiento,
+      contraseña: params.contraseña ?? prev.contraseña,
+      celular: params.celular ?? prev.celular,
+      correo_electronico: params.correo_electronico ?? prev.correo_electronico,
+      colegio_de_procedencia: params.colegio_de_procedencia ?? prev.colegio_de_procedencia,
+      direccion_de_domicilio: params.direccion_de_domicilio ?? prev.direccion_de_domicilio,
+      apoderado_ci: params.apoderado_ci ?? prev.apoderado_ci,
+      apoderado_nombre: params.apoderado_nombre ?? prev.apoderado_nombre,
+      apoderado_apellido_paterno: params.apoderado_apellido_paterno ?? prev.apoderado_apellido_paterno,
+      apoderado_apellido_materno: params.apoderado_apellido_materno ?? prev.apoderado_apellido_materno,
+      apoderado_telefono: params.apoderado_telefono ?? prev.apoderado_telefono,
+      apoderado_contraseña: params.apoderado_contraseña ?? prev.apoderado_contraseña,
+      apoderado_parentesco: params.apoderado_parentesco ?? prev.apoderado_parentesco,
+      id_carrera: params.id_carrera ?? prev.id_carrera,
+      nro_comprobante: params.nro_comprobante ?? prev.nro_comprobante,
+      nro_credencial: params.nro_credencial ?? prev.nro_credencial,
+      recalculo: params.recalculo === "true",
+      preparacion_previa: params.preparacion_previa === "true",
+      tiempo_de_preparacion_meses: params.tiempo_de_preparacion_meses ?? prev.tiempo_de_preparacion_meses,
+      lugar_de_preparacion: params.lugar_de_preparacion ?? prev.lugar_de_preparacion,
+      id_paralelo: params.id_paralelo ?? prev.id_paralelo,
+      id_administrativo: params.id_administrativo ?? prev.id_administrativo,
+      sucursal: params.sucursal ?? prev.sucursal,
+      fecha_inscripcion: params.fecha_inscripcion ?? prev.fecha_inscripcion,
+      como_se_entero_de_nosotros: params.como_se_entero_de_nosotros ?? prev.como_se_entero_de_nosotros,
+    }))
+    setSelectedParaleloId(params.id_paralelo ?? "")
+    setShowParalelos(!!params.id_paralelo)
+    setSelectedApoderadoId("")
+    setFotoBase64(null)
+    isRestoring.current = false
+  }, [searchParams, inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo])
+
+  useEffect(() => {
+    if (isRestoring.current || inscripcionId) return
+    const next = {}
+    const setParam = (key, value) => {
+      if (value === null || value === undefined || value === "") return
+      next[key] = String(value)
+    }
+    setParam("ci", form.ci)
+    setParam("apellido_paterno", form.apellido_paterno)
+    setParam("apellido_materno", form.apellido_materno)
+    setParam("nombre", form.nombre)
+    setParam("fecha_nacimiento", form.fecha_nacimiento)
+    setParam("contraseña", form.contraseña)
+    setParam("celular", form.celular)
+    setParam("correo_electronico", form.correo_electronico)
+    setParam("colegio_de_procedencia", form.colegio_de_procedencia)
+    setParam("direccion_de_domicilio", form.direccion_de_domicilio)
+    setParam("apoderado_ci", form.apoderado_ci)
+    setParam("apoderado_nombre", form.apoderado_nombre)
+    setParam("apoderado_apellido_paterno", form.apoderado_apellido_paterno)
+    setParam("apoderado_apellido_materno", form.apoderado_apellido_materno)
+    setParam("apoderado_telefono", form.apoderado_telefono)
+    setParam("apoderado_contraseña", form.apoderado_contraseña)
+    setParam("apoderado_parentesco", form.apoderado_parentesco)
+    setParam("id_carrera", form.id_carrera)
+    setParam("nro_comprobante", form.nro_comprobante)
+    setParam("nro_credencial", form.nro_credencial)
+    setParam("recalculo", form.recalculo)
+    setParam("preparacion_previa", form.preparacion_previa)
+    setParam("tiempo_de_preparacion_meses", form.tiempo_de_preparacion_meses)
+    setParam("lugar_de_preparacion", form.lugar_de_preparacion)
+    setParam("id_paralelo", form.id_paralelo)
+    setParam("id_administrativo", form.id_administrativo)
+    setParam("sucursal", form.sucursal)
+    setParam("fecha_inscripcion", form.fecha_inscripcion)
+    setParam("como_se_entero_de_nosotros", form.como_se_entero_de_nosotros)
+    setSearchParams(next, { replace: true })
+  }, [form, setSearchParams, inscripcionId])
+
   const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }))
 
   const handleCarreraChange = (value) => {
@@ -260,6 +350,7 @@ export default function InscripcionRegistroForm({
       setSelectedParaleloId("")
       setForm((prev) => ({
         ...prev,
+        id_paralelo: "",
         inicio_clases: "",
         modalidad: "",
         horario: "",
@@ -270,6 +361,7 @@ export default function InscripcionRegistroForm({
     setSelectedParaleloId(id)
     setForm((prev) => ({
       ...prev,
+      id_paralelo: id,
       inicio_clases: dateOnly(paralelo.capacitacion?.fecha_inicio),
       modalidad: paralelo.modalidad ?? "",
       horario: horarioParalelo(paralelo),
@@ -296,7 +388,7 @@ export default function InscripcionRegistroForm({
       apoderado_apellido_paterno: apoderado ? apoderado.apellido_paterno ?? "" : "",
       apoderado_apellido_materno: apoderado ? apoderado.apellido_materno ?? "" : "",
       apoderado_nombre: apoderado ? apoderado.nombre ?? "" : "",
-      apoderado_telefono: apoderado ? apoderado.celular ?? "" : "",
+      apoderado_telefono: apoderado ? apoderado.nro_telefono ?? "" : "",
       apoderado_parentesco: apoderado ? apoderado.parentesco ?? "" : "",
       apoderado_contraseña: "",
     }))
@@ -305,9 +397,13 @@ export default function InscripcionRegistroForm({
   const handleFotoChange = (event) => {
     const files = event.target.files
     if (files && files.length > 0) {
-      setFotoFile(files[0])
+      const reader = new FileReader()
+      reader.onload = () => {
+        setFotoBase64(reader.result?.toString().split(",")[1] ?? null)
+      }
+      reader.readAsDataURL(files[0])
     } else {
-      setFotoFile(null)
+      setFotoBase64(null)
     }
   }
 
@@ -323,77 +419,82 @@ export default function InscripcionRegistroForm({
       setFormError("El nombre es obligatorio.")
       return
     }
-    if (form.nro_comprobante !== "" && (Number.isNaN(Number(form.nro_comprobante)) || Number(form.nro_comprobante) < 0)) {
-      setFormError("El Nº de comprobante debe ser un número mayor o igual a 0.")
+    if (!form.ci.trim()) {
+      setFormError("El CI es obligatorio.")
       return
     }
-    if (form.nro_credencial !== "" && (Number.isNaN(Number(form.nro_credencial)) || Number(form.nro_credencial) < 0)) {
-      setFormError("El Nº de credencial debe ser un número mayor o igual a 0.")
+    if (!form.apoderado_ci.trim()) {
+      setFormError("El CI del apoderado es obligatorio.")
       return
     }
-    if (form.tiempo_de_preparacion_meses !== "" && (Number.isNaN(Number(form.tiempo_de_preparacion_meses)) || Number(form.tiempo_de_preparacion_meses) < 0)) {
-      setFormError("El tiempo de preparación debe ser un número mayor o igual a 0.")
+    if (!form.apoderado_nombre.trim()) {
+      setFormError("El nombre del apoderado es obligatorio.")
+      return
+    }
+    if (!form.apoderado_apellido_paterno.trim()) {
+      setFormError("El apellido paterno del apoderado es obligatorio.")
+      return
+    }
+    if (!form.apoderado_apellido_materno.trim()) {
+      setFormError("El apellido materno del apoderado es obligatorio.")
+      return
+    }
+    if (!form.apoderado_telefono.trim()) {
+      setFormError("El teléfono del apoderado es obligatorio.")
+      return
+    }
+    if (!form.apoderado_contraseña) {
+      setFormError("La contraseña del apoderado es obligatoria.")
+      return
+    }
+    if (!form.contraseña) {
+      setFormError("La contraseña del estudiante es obligatoria.")
       return
     }
 
     const payload = {
-      id_carrera: toNumberOrUndefined(form.id_carrera),
-      id_administrativo: activeRole === "administrativo"
-        ? defaultAdministrativo?.id_administrativo
-        : toNumberOrUndefined(form.id_administrativo),
-      nro_comprobante: toNumberOrUndefined(form.nro_comprobante),
-      nro_credencial: toNumberOrUndefined(form.nro_credencial),
-      recalculo: Boolean(form.recalculo),
-      preparacion_previa: Boolean(form.preparacion_previa),
-      tiempo_de_preparacion_meses: toNumberOrUndefined(form.tiempo_de_preparacion_meses),
-      lugar_de_preparacion: textOrUndefined(form.lugar_de_preparacion),
-      inicio_clases: textOrUndefined(form.inicio_clases),
-      modalidad: textOrUndefined(form.modalidad),
-      horario: textOrUndefined(form.horario),
-      grupo: textOrUndefined(form.grupo),
+      ci: form.ci,
       apellido_paterno: form.apellido_paterno.trim(),
       apellido_materno: textOrUndefined(form.apellido_materno),
       nombre: form.nombre.trim(),
       fecha_nacimiento: textOrUndefined(form.fecha_nacimiento),
-      contraseña: textOrUndefined(form.contraseña),
-      ci: textOrUndefined(form.ci),
-      celular: textOrUndefined(form.celular),
       correo_electronico: textOrUndefined(form.correo_electronico),
+      contraseña: form.contraseña,
+      apoderado_ci: form.apoderado_ci,
+      apoderado_nombre: form.apoderado_nombre.trim(),
+      apoderado_apellido_paterno: form.apoderado_apellido_paterno.trim(),
+      apoderado_apellido_materno: form.apoderado_apellido_materno.trim(),
+      apoderado_telefono: form.apoderado_telefono,
+      apoderado_contraseña: form.apoderado_contraseña,
+      apoderado_parentesco: textOrUndefined(form.apoderado_parentesco),
       colegio_de_procedencia: textOrUndefined(form.colegio_de_procedencia),
       direccion_de_domicilio: textOrUndefined(form.direccion_de_domicilio),
-      firma: textOrUndefined(form.firma),
-      foto: fotoFile ?? null,
-      apoderado_nombre_completo: textOrUndefined(form.apoderado_nombre_completo),
-      apoderado_ci: textOrUndefined(form.apoderado_ci),
-      apoderado_parentesco: textOrUndefined(form.apoderado_parentesco),
-      apoderado_apellido_paterno: textOrUndefined(form.apoderado_apellido_paterno),
-      apoderado_apellido_materno: textOrUndefined(form.apoderado_apellido_materno),
-      apoderado_nombre: textOrUndefined(form.apoderado_nombre),
-      apoderado_telefono: textOrUndefined(form.apoderado_telefono),
-      apoderado_contraseña: textOrUndefined(form.apoderado_contraseña),
+      id_administrativo: activeRole === "administrativo"
+        ? defaultAdministrativo?.id_administrativo
+        : toNumberOrUndefined(form.id_administrativo),
+      id_paralelo: toNumberOrUndefined(form.id_paralelo),
+      nro_comprobante: toNumberOrUndefined(form.nro_comprobante),
       como_se_entero_de_nosotros: textOrUndefined(form.como_se_entero_de_nosotros),
-      como_se_entero_detalle: textOrUndefined(form.como_se_entero_detalle),
-      elaborado_por: textOrUndefined(form.elaborado_por),
-      sucursal: textOrUndefined(form.sucursal),
-      fecha_registro: textOrUndefined(form.fecha_registro),
+      recalculo: Boolean(form.recalculo),
+      preparacion_previa: Boolean(form.preparacion_previa),
+      tiempo_de_preparacion_meses: toNumberOrUndefined(form.tiempo_de_preparacion_meses),
+      lugar_de_preparacion: textOrUndefined(form.lugar_de_preparacion),
+      nro_credencial: toNumberOrUndefined(form.nro_credencial),
       fecha_inscripcion: textOrUndefined(form.fecha_inscripcion),
+      foto: fotoBase64,
     }
 
     setSaving(true)
     try {
-      const saved = inscripcionId
-        ? await updateResource("inscripciones", inscripcionId, payload)
-        : await createResource("inscripciones", payload)
-      if (!inscripcionId) {
-        setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
-        setShowParalelos(false)
-        setSelectedParaleloId("")
-        setSelectedApoderadoId("")
-        setFotoFile(null)
-      }
+      const saved = await registrarEstudiante(payload)
+      setForm(buildEmptyForm(defaultElaborado, defaultAdministrativo?.id_administrativo))
+      setShowParalelos(false)
+      setSelectedParaleloId("")
+      setSelectedApoderadoId("")
+      setFotoBase64(null)
       onSaved?.(saved)
     } catch (error) {
-      setFormError(error.userMessage ?? error?.response?.data?.message ?? "No se pudo guardar la inscripción.")
+      setFormError(error.userMessage ?? error?.response?.data?.message ?? "No se pudo registrar el estudiante.")
     } finally {
       setSaving(false)
     }
@@ -461,7 +562,7 @@ export default function InscripcionRegistroForm({
                 <input
                   id="ins-recalculo"
                   type="checkbox"
-                  checked={form.recalculo}
+                  checked={Boolean(form.recalculo)}
                   onChange={(e) => set("recalculo", e.target.checked)}
                 />
               </td>
@@ -472,7 +573,7 @@ export default function InscripcionRegistroForm({
                 <input
                   id="ins-preparacion"
                   type="checkbox"
-                  checked={form.preparacion_previa}
+                  checked={Boolean(form.preparacion_previa)}
                   onChange={(e) => set("preparacion_previa", e.target.checked)}
                 />
               </td>
