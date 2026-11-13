@@ -38,6 +38,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.grupoalfa.data.model.Usuario
 import com.example.grupoalfa.ui.theme.AlfaWhite
 import com.example.grupoalfa.ui.theme.Amber
+import com.example.grupoalfa.ui.theme.Blue
+import com.example.grupoalfa.ui.theme.BlueLight
 import com.example.grupoalfa.ui.theme.BlueWash
 import com.example.grupoalfa.ui.theme.GrupoAlfaTheme
 import com.example.grupoalfa.ui.theme.Navy
@@ -193,14 +195,14 @@ private fun ProfileHero(usuario: UsuarioUiModel) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = Navy
+        color = Blue
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(Navy, NavyDeep)
+                        colors = listOf(Blue, BlueLight)
                     )
                 )
                 .padding(24.dp)

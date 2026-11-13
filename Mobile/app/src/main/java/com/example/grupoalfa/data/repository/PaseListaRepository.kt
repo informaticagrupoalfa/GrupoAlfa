@@ -55,7 +55,7 @@ class PaseListaRepository(
         estudiantes: List<Estudiante>,
         usuarios: List<Usuario>
     ): AlumnosCurso {
-        val matriculas = runCatching { api.getMatriculaciones(idCurso) }
+        val matriculas = runCatching { api.getMatriculaciones() }
             .getOrDefault(emptyList())
             .filter { it.estaVigente != false }
 

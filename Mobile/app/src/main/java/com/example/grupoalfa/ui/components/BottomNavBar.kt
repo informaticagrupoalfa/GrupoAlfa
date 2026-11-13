@@ -28,9 +28,11 @@ import androidx.compose.ui.unit.dp
 
 enum class MainTab(
     val title: String,
-    val navLabel: String
+    val navLabel: String,
+    val soloEstudiante: Boolean = false
 ) {
     Usuario(title = "Mi usuario", navLabel = "Usuario"),
+    MisParalelos(title = "Mis paralelos", navLabel = "Paralelos", soloEstudiante = true),
     LlamarLista(title = "Llamar lista", navLabel = "Llamar lista")
 }
 
@@ -38,7 +40,8 @@ enum class MainTab(
 fun GrupoAlfaBottomBar(
     selectedTab: MainTab,
     onTabSelected: (MainTab) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tabs: List<MainTab> = MainTab.entries
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -53,7 +56,7 @@ fun GrupoAlfaBottomBar(
                 .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            MainTab.entries.forEach { tab ->
+            tabs.forEach { tab ->
                 BottomTabItem(
                     tab = tab,
                     selected = selectedTab == tab,

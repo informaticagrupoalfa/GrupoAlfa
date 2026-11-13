@@ -15,6 +15,7 @@ import com.example.grupoalfa.data.model.LoginRequest
 import com.example.grupoalfa.data.model.LoginResponse
 import com.example.grupoalfa.data.model.Matriculacion
 import com.example.grupoalfa.data.model.Materia
+import com.example.grupoalfa.data.model.MiParalelo
 import com.example.grupoalfa.data.model.Rol
 import com.example.grupoalfa.data.model.Tema
 import com.example.grupoalfa.data.model.Usuario
@@ -74,9 +75,13 @@ interface ApiService {
 
     @GET("matriculaciones")
     suspend fun getMatriculaciones(
-        @Query("id_curso_capacitacion") idCursoCapacitacion: Int,
+        @Query("id_estudiante") idEstudiante: Int? = null,
+        @Query("id_paralelo") idParalelo: Int? = null,
         @Query("limit") limit: Int = 100
     ): List<Matriculacion>
+
+    @GET("mis-paralelos")
+    suspend fun getMisParalelos(): List<MiParalelo>
 
     // --- Clases y asistencias ----------------------------------------------
 

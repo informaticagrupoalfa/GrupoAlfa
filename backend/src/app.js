@@ -32,6 +32,7 @@ import mensualidadesRoutes from "./routes/mensualidades.routes.js";
 import asistenciasRoutes from "./routes/asistencias.routes.js";
 import datosRoutes from "./routes/datos.routes.js";
 import materiasCapacitacionRoutes from "./routes/materiasCapacitacion.routes.js";
+import misParalelosRoutes from "./routes/misParalelos.routes.js";
 import morgan from "morgan";
 import { config } from "dotenv";
 import cors from "cors";
@@ -98,6 +99,7 @@ app.use("/api", mensualidadesRoutes);
 app.use("/api", asistenciasRoutes);
 app.use("/api", datosRoutes);
 app.use("/api", materiasCapacitacionRoutes);
+app.use("/api", misParalelosRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

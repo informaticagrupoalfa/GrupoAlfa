@@ -1277,7 +1277,28 @@ button.small {
 .curso-grid {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 900px) {
+  .curso-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 720px) {
+  .curso-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .curso-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .curso-card {
@@ -1764,6 +1785,19 @@ button.small {
   font-weight: 500;
   color: #0a2540;
   cursor: pointer;
+}
+
+.registro-table .create-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.registro-table .create-toggle-track {
+  display: inline-block;
+}
+.registro-table .create-toggle-label{
+  text-align:left;
 }
 
 /* Página Estudiantes - matriz de tarjetas */

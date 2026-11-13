@@ -79,19 +79,29 @@ function buildEmptyForm(elaboradoPor, idAdministrativo) {
     apellido_paterno: "",
     apellido_materno: "",
     nombre: "",
-    edad: "",
+    fecha_nacimiento: "",
+    contraseña: "",
+    ci: "",
+    celular: "",
     correo_electronico: "",
     colegio_de_procedencia: "",
     direccion_de_domicilio: "",
     firma: "",
+    foto: null,
     apoderado_nombre_completo: "",
-    apoderado_celular: "",
+    apoderado_ci: "",
     apoderado_parentesco: "",
+    apoderado_apellido_paterno: "",
+    apoderado_apellido_materno: "",
+    apoderado_nombre: "",
+    apoderado_telefono: "",
+    apoderado_contraseña: "",
     como_se_entero_de_nosotros: "",
     como_se_entero_detalle: "",
     elaborado_por: elaboradoPor ?? "",
     sucursal: "",
     fecha_registro: todayISO(),
+    fecha_inscripcion: todayISO(),
   }
 }
 
@@ -112,19 +122,29 @@ function fromRecord(record) {
     apellido_paterno: record.apellido_paterno ?? "",
     apellido_materno: record.apellido_materno ?? "",
     nombre: record.nombre ?? "",
-    edad: record.edad ?? "",
+    fecha_nacimiento: dateOnly(record.fecha_nacimiento),
+    contraseña: record.contraseña ?? "",
+    ci: record.ci ?? "",
+    celular: record.celular ?? "",
     correo_electronico: record.correo_electronico ?? "",
     colegio_de_procedencia: record.colegio_de_procedencia ?? "",
     direccion_de_domicilio: record.direccion_de_domicilio ?? "",
     firma: record.firma ?? "",
+    foto: record.foto ?? null,
     apoderado_nombre_completo: record.apoderado_nombre_completo ?? "",
-    apoderado_celular: record.apoderado_celular ?? "",
+    apoderado_ci: record.apoderado_ci ?? "",
     apoderado_parentesco: record.apoderado_parentesco ?? "",
+    apoderado_apellido_paterno: record.apoderado_apellido_paterno ?? "",
+    apoderado_apellido_materno: record.apoderado_apellido_materno ?? "",
+    apoderado_nombre: record.apoderado_nombre ?? "",
+    apoderado_telefono: record.apoderado_telefono ?? "",
+    apoderado_contraseña: record.apoderado_contraseña ?? "",
     como_se_entero_de_nosotros: record.como_se_entero_de_nosotros ?? "",
     como_se_entero_detalle: record.como_se_entero_detalle ?? "",
     elaborado_por: record.elaborado_por ?? "",
     sucursal: record.sucursal ?? "",
     fecha_registro: dateOnly(record.fecha_registro),
+    fecha_inscripcion: dateOnly(record.fecha_inscripcion),
   }
 }
 
@@ -136,7 +156,7 @@ export default function InscripcionRegistroForm({
   apoderados,
   onSaved,
 }) {
-  const { loggedUser } = useAuth()
+  const { loggedUser, activeRole } = useAuth()
   const defaultAdministrativo = useMemo(
     () => administrativos.find((admin) => String(admin.id_usuario) === String(loggedUser?.id_usuario)) ?? null,
     [administrativos, loggedUser],
@@ -153,6 +173,7 @@ export default function InscripcionRegistroForm({
   const [showParalelos, setShowParalelos] = useState(false)
   const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
+  const [fotoFile, setFotoFile] = useState(null)
 
   const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
@@ -170,6 +191,7 @@ export default function InscripcionRegistroForm({
       setShowParalelos(false)
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
+      setFotoFile(null)
       setLoading(false)
       setLoadError("")
       return undefined
@@ -233,7 +255,19 @@ export default function InscripcionRegistroForm({
   }
 
   const handleParaleloSelect = (paralelo) => {
-    setSelectedParaleloId(String(paralelo.id_paralelo))
+    const id = String(paralelo.id_paralelo);
+    if (selectedParaleloId === id) {
+      setSelectedParaleloId("")
+      setForm((prev) => ({
+        ...prev,
+        inicio_clases: "",
+        modalidad: "",
+        horario: "",
+        grupo: "",
+      }))
+      return
+    }
+    setSelectedParaleloId(id)
     setForm((prev) => ({
       ...prev,
       inicio_clases: dateOnly(paralelo.capacitacion?.fecha_inicio),
@@ -258,8 +292,23 @@ export default function InscripcionRegistroForm({
     setForm((prev) => ({
       ...prev,
       apoderado_nombre_completo: apoderado ? fullName(apoderado) : "",
-      apoderado_celular: apoderado?.celular ?? "",
+      apoderado_ci: apoderado ? apoderado.ci ?? "" : "",
+      apoderado_apellido_paterno: apoderado ? apoderado.apellido_paterno ?? "" : "",
+      apoderado_apellido_materno: apoderado ? apoderado.apellido_materno ?? "" : "",
+      apoderado_nombre: apoderado ? apoderado.nombre ?? "" : "",
+      apoderado_telefono: apoderado ? apoderado.celular ?? "" : "",
+      apoderado_parentesco: apoderado ? apoderado.parentesco ?? "" : "",
+      apoderado_contraseña: "",
     }))
+  }
+
+  const handleFotoChange = (event) => {
+    const files = event.target.files
+    if (files && files.length > 0) {
+      setFotoFile(files[0])
+    } else {
+      setFotoFile(null)
+    }
   }
 
   const handleSubmit = async (event) => {
@@ -272,10 +321,6 @@ export default function InscripcionRegistroForm({
     }
     if (!form.nombre.trim()) {
       setFormError("El nombre es obligatorio.")
-      return
-    }
-    if (form.edad !== "" && (Number.isNaN(Number(form.edad)) || Number(form.edad) < 0)) {
-      setFormError("La edad debe ser un número mayor o igual a 0.")
       return
     }
     if (form.nro_comprobante !== "" && (Number.isNaN(Number(form.nro_comprobante)) || Number(form.nro_comprobante) < 0)) {
@@ -293,7 +338,9 @@ export default function InscripcionRegistroForm({
 
     const payload = {
       id_carrera: toNumberOrUndefined(form.id_carrera),
-      id_administrativo: toNumberOrUndefined(form.id_administrativo),
+      id_administrativo: activeRole === "administrativo"
+        ? defaultAdministrativo?.id_administrativo
+        : toNumberOrUndefined(form.id_administrativo),
       nro_comprobante: toNumberOrUndefined(form.nro_comprobante),
       nro_credencial: toNumberOrUndefined(form.nro_credencial),
       recalculo: Boolean(form.recalculo),
@@ -307,19 +354,29 @@ export default function InscripcionRegistroForm({
       apellido_paterno: form.apellido_paterno.trim(),
       apellido_materno: textOrUndefined(form.apellido_materno),
       nombre: form.nombre.trim(),
-      edad: toNumberOrUndefined(form.edad),
+      fecha_nacimiento: textOrUndefined(form.fecha_nacimiento),
+      contraseña: textOrUndefined(form.contraseña),
+      ci: textOrUndefined(form.ci),
+      celular: textOrUndefined(form.celular),
       correo_electronico: textOrUndefined(form.correo_electronico),
       colegio_de_procedencia: textOrUndefined(form.colegio_de_procedencia),
       direccion_de_domicilio: textOrUndefined(form.direccion_de_domicilio),
       firma: textOrUndefined(form.firma),
+      foto: fotoFile ?? null,
       apoderado_nombre_completo: textOrUndefined(form.apoderado_nombre_completo),
-      apoderado_celular: textOrUndefined(form.apoderado_celular),
+      apoderado_ci: textOrUndefined(form.apoderado_ci),
       apoderado_parentesco: textOrUndefined(form.apoderado_parentesco),
+      apoderado_apellido_paterno: textOrUndefined(form.apoderado_apellido_paterno),
+      apoderado_apellido_materno: textOrUndefined(form.apoderado_apellido_materno),
+      apoderado_nombre: textOrUndefined(form.apoderado_nombre),
+      apoderado_telefono: textOrUndefined(form.apoderado_telefono),
+      apoderado_contraseña: textOrUndefined(form.apoderado_contraseña),
       como_se_entero_de_nosotros: textOrUndefined(form.como_se_entero_de_nosotros),
       como_se_entero_detalle: textOrUndefined(form.como_se_entero_detalle),
       elaborado_por: textOrUndefined(form.elaborado_por),
       sucursal: textOrUndefined(form.sucursal),
       fecha_registro: textOrUndefined(form.fecha_registro),
+      fecha_inscripcion: textOrUndefined(form.fecha_inscripcion),
     }
 
     setSaving(true)
@@ -332,6 +389,7 @@ export default function InscripcionRegistroForm({
         setShowParalelos(false)
         setSelectedParaleloId("")
         setSelectedApoderadoId("")
+        setFotoFile(null)
       }
       onSaved?.(saved)
     } catch (error) {
@@ -387,257 +445,72 @@ export default function InscripcionRegistroForm({
                 />
               </td>
             </tr>
-            {form.id_carrera ? (
-              <>
-                <tr>
-                  <td><label htmlFor="ins-credencial">Nº de credencial</label></td>
-                  <td>
-                    <input
-                      id="ins-credencial"
-                      type="number"
-                      value={form.nro_credencial}
-                      onChange={(e) => set("nro_credencial", e.target.value)}
-                    />
-                  </td>
-                  <td><label>Recálculo</label></td>
-                  <td>
-                    <input
-                      id="ins-recalculo"
-                      type="checkbox"
-                      checked={form.recalculo}
-                      onChange={(e) => set("recalculo", e.target.checked)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td><label>¿Tuviste preparación previa?</label></td>
-                  <td>
-                    <input
-                      id="ins-preparacion"
-                      type="checkbox"
-                      checked={form.preparacion_previa}
-                      onChange={(e) => set("preparacion_previa", e.target.checked)}
-                    />
-                  </td>
-                  <td><label htmlFor="ins-tiempo">Preparación (meses)</label></td>
-                  <td>
-                    <input
-                      id="ins-tiempo"
-                      type="number"
-                      value={form.tiempo_de_preparacion_meses}
-                      onChange={(e) => set("tiempo_de_preparacion_meses", e.target.value)}
-                      min="0"
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td><label htmlFor="ins-lugar-preparacion">¿Dónde realizó su preparación?</label></td>
-                  <td colSpan={3}>
-                    <input
-                      id="ins-lugar-preparacion"
-                      type="text"
-                      value={form.lugar_de_preparacion}
-                      onChange={(e) => set("lugar_de_preparacion", e.target.value)}
-                      maxLength={255}
-                    />
-                  </td>
-                </tr>
-              </>
-            ) : (
-              <>
-                <tr>
-                  <td><label>Recálculo</label></td>
-                  <td>
-                    <input
-                      id="ins-recalculo"
-                      type="checkbox"
-                      checked={form.recalculo}
-                      onChange={(e) => set("recalculo", e.target.checked)}
-                    />
-                  </td>
-                  <td><label>¿Tuviste preparación previa?</label></td>
-                  <td>
-                    <input
-                      id="ins-preparacion"
-                      type="checkbox"
-                      checked={form.preparacion_previa}
-                      onChange={(e) => set("preparacion_previa", e.target.checked)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td><label htmlFor="ins-tiempo">Preparación (meses)</label></td>
-                  <td>
-                    <input
-                      id="ins-tiempo"
-                      type="number"
-                      value={form.tiempo_de_preparacion_meses}
-                      onChange={(e) => set("tiempo_de_preparacion_meses", e.target.value)}
-                      min="0"
-                    />
-                  </td>
-                  <td><label htmlFor="ins-lugar-preparacion">¿Dónde realizó su preparación?</label></td>
-                  <td>
-                    <input
-                      id="ins-lugar-preparacion"
-                      type="text"
-                      value={form.lugar_de_preparacion}
-                      onChange={(e) => set("lugar_de_preparacion", e.target.value)}
-                      maxLength={255}
-                    />
-                  </td>
-                </tr>
-              </>
-            )}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card">
-        <h3>Datos personales</h3>
-        <table className="registro-table">
-          <tbody>
+            
             <tr>
-              <td><label htmlFor="ins-apellido-paterno">Apellido paterno</label></td>
+              <td><label htmlFor="ins-credencial">Nº de credencial</label></td>
               <td>
                 <input
-                  id="ins-apellido-paterno"
-                  type="text"
-                  value={form.apellido_paterno}
-                  onChange={(e) => set("apellido_paterno", e.target.value)}
-                  maxLength={100}
-                  required
+                  id="ins-credencial"
+                  type="number"
+                  value={form.nro_credencial}
+                  onChange={(e) => set("nro_credencial", e.target.value)}
                 />
               </td>
-              <td><label htmlFor="ins-apellido-materno">Apellido materno</label></td>
+              <td><label>Recálculo</label></td>
               <td>
                 <input
-                  id="ins-apellido-materno"
-                  type="text"
-                  value={form.apellido_materno}
-                  onChange={(e) => set("apellido_materno", e.target.value)}
-                  maxLength={100}
+                  id="ins-recalculo"
+                  type="checkbox"
+                  checked={form.recalculo}
+                  onChange={(e) => set("recalculo", e.target.checked)}
                 />
               </td>
             </tr>
             <tr>
-              <td><label htmlFor="ins-nombre">Nombre</label></td>
+              <td><label>¿Tuviste preparación previa?</label></td>
               <td>
                 <input
-                  id="ins-nombre"
-                  type="text"
-                  value={form.nombre}
-                  onChange={(e) => set("nombre", e.target.value)}
-                  maxLength={100}
-                  required
+                  id="ins-preparacion"
+                  type="checkbox"
+                  checked={form.preparacion_previa}
+                  onChange={(e) => set("preparacion_previa", e.target.checked)}
                 />
               </td>
-              <td><label htmlFor="ins-edad">Edad</label></td>
+              <td><label htmlFor="ins-tiempo">Preparación (meses)</label></td>
               <td>
                 <input
-                  id="ins-edad"
+                  id="ins-tiempo"
                   type="number"
-                  value={form.edad}
-                  onChange={(e) => set("edad", e.target.value)}
+                  value={form.tiempo_de_preparacion_meses}
+                  onChange={(e) => set("tiempo_de_preparacion_meses", e.target.value)}
                   min="0"
                 />
               </td>
             </tr>
             <tr>
-              <td><label htmlFor="ins-correo">Correo electrónico</label></td>
-              <td>
+              <td><label htmlFor="ins-lugar-preparacion">¿Dónde realizó su preparación?</label></td>
+              <td colSpan={3}>
                 <input
-                  id="ins-correo"
-                  type="email"
-                  value={form.correo_electronico}
-                  onChange={(e) => set("correo_electronico", e.target.value)}
-                  maxLength={150}
-                />
-              </td>
-              <td><label htmlFor="ins-colegio">Colegio de procedencia</label></td>
-              <td>
-                <input
-                  id="ins-colegio"
+                  id="ins-lugar-preparacion"
                   type="text"
-                  value={form.colegio_de_procedencia}
-                  onChange={(e) => set("colegio_de_procedencia", e.target.value)}
-                  maxLength={150}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-direccion">Dirección de domicilio</label></td>
-              <td>
-                <input
-                  id="ins-direccion"
-                  type="text"
-                  value={form.direccion_de_domicilio}
-                  onChange={(e) => set("direccion_de_domicilio", e.target.value)}
+                  value={form.lugar_de_preparacion}
+                  onChange={(e) => set("lugar_de_preparacion", e.target.value)}
                   maxLength={255}
                 />
               </td>
-              <td><label htmlFor="ins-firma">Firma</label></td>
-              <td>
-                <input
-                  id="ins-firma"
-                  type="text"
-                  value={form.firma}
-                  onChange={(e) => set("firma", e.target.value)}
-                  maxLength={255}
-                  placeholder="Nombre o referencia de la firma"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card">
-        <h3>Datos del apoderado</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-apoderado">Apoderado registrado</label></td>
-              <td>
-                <select
-                  id="ins-apoderado"
-                  value={selectedApoderadoId}
-                  onChange={(e) => handleApoderadoChange(e.target.value)}
-                >
-                  <option value="">Sin apoderado</option>
-                  {apoderados.map((apoderado) => (
-                    <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
-                      {fullName(apoderado)}
-                      {apoderado.celular ? ` · ${apoderado.celular}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td><label>Nombre completo</label></td>
-              <td>{form.apoderado_nombre_completo ?? "—"}</td>
             </tr>
             <tr>
-              <td><label>Celular</label></td>
-              <td>{form.apoderado_celular ?? "—"}</td>
-              <td><label htmlFor="ins-apoderado-parentesco">Parentesco</label></td>
+              <td><label htmlFor="ins-fecha-inscripcion">Fecha inscripción</label></td>
               <td>
                 <input
-                  id="ins-apoderado-parentesco"
-                  type="text"
-                  value={form.apoderado_parentesco}
-                  onChange={(e) => set("apoderado_parentesco", e.target.value)}
-                  maxLength={100}
+                  id="ins-fecha-inscripcion"
+                  type="date"
+                  value={form.fecha_inscripcion}
+                  onChange={(e) => set("fecha_inscripcion", e.target.value)}
                 />
               </td>
+              <td colSpan={2} />
             </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card">
-        <h3>¿Cómo se enteró de nosotros?</h3>
-        <table className="registro-table">
-          <tbody>
             <tr>
               <td><label>¿Cómo se enteró de nosotros?</label></td>
               <td colSpan={3}>
@@ -678,67 +551,15 @@ export default function InscripcionRegistroForm({
           </tbody>
         </table>
       </section>
-
-      <section className="card">
-        <h3>Datos administrativos</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-elaborado-por">Elaborado por</label></td>
-              <td>
-                <select
-                  id="ins-elaborado-por"
-                  value={form.id_administrativo || ""}
-                  onChange={(e) => handleAdministrativoChange(e.target.value)}
-                >
-                  <option value="">Selecciona…</option>
-                  {administrativos.map((admin) => (
-                    <option key={admin.id_administrativo} value={admin.id_administrativo}>
-                      {fullName(admin)}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td><label htmlFor="ins-sucursal">Sucursal</label></td>
-              <td>
-                <input
-                  id="ins-sucursal"
-                  type="text"
-                  value={form.sucursal}
-                  onChange={(e) => set("sucursal", e.target.value)}
-                  maxLength={100}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-fecha">Fecha</label></td>
-              <td>
-                <input
-                  id="ins-fecha"
-                  type="date"
-                  value={form.fecha_registro}
-                  onChange={(e) => set("fecha_registro", e.target.value)}
-                />
-              </td>
-              <td colSpan={2} />
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
       {form.id_carrera && (
         <table className="registro-table">
           <tbody>
             <tr>
-              <td colSpan={4}>
-                <label className="create-toggle-label" htmlFor="ins-mostrar-paralelos">
-                  Paralelos disponibles{paralelosCarrera.length > 0 ? ` (${paralelosCarrera.length})` : ""}
-                </label>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={4}>
+              <td colSpan={2}>
                 <label className={`create-toggle inscripcion-course-toggle${showParalelos ? " is-active" : ""}`} htmlFor="ins-mostrar-paralelos">
+                  <span className="create-toggle-label">
+                    Paralelos disponibles{paralelosCarrera.length > 0 ? ` (${paralelosCarrera.length})` : ""}
+                  </span>
                   <input
                     id="ins-mostrar-paralelos"
                     type="checkbox"
@@ -747,6 +568,11 @@ export default function InscripcionRegistroForm({
                   />
                   <span className="create-toggle-track" aria-hidden="true" />
                 </label>
+              </td>
+              <td colSpan={2} />
+            </tr>
+            <tr >
+              <td colSpan={4}>
                 {showParalelos && (
                   <div className="curso-picker">
                     {paralelosCarrera.length === 0 ? (
@@ -775,6 +601,7 @@ export default function InscripcionRegistroForm({
                     )}
                   </div>
                 )}
+
               </td>
             </tr>
             <tr>
@@ -797,7 +624,290 @@ export default function InscripcionRegistroForm({
             </tr>
           </tbody>
         </table>
-      )}
+      )}       
+      <section className="card">
+        <h3>Datos personales</h3>
+        <table className="registro-table">
+          <tbody>
+            <tr>
+              <td><label htmlFor="ins-ci">CI</label></td>
+              <td>
+                <input
+                  id="ins-ci"
+                  type="text"
+                  value={form.ci}
+                  onChange={(e) => set("ci", e.target.value)}
+                  maxLength={20}
+                />
+              </td>
+              <td><label htmlFor="ins-apellido-paterno">Apellido paterno</label></td>
+              <td>
+                <input
+                  id="ins-apellido-paterno"
+                  type="text"
+                  value={form.apellido_paterno}
+                  onChange={(e) => set("apellido_paterno", e.target.value)}
+                  maxLength={100}
+                  required
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apellido-materno">Apellido materno</label></td>
+              <td>
+                <input
+                  id="ins-apellido-materno"
+                  type="text"
+                  value={form.apellido_materno}
+                  onChange={(e) => set("apellido_materno", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+              <td><label htmlFor="ins-nombre">Nombre</label></td>
+              <td>
+                <input
+                  id="ins-nombre"
+                  type="text"
+                  value={form.nombre}
+                  onChange={(e) => set("nombre", e.target.value)}
+                  maxLength={100}
+                  required
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-fecha-nacimiento">Fecha de nacimiento</label></td>
+              <td>
+                <input
+                  id="ins-fecha-nacimiento"
+                  type="date"
+                  value={form.fecha_nacimiento}
+                  onChange={(e) => set("fecha_nacimiento", e.target.value)}
+                />
+              </td>
+              <td><label htmlFor="ins-celular">Celular</label></td>
+              <td>
+                <input
+                  id="ins-celular"
+                  type="text"
+                  value={form.celular}
+                  onChange={(e) => set("celular", e.target.value)}
+                  maxLength={30}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-correo">Correo electrónico</label></td>
+              <td>
+                <input
+                  id="ins-correo"
+                  type="email"
+                  value={form.correo_electronico}
+                  onChange={(e) => set("correo_electronico", e.target.value)}
+                  maxLength={150}
+                />
+              </td>
+              <td><label htmlFor="ins-contraseña">Contraseña Grupo alfa</label></td>
+              <td>
+                <input
+                  id="ins-contraseña"
+                  type="password"
+                  value={form.contraseña}
+                  onChange={(e) => set("contraseña", e.target.value)}
+                  maxLength={255}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-colegio">Colegio de procedencia</label></td>
+              <td>
+                <input
+                  id="ins-colegio"
+                  type="text"
+                  value={form.colegio_de_procedencia}
+                  onChange={(e) => set("colegio_de_procedencia", e.target.value)}
+                  maxLength={150}
+                />
+              </td>
+              <td><label htmlFor="ins-direccion">Dirección de domicilio</label></td>
+              <td>
+                <input
+                  id="ins-direccion"
+                  type="text"
+                  value={form.direccion_de_domicilio}
+                  onChange={(e) => set("direccion_de_domicilio", e.target.value)}
+                  maxLength={255}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-foto">Foto (PNG)</label></td>
+              <td colSpan={3}>
+                <input
+                  id="ins-foto"
+                  type="file"
+                  accept="image/png"
+                  onChange={handleFotoChange}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section className="card">
+        <h3>Datos del apoderado</h3>
+        <table className="registro-table">
+          <tbody>
+            <tr>
+              <td><label htmlFor="ins-apoderado">Apoderado registrado</label></td>
+              <td>
+                <select
+                  id="ins-apoderado"
+                  value={selectedApoderadoId}
+                  onChange={(e) => handleApoderadoChange(e.target.value)}
+                >
+                  <option value="">Sin apoderado</option>
+                  {apoderados.map((apoderado) => (
+                    <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
+                      {fullName(apoderado)}
+                      {apoderado.celular ? ` · ${apoderado.celular}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td colSpan={2} />
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apoderado-ci">CI Apoderado</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-ci"
+                  type="text"
+                  value={form.apoderado_ci}
+                  onChange={(e) => set("apoderado_ci", e.target.value)}
+                  maxLength={20}
+                />
+              </td>
+              <td><label htmlFor="ins-apoderado-parentesco">Parentesco</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-parentesco"
+                  type="text"
+                  value={form.apoderado_parentesco}
+                  onChange={(e) => set("apoderado_parentesco", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apoderado-apellido-paterno">Apellido paterno</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-apellido-paterno"
+                  type="text"
+                  value={form.apoderado_apellido_paterno}
+                  onChange={(e) => set("apoderado_apellido_paterno", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+              <td><label htmlFor="ins-apoderado-apellido-materno">Apellido materno</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-apellido-materno"
+                  type="text"
+                  value={form.apoderado_apellido_materno}
+                  onChange={(e) => set("apoderado_apellido_materno", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apoderado-nombre">Nombre</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-nombre"
+                  type="text"
+                  value={form.apoderado_nombre}
+                  onChange={(e) => set("apoderado_nombre", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+              <td><label htmlFor="ins-apoderado-telefono">Teléfono</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-telefono"
+                  type="text"
+                  value={form.apoderado_telefono}
+                  onChange={(e) => set("apoderado_telefono", e.target.value)}
+                  maxLength={30}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apoderado-contraseña">Contraseña</label></td>
+              <td colSpan={3}>
+                <input
+                  id="ins-apoderado-contraseña"
+                  type="password"
+                  value={form.apoderado_contraseña}
+                  onChange={(e) => set("apoderado_contraseña", e.target.value)}
+                  maxLength={255}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section className="card">
+        <h3>Datos administrativos</h3>
+        <table className="registro-table">
+          <tbody>
+            <tr>
+              <td><label htmlFor="ins-elaborado-por">Elaborado por</label></td>
+              <td colSpan={3}>
+                {activeRole === "administrativo" ? (
+                  <input
+                    id="ins-elaborado-por"
+                    type="text"
+                    value={loggedUser?.nombre ?? ""}
+                    readOnly
+                  />
+                ) : (
+                  <select
+                    id="ins-elaborado-por"
+                    value={form.id_administrativo || ""}
+                    onChange={(e) => handleAdministrativoChange(e.target.value)}
+                  >
+                    <option value="">Selecciona…</option>
+                    {administrativos.map((admin) => (
+                      <option key={admin.id_administrativo} value={admin.id_administrativo}>
+                        {fullName(admin)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-sucursal">Sucursal</label></td>
+              <td>
+                <input
+                  id="ins-sucursal"
+                  type="text"
+                  value={form.sucursal}
+                  onChange={(e) => set("sucursal", e.target.value)}
+                  maxLength={100}
+                />
+              </td>
+              <td colSpan={2} />
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      
 
       {formError && <p className="error-message" role="alert">{formError}</p>}
 

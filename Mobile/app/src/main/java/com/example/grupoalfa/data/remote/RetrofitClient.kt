@@ -7,14 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    /**
-     * IP LAN de la laptop donde corre el backend (puerto 4000).
-     * El teléfono debe estar conectado a la misma red Wi-Fi.
-     *
-     * Si el emulador no alcanza esta IP, se puede usar:
-     * "http://10.0.2.2:4000/api/"
-     */
-    private const val BASE_URL = "http://10.138.132.36:4000/api/"
+    /** API desplegada en Vercel. */
+    private const val BASE_URL = "https://grupo-alfa-g5k1.vercel.app/api/"
 
     /** Token JWT de la sesión actual, seteado por el login. */
     @Volatile

@@ -32,8 +32,8 @@ private val LightColorScheme = lightColorScheme(
 
 private val DarkColorScheme = darkColorScheme(
     primary = BlueLight,
-    onPrimary = AlfaWhite,
-    primaryContainer = Blue,
+    onPrimary = NavyDeep,
+    primaryContainer = Navy,
     onPrimaryContainer = AlfaWhite,
     secondary = Amber,
     onSecondary = NavyDeep,
@@ -42,10 +42,10 @@ private val DarkColorScheme = darkColorScheme(
     onBackground = AlfaWhite,
     surface = Navy,
     onSurface = AlfaWhite,
-    surfaceVariant = Color(0xFF12375C),
-    onSurfaceVariant = Border,
-    outline = Muted,
-    outlineVariant = Color(0xFF284A70),
+    surfaceVariant = Color(0xFF245E8C),
+    onSurfaceVariant = BlueWash,
+    outline = BlueLight,
+    outlineVariant = Color(0xFF2F6E9E),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )

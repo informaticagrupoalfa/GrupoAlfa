@@ -51,9 +51,9 @@ import com.example.grupoalfa.ui.components.BrandMark
 import com.example.grupoalfa.ui.theme.AlfaWhite
 import com.example.grupoalfa.ui.theme.Amber
 import com.example.grupoalfa.ui.theme.Blue
+import com.example.grupoalfa.ui.theme.BlueLight
 import com.example.grupoalfa.ui.theme.GrupoAlfaTheme
 import com.example.grupoalfa.ui.theme.Navy
-import com.example.grupoalfa.ui.theme.NavyDeep
 
 @Composable
 fun LoginScreen(
@@ -75,7 +75,7 @@ fun LoginScreen(
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    colors = listOf(NavyDeep, Navy, Blue.copy(alpha = 0.92f))
+                    colors = listOf(BlueLight, Blue, Navy)
                 )
             )
     ) {

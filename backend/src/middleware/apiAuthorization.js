@@ -29,7 +29,7 @@ const isInscripcionesRoute = (path) =>
   path === "/inscripciones" || path.startsWith("/inscripciones/");
 
 const isAuthenticatedOnlyRoute = (method, path) =>
-  method === "GET" && path === "/usuarios/me";
+  method === "GET" && (path === "/usuarios/me" || path === "/mis-paralelos");
 
 /**
  * Autoriza cada petición a /api después de validar el JWT.
