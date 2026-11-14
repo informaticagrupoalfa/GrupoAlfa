@@ -138,16 +138,6 @@ export const registrarEstudiante = async (req, res, next) => {
     );
     const idInscripcion = inscripcionRow[0].id_inscripcion;
 
-    // 8. Crear la mensualidad inicial de la inscripción
-    const fechaInicio = fecha_inscripcion ?? new Date().toISOString().split("T")[0];
-    const fechaFin = new Date(fechaInicio);
-    fechaFin.setMonth(fechaFin.getMonth() + 1);
-    await client.query(
-      `INSERT INTO mensualidades (id_administrativo, fecha_inicio_mensualidad, fecha_fin_mensualidad, pago, id_inscripcion)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [id_administrativo ?? null, fechaInicio, fechaFin.toISOString().split("T")[0], 0, idInscripcion]
-    );
-
     await client.query("COMMIT");
 
     res.status(201).json({

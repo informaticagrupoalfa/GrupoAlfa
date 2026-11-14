@@ -21,11 +21,11 @@ export const MODULE_TABS = {
   },
   matriculaciones: {
     path: "/app/matriculaciones",
-    defaultTab: "mensualidades-tabla",
+    defaultTab: "mensualidades",
     items: [
-      { key: "mensualidades-tabla", label: "Mensualidades tabla" },
-      { key: "mensualidades-estudiantes", label: "Registro de mensualidades" },
-      { key: "mensualidades", label: "Mensualidades" },
+      { key: "mensualidades-estudiantes", label: "Realizar pago" },
+      { key: "mensualidades", label: "Listado" },
+      { key: "mensualidades-tabla", label: "Tabla" },
     ],
   },
   inscripciones: {
