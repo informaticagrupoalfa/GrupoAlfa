@@ -84,7 +84,7 @@ function buildRolePayload(role, idUsuario, roleFields = {}) {
   }
   if (role === "apoderados") {
     const payload = { id_usuario: idUsuario }
-    if (fields.celular) payload.celular = fields.celular
+    if (fields.parentesco) payload.parentesco = fields.parentesco
     return payload
   }
   return { id_usuario: idUsuario }

@@ -9,18 +9,19 @@ const PersonCombobox = lazy(() => import("./PersonCombobox"))
 
 export default function MensualidadFormModal({
   initial,
-  estudianteOptions,
+  inscripcionOptions,
   administrativoOptions,
   saving,
   formError,
   onClose,
   onSubmit,
 }) {
-  const [idEstudiante, setIdEstudiante] = useState(initial?.id_estudiante ?? null)
+  const [idInscripcion, setIdInscripcion] = useState(initial?.id_inscripcion ?? null)
   const [idAdministrativo, setIdAdministrativo] = useState(initial?.id_administrativo ?? null)
   const [inicio, setInicio] = useState(initial?.fecha_inicio_mensualidad ? String(initial.fecha_inicio_mensualidad).slice(0, 10) : "")
   const [fin, setFin] = useState(initial?.fecha_fin_mensualidad ? String(initial.fecha_fin_mensualidad).slice(0, 10) : "")
   const [pago, setPago] = useState(initial?.pago ?? "")
+  const [codigoComprobante, setCodigoComprobante] = useState(initial?.codigo_comprobante ?? "")
   const [localError, setLocalError] = useState("")
 
   useEffect(() => {
@@ -34,8 +35,8 @@ export default function MensualidadFormModal({
   const handleSubmit = (event) => {
     event.preventDefault()
     setLocalError("")
-    if (idEstudiante == null) {
-      setLocalError("Debes elegir un estudiante de las sugerencias.")
+    if (idInscripcion == null) {
+      setLocalError("Debes elegir una inscripción de las sugerencias.")
       return
     }
     if (idAdministrativo == null) {
@@ -55,31 +56,32 @@ export default function MensualidadFormModal({
       return
     }
     onSubmit({
-      id_estudiante: Number(idEstudiante),
+      id_inscripcion: Number(idInscripcion),
       id_administrativo: Number(idAdministrativo),
       fecha_inicio_mensualidad: inicio,
       fecha_fin_mensualidad: fin,
       pago: Number(pago),
+      ...(codigoComprobante !== "" ? { codigo_comprobante: Number(codigoComprobante) } : {}),
     })
   }
 
   return (
     <Modal
       title={initial?.id_mensualidad != null ? "Editar mensualidad" : "Nueva mensualidad"}
-      hint="Registra el pago mensual de un estudiante."
+      hint="Registra el pago mensual asociado a una inscripción."
       onClose={onClose}
     >
       <Modal.Body>
         <form onSubmit={handleSubmit}>
           <Suspense fallback={<Skeleton lines={2} />}>
             <PersonCombobox
-              id="p-estudiante"
-              label="Estudiante"
-              options={estudianteOptions}
-              value={idEstudiante}
-              onSelect={setIdEstudiante}
-              placeholder="Escribe el nombre del estudiante..."
-              hint="Escribe y elige una sugerencia de la lista."
+              id="p-inscripcion"
+              label="Inscripción"
+              options={inscripcionOptions}
+              value={idInscripcion}
+              onSelect={setIdInscripcion}
+              placeholder="Escribe el nombre del estudiante o paralelo..."
+              hint="Cada mensualidad se asocia a una inscripción."
             />
           </Suspense>
           <Suspense fallback={<Skeleton lines={2} />}>
@@ -117,6 +119,13 @@ export default function MensualidadFormModal({
             onChange={(e) => setPago(e.target.value)}
             required
           />
+          <TextField
+            id="p-comprobante"
+            label="Código de comprobante"
+            type="number"
+            value={codigoComprobante}
+            onChange={(e) => setCodigoComprobante(e.target.value)}
+          />
           {(localError || formError) && (
             <p className="error-message" role="alert">{localError || formError}</p>
           )}
@@ -136,7 +145,7 @@ export default function MensualidadFormModal({
 
 MensualidadFormModal.propTypes = {
   initial: PropTypes.object,
-  estudianteOptions: PropTypes.array.isRequired,
+  inscripcionOptions: PropTypes.array.isRequired,
   administrativoOptions: PropTypes.array.isRequired,
   saving: PropTypes.bool.isRequired,
   formError: PropTypes.string.isRequired,

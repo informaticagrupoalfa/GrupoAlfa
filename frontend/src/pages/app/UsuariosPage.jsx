@@ -145,7 +145,7 @@ function UsuariosTab() {
   const currentRoleFields = useMemo(() => {
     const fields = {
       estudiantes: { id_apoderado: "", colegio_de_procedencia: "", direccion_de_domicilio: "" },
-      apoderados: { celular: "" },
+      apoderados: { parentesco: "" },
     }
     if (selected?.id_usuario == null || !roleMap) return fields
     const id = Number(selected.id_usuario)
@@ -158,7 +158,7 @@ function UsuariosTab() {
       }
     }
     const apo = roleMap.apoderados?.get(id)
-    if (apo) fields.apoderados = { celular: apo.celular ?? "" }
+    if (apo) fields.apoderados = { parentesco: apo.parentesco ?? "" }
     return fields
   }, [selected, roleMap])
 

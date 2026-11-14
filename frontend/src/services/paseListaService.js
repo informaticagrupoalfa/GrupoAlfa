@@ -48,7 +48,7 @@ export async function loadPaseListaCatalogs() {
 export async function loadEstudiantesPorParalelo(idParalelo) {
   if (!idParalelo) return null
   try {
-    const rows = await listResource("matriculaciones", { id_paralelo: idParalelo })
+    const rows = await listResource("inscripciones", { id_paralelo: idParalelo })
     if (Array.isArray(rows)) return rows
     return null
   } catch {

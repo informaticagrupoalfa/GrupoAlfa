@@ -3,7 +3,39 @@ import { apiClient } from "../../services/apiClient"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 import Pagination from "../../components/ui/Pagination"
 
-const LIMIT = 25
+const LIMIT = 15
+
+function nombreCompleto(estudiante) {
+  if (!estudiante) return ""
+  return [estudiante.nombre, estudiante.apellido_paterno, estudiante.apellido_materno]
+    .filter(Boolean)
+    .join(" ")
+}
+
+function parseFecha(value) {
+  if (!value) return null
+  const texto = String(value)
+  const partes = texto.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (partes) {
+    return new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]))
+  }
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function formatFecha(value) {
+  const d = parseFecha(value)
+  if (!d) return value ? String(value) : "—"
+  return d.toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function fotoSrc(fotoBase64) {
+  if (!fotoBase64) return null
+  if (fotoBase64.startsWith("/9j/")) return `data:image/jpeg;base64,${fotoBase64}`
+  if (fotoBase64.startsWith("R0lGOD")) return `data:image/gif;base64,${fotoBase64}`
+  if (fotoBase64.startsWith("UklGR")) return `data:image/webp;base64,${fotoBase64}`
+  return `data:image/png;base64,${fotoBase64}`
+}
 
 export default function EstudiantesPage() {
   const [filtros, setFiltros] = useState({ q: "", id_capacitacion: "", id_paralelo: "" })
@@ -13,6 +45,12 @@ export default function EstudiantesPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const [selectedId, setSelectedId] = useState(null)
+  const [detalle, setDetalle] = useState(null)
+  const [detalleLoading, setDetalleLoading] = useState(false)
+  const [detalleError, setDetalleError] = useState(null)
+  const [detalleReloadKey, setDetalleReloadKey] = useState(0)
 
   const loadCapacitaciones = useCallback(async () => {
     try {
@@ -71,9 +109,36 @@ export default function EstudiantesPage() {
     loadResumen()
   }, [loadResumen])
 
+  useEffect(() => {
+    if (selectedId == null) {
+      setDetalle(null)
+      setDetalleError(null)
+      setDetalleLoading(false)
+      return
+    }
+    let active = true
+    setDetalleLoading(true)
+    setDetalleError(null)
+    setDetalle(null)
+    apiClient
+      .get(`/estudiantes/${selectedId}/detalle`)
+      .then(({ data }) => {
+        if (active) setDetalle(data)
+      })
+      .catch((e) => {
+        if (active) setDetalleError(e.userMessage || "No se pudo cargar la información del estudiante.")
+      })
+      .finally(() => {
+        if (active) setDetalleLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [selectedId, detalleReloadKey])
+
   const diasRestantes = (fechaFin) => {
-    if (!fechaFin) return "Sin fecha"
-    const fin = new Date(fechaFin)
+    const fin = parseFecha(fechaFin)
+    if (!fin) return "Sin fecha"
     fin.setHours(0, 0, 0, 0)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
@@ -83,15 +148,26 @@ export default function EstudiantesPage() {
     return `${d} día${d !== 1 ? "s" : ""}`
   }
 
+  const seleccionarEstudiante = (id) => {
+    setSelectedId((prev) => (prev === id ? null : id))
+  }
+
+  const cambiarPagina = (nuevaPagina) => {
+    setPage(nuevaPagina)
+    setSelectedId(null)
+  }
+
   const handleChange = (key, value) => {
     setFiltros((prev) => ({ ...prev, [key]: value }))
     if (key === "id_capacitacion") setFiltros((prev) => ({ ...prev, id_paralelo: "" }))
     setPage(1)
+    setSelectedId(null)
   }
 
   const limpiarFiltros = () => {
     setFiltros({ q: "", id_capacitacion: "", id_paralelo: "" })
     setPage(1)
+    setSelectedId(null)
   }
 
   const filas = data?.filas ?? []
@@ -101,18 +177,132 @@ export default function EstudiantesPage() {
   if (error) return <ErrorFallback message={error} onRetry={loadResumen} />
 
   const renderSkeletonCard = (key) => (
-    <div className="estudiante-card skeleton-card" key={key}>
-      <div className="campo-valor"><span className="label">Nombre</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Carnet</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Correo</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Colegio</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Dirección</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Paralelo</span><span className="valor skeleton-line" /></div>
-      <div className="campo-valor"><span className="label">Capacitación</span><span className="valor skeleton-line" /></div>
-      <div className="campo-extra"><span className="label">Clases asistidas</span><span className="valor skeleton-line" /></div>
-      <div className="campo-extra"><span className="label">Fin de mensualidad</span><span className="valor skeleton-line" /></div>
+    <div className="estudiante-list-card skeleton-card" key={key}>
+      <span className="skeleton-line" />
+      <span className="skeleton-line skeleton-line-short" />
+      <span className="skeleton-line skeleton-line-short" />
     </div>
   )
+
+  const renderDetalle = () => {
+    if (selectedId == null) {
+      return (
+        <div className="estudiantes-detail-empty">
+          <p className="muted">Selecciona un estudiante para ver toda su información.</p>
+        </div>
+      )
+    }
+
+    if (detalleLoading) {
+      return (
+        <div className="estudiante-detail-card skeleton-card">
+          <div className="estudiante-photo estudiante-photo-placeholder" />
+          <div className="estudiante-detail-head">
+            <span className="skeleton-line" />
+            <span className="skeleton-line skeleton-line-short" />
+          </div>
+          <div className="estudiante-detail-fields">
+            {[...Array(8)].map((_, i) => (
+              <div className="info-row" key={i}>
+                <span className="skeleton-line skeleton-line-short" />
+                <span className="skeleton-line" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    if (detalleError) {
+      return (
+        <ErrorFallback
+          message={detalleError}
+          onRetry={() => setDetalleReloadKey((k) => k + 1)}
+        />
+      )
+    }
+
+    if (!detalle) return null
+
+    const nombre = nombreCompleto(detalle) || `Estudiante ${detalle.id_estudiante}`
+    const iniciales = `${detalle.nombre?.[0] ?? ""}${detalle.apellido_paterno?.[0] ?? ""}`.toUpperCase()
+    const imagen = fotoSrc(detalle.foto_base64)
+    const capacitacion =
+      detalle.nombre_facultad ||
+      (detalle.id_capacitacion != null ? `Capacitación ${detalle.id_capacitacion}` : "—")
+
+    return (
+      <div className="estudiante-detail-card">
+        <div className="estudiante-photo-wrapper">
+          {imagen ? (
+            <img src={imagen} alt={`Foto de ${nombre}`} className="estudiante-photo" />
+          ) : (
+            <div className="estudiante-photo estudiante-photo-placeholder">
+              {iniciales || "?"}
+            </div>
+          )}
+        </div>
+
+        <div className="estudiante-detail-head">
+          <h2>{nombre}</h2>
+          <p className="muted">Carnet: {detalle.nro_carnet ?? "—"}</p>
+        </div>
+
+        <div className="estudiante-detail-fields">
+          <div className="info-row">
+            <span className="info-label">Correo</span>
+            <span className="info-value">{detalle.correo_electronico ?? "—"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Teléfono</span>
+            <span className="info-value">{detalle.nro_telefono ?? "—"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Fecha de nacimiento</span>
+            <span className="info-value">{formatFecha(detalle.fecha_nacimiento)}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Colegio de procedencia</span>
+            <span className="info-value">{detalle.colegio_de_procedencia ?? "—"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Dirección</span>
+            <span className="info-value">{detalle.direccion_de_domicilio ?? "—"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Capacitación</span>
+            <span className="info-value">{capacitacion}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Paralelo</span>
+            <span className="info-value">{detalle.nombre_paralelo ?? "—"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Clases asistidas</span>
+            <span className="info-value">{detalle.asistencias ?? 0}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Fin de mensualidad</span>
+            <span className="info-value">
+              {detalle.fecha_fin_mensualidad
+                ? `${formatFecha(detalle.fecha_fin_mensualidad)} (${diasRestantes(detalle.fecha_fin_mensualidad)})`
+                : "—"}
+            </span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Estado</span>
+            <span className="info-value">
+              {detalle.usuario_vigente == null
+                ? "—"
+                : detalle.usuario_vigente
+                  ? "Vigente"
+                  : "No vigente"}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <section className="estudiantes-page">
@@ -169,37 +359,51 @@ export default function EstudiantesPage() {
 
       <p className="muted estudiantes-total">Total: {total} estudiante{total !== 1 ? "s" : ""}</p>
 
-      {loading ? (
-        <div className="estudiantes-grid">
-          {[...Array(25)].map((_, i) => renderSkeletonCard(i))}
+      <div className="estudiantes-layout">
+        <div className="estudiantes-list-panel">
+          {loading ? (
+            <div className="estudiantes-list-grid">
+              {[...Array(LIMIT)].map((_, i) => renderSkeletonCard(i))}
+            </div>
+          ) : filas.length === 0 ? (
+            <p className="muted">No se encontraron estudiantes con los filtros aplicados.</p>
+          ) : (
+            <>
+              <div className="estudiantes-list-grid">
+                {filas.map((f) => {
+                  const nombre = nombreCompleto(f) || `Estudiante ${f.id_estudiante}`
+                  const capacitacion =
+                    f.nombre_facultad ||
+                    (f.id_capacitacion != null ? `Capacitación ${f.id_capacitacion}` : "")
+                  const isSelected = selectedId === f.id_estudiante
+                  return (
+                    <button
+                      type="button"
+                      key={f.id_estudiante}
+                      className={`estudiante-list-card ${isSelected ? "selected" : ""}`}
+                      onClick={() => seleccionarEstudiante(f.id_estudiante)}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="estudiante-list-card-name">{nombre}</span>
+                      <span className="estudiante-list-card-meta">
+                        Carnet: {f.nro_carnet ?? "—"}
+                      </span>
+                      <span className="estudiante-list-card-meta">
+                        {[capacitacion, f.nombre_paralelo].filter(Boolean).join(" · ") || "Sin paralelo"}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="estudiantes-list-pagination">
+                <Pagination page={page} totalPages={totalPaginas} onPageChange={cambiarPagina} />
+              </div>
+            </>
+          )}
         </div>
-      ) : filas.length === 0 ? (
-        <p className="muted">No se encontraron estudiantes con los filtros aplicados.</p>
-      ) : (
-        <>
-          <div className="estudiantes-grid">
-            {filas.map((f) => {
-              const nombre = [f.nombre, f.apellido_paterno, f.apellido_materno]
-                .filter(Boolean)
-                .join(" ")
-              return (
-                <div key={f.id_estudiante} className="estudiante-card">
-                  <div className="campo-valor"><span className="label">Nombre</span><span className="valor">{nombre}</span></div>
-                  <div className="campo-valor"><span className="label">Carnet</span><span className="valor">{f.nro_carnet ?? "-"}</span></div>
-                  <div className="campo-valor"><span className="label">Correo</span><span className="valor">{f.correo_electronico ?? "-"}</span></div>
-                  <div className="campo-valor"><span className="label">Colegio</span><span className="valor">{f.colegio_de_procedencia ?? "-"}</span></div>
-                  <div className="campo-valor"><span className="label">Dirección</span><span className="valor">{f.direccion_de_domicilio ?? "-"}</span></div>
-                  <div className="campo-valor"><span className="label">Paralelo</span><span className="valor">{f.nombre_paralelo ?? "-"}</span></div>
-                  <div className="campo-valor"><span className="label">Capacitación</span><span className="valor">{f.id_capacitacion != null ? f.id_capacitacion : "-"}</span></div>
-                  <div className="campo-extra"><span className="label">Clases asistidas</span><span className="valor">{f.asistencias ?? 0}</span></div>
-                  <div className="campo-extra"><span className="label">Fin de mensualidad</span><span className="valor">{diasRestantes(f.fecha_fin_mensualidad)}</span></div>
-                </div>
-              )
-            })}
-          </div>
-          <Pagination page={page} totalPages={totalPaginas} onPageChange={setPage} />
-        </>
-      )}
+
+        <div className="estudiantes-detail-panel">{renderDetalle()}</div>
+      </div>
     </section>
   )
 }

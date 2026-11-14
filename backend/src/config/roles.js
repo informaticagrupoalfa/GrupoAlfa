@@ -15,7 +15,7 @@ export const MANAGEMENT_ROLES = Object.freeze([
   ROLE_NAMES.GERENCIA,
 ]);
 
-// Operación académica: capacitaciones, matriculaciones y llamar lista.
+// Operación académica: capacitaciones, inscripciones y llamar lista.
 // Incluye a los roles de gestión porque tienen acceso a todos los módulos.
 export const ACADEMIC_ROLES = Object.freeze([
   ...MANAGEMENT_ROLES,

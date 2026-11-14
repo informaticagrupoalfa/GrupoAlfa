@@ -10,7 +10,7 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/
 function emptyRoleFields() {
   return {
     estudiantes: { id_apoderado: "", colegio_de_procedencia: "", direccion_de_domicilio: "" },
-    apoderados: { celular: "" },
+    apoderados: { parentesco: "" },
   }
 }
 
@@ -107,8 +107,8 @@ export default function UsuarioFormModal({
       setLocalError("La contraseña debe tener al menos 8 caracteres.")
       return
     }
-    if (roles.apoderados && roleFields.apoderados.celular && roleFields.apoderados.celular.length > 20) {
-      setLocalError("El celular del apoderado debe tener máximo 20 caracteres.")
+    if (roles.apoderados && roleFields.apoderados.parentesco && roleFields.apoderados.parentesco.length > 50) {
+      setLocalError("El parentesco del apoderado debe tener máximo 50 caracteres.")
       return
     }
     if (roles.estudiantes) {
@@ -248,11 +248,11 @@ export default function UsuarioFormModal({
             <div className="role-fields">
               <p className="muted">Datos de apoderado</p>
               <TextField
-                id="u-apoderado-celular"
-                label="Celular (opcional)"
-                value={roleFields.apoderados.celular}
-                onChange={(event) => setRoleField("apoderados", "celular", event.target.value)}
-                maxLength={20}
+                id="u-apoderado-parentesco"
+                label="Parentesco (opcional)"
+                value={roleFields.apoderados.parentesco}
+                onChange={(event) => setRoleField("apoderados", "parentesco", event.target.value)}
+                maxLength={50}
               />
             </div>
           )}

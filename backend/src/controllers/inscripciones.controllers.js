@@ -9,35 +9,16 @@ const crud = createCrud({
   writable: [
     "id_administrativo",
     "id_estudiante",
-    "id_carrera",
+    "id_paralelo",
     "como_se_entero_de_nosotros",
-    "como_se_entero_detalle",
     "recalculo",
     "preparacion_previa",
     "tiempo_de_preparacion_meses",
     "lugar_de_preparacion",
-    "nro_comprobante",
-    "nro_credencial",
-    "inicio_clases",
-    "modalidad",
-    "horario",
-    "grupo",
-    "apellido_paterno",
-    "apellido_materno",
-    "nombre",
-    "edad",
-    "correo_electronico",
-    "colegio_de_procedencia",
-    "direccion_de_domicilio",
-    "firma",
-    "apoderado_nombre_completo",
-    "apoderado_celular",
-    "apoderado_parentesco",
-    "elaborado_por",
-    "sucursal",
-    "fecha_registro",
+    "num_credencial",
+    "fecha_insc",
   ],
-  filters: ["id_administrativo", "id_estudiante", "id_carrera"],
+  filters: ["id_administrativo", "id_estudiante", "id_paralelo"],
   fks: [
     {
       column: "id_administrativo",
@@ -46,7 +27,7 @@ const crud = createCrud({
       message: "El administrativo no existe",
     },
     { column: "id_estudiante", table: "estudiantes", pk: "id_estudiante", message: "El estudiante no existe" },
-    { column: "id_carrera", table: "carreras", pk: "id_carrera", message: "La carrera no existe" },
+    { column: "id_paralelo", table: "paralelos", pk: "id_paralelo", message: "El paralelo no existe" },
   ],
 });
 
@@ -78,9 +59,9 @@ export const registrarEstudiante = async (req, res, next) => {
       apoderado_parentesco,
       colegio_de_procedencia,
       direccion_de_domicilio,
+      celular,
       id_administrativo,
       id_paralelo,
-      nro_comprobante,
       como_se_entero_de_nosotros,
       recalculo,
       preparacion_previa,
@@ -115,10 +96,10 @@ export const registrarEstudiante = async (req, res, next) => {
     const salEst = await bcrypt.genSalt(10);
     const contraEst = await bcrypt.hash(contraseña, salEst);
     const { rows: usuarioEstudiante } = await client.query(
-      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, contraseña, usuario_vigente)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono, contraseña, usuario_vigente)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
        RETURNING id_usuario`,
-      [ci, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, contraEst]
+      [ci, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, celular ?? null, contraEst]
     );
     const idUsuarioEstudiante = usuarioEstudiante[0].id_usuario;
 
@@ -149,29 +130,22 @@ export const registrarEstudiante = async (req, res, next) => {
     );
     const idEstudiante = estudianteRow[0].id_estudiante;
 
-    // 7. Crear matrícula
-    await client.query(
-      `INSERT INTO matriculaciones (id_estudiante, id_paralelo, esta_vigente, nro_comprobante, nro_credencial)
-       VALUES ($1,$2,true,$3,$4)`,
-      [idEstudiante, id_paralelo ?? null, nro_comprobante ?? null, nro_credencial ?? null]
-    );
-
-    // 8. Crear inscripción (usando columna fecha_insc y num_credencial del esquema)
+    // 7. Crear inscripción: el paralelo se guarda directamente en la inscripción
     const { rows: inscripcionRow } = await client.query(
-      `INSERT INTO inscripciones (id_administrativo, id_estudiante, como_se_entero_de_nosotros, recalculo, preparacion_previa, tiempo_de_preparacion_meses, lugar_de_preparacion, num_credencial, fecha_insc)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id_inscripcion`,
-      [id_administrativo, idEstudiante, como_se_entero_de_nosotros ?? null, recalculo ?? false, preparacion_previa ?? false, tiempo_de_preparacion_meses ?? 0, lugar_de_preparacion ?? null, nro_credencial ?? null, fecha_inscripcion ?? null]
+      `INSERT INTO inscripciones (id_administrativo, id_estudiante, id_paralelo, como_se_entero_de_nosotros, recalculo, preparacion_previa, tiempo_de_preparacion_meses, lugar_de_preparacion, num_credencial, fecha_insc)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id_inscripcion`,
+      [id_administrativo, idEstudiante, id_paralelo ?? null, como_se_entero_de_nosotros ?? null, recalculo ?? false, preparacion_previa ?? false, tiempo_de_preparacion_meses ?? 0, lugar_de_preparacion ?? null, nro_credencial ?? null, fecha_inscripcion ?? null]
     );
     const idInscripcion = inscripcionRow[0].id_inscripcion;
 
-    // 9. Crear mensualidad
+    // 8. Crear la mensualidad inicial de la inscripción
     const fechaInicio = fecha_inscripcion ?? new Date().toISOString().split("T")[0];
     const fechaFin = new Date(fechaInicio);
     fechaFin.setMonth(fechaFin.getMonth() + 1);
     await client.query(
       `INSERT INTO mensualidades (id_administrativo, fecha_inicio_mensualidad, fecha_fin_mensualidad, pago, id_inscripcion)
        VALUES ($1,$2,$3,$4,$5)`,
-      [id_administrativo, fechaInicio, fechaFin.toISOString().split("T")[0], 0, idInscripcion]
+      [id_administrativo ?? null, fechaInicio, fechaFin.toISOString().split("T")[0], 0, idInscripcion]
     );
 
     await client.query("COMMIT");

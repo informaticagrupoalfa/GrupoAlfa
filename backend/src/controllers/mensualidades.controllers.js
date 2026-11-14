@@ -5,15 +5,21 @@ const crud = createCrud({
   pk: "id_mensualidad",
   label: "Mensualidad no encontrada",
   writable: [
-    "id_estudiante",
+    "id_inscripcion",
     "id_administrativo",
     "fecha_inicio_mensualidad",
     "fecha_fin_mensualidad",
     "pago",
+    "codigo_comprobante",
   ],
-  filters: ["id_estudiante", "id_administrativo"],
+  filters: ["id_inscripcion", "id_administrativo"],
   fks: [
-    { column: "id_estudiante", table: "estudiantes", pk: "id_estudiante", message: "El estudiante no existe" },
+    {
+      column: "id_inscripcion",
+      table: "inscripciones",
+      pk: "id_inscripcion",
+      message: "La inscripción no existe",
+    },
     {
       column: "id_administrativo",
       table: "administrativos",

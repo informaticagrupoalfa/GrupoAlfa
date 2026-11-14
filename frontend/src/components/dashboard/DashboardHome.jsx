@@ -9,12 +9,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
   ScatterChart,
   Scatter,
-  Cell,
-  ReferenceLine,
 } from "recharts"
 import { ENTITIES, ENTITY_ORDER } from "../../config/entities"
 import { canAccessModule } from "../../config/permissions"
@@ -22,9 +18,6 @@ import { useAuth } from "../../hooks/useAuth"
 import { listResource } from "../../services/academicService"
 import Card from "../ui/Card"
 import Skeleton from "../ui/Skeleton"
-
-const COLORS = ["#2196f3", "#4fc3f7", "#1976d2", "#b3e5fc", "#0d47a1", "#64b5f6", "#42a5f5"]
-const CHART_KEYS = ["usuarios", "materias", "asesores", "capacitaciones", "matriculaciones", "temas", "estudiantes"]
 
 function safeRows(data) {
   return Array.isArray(data) ? data : []
@@ -67,6 +60,7 @@ export default function DashboardHome({ onNavigate }) {
   const [rolesData, setRolesData] = useState([])
   const [asignacionesRolData, setAsignacionesRolData] = useState([])
   const [aulasData, setAulasData] = useState([])
+  const [paralelosData, setParalelosData] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -81,23 +75,25 @@ export default function DashboardHome({ onNavigate }) {
           materiasResult,
           asesoresResult,
           capacitacionesResult,
-          matriculacionesResult,
+          inscripcionesResult,
           temasResult,
           estudiantesResult,
           rolesResult,
           asignacionesRolResult,
           aulasResult,
+          paralelosResult,
         ] = await Promise.allSettled([
           listResource(ENTITIES.usuarios.endpoint),
           listResource(ENTITIES.materias.endpoint),
           listResource(ENTITIES.asesores.endpoint),
           listResource(ENTITIES.capacitaciones.endpoint),
-          listResource(ENTITIES.matriculaciones.endpoint),
+          listResource(ENTITIES.inscripciones.endpoint),
           listResource(ENTITIES.temas.endpoint),
           listResource(ENTITIES.estudiantes.endpoint),
           listResource("roles"),
           listResource("asignaciones-rol"),
           listResource("aulas"),
+          listResource(ENTITIES.paralelos.endpoint),
         ])
 
         const safe = (result) =>
@@ -108,7 +104,7 @@ export default function DashboardHome({ onNavigate }) {
           materias: safe(materiasResult),
           asesores: safe(asesoresResult),
           capacitaciones: safe(capacitacionesResult),
-          matriculaciones: safe(matriculacionesResult),
+          inscripciones: safe(inscripcionesResult),
           temas: safe(temasResult),
           estudiantes: safe(estudiantesResult),
         }
@@ -116,12 +112,14 @@ export default function DashboardHome({ onNavigate }) {
         const rolesData = safe(rolesResult)
         const asignacionesRolData = safe(asignacionesRolResult)
         const aulasData = safe(aulasResult)
+        const paralelosData = safe(paralelosResult)
 
         if (mounted) {
           setResources(recursos)
           setRolesData(rolesData)
           setAsignacionesRolData(asignacionesRolData)
           setAulasData(aulasData)
+          setParalelosData(paralelosData)
           setCounts(
             Object.fromEntries(
               Object.entries(recursos).map(([k, v]) => [k, v.length]),
@@ -140,14 +138,6 @@ export default function DashboardHome({ onNavigate }) {
     }
   }, [])
 
-  const barData = useMemo(() => {
-    return CHART_KEYS.map((key, i) => ({
-      name: ENTITIES[key]?.label ?? key,
-      value: resources[key]?.length ?? 0,
-      color: COLORS[i % COLORS.length],
-    }))
-  }, [resources])
-
   const rolesPorUsuario = useMemo(() => {
     const conteo = {}
     asignacionesRolData.forEach((asig) => {
@@ -159,50 +149,27 @@ export default function DashboardHome({ onNavigate }) {
     return Object.entries(conteo).map(([nombre, cantidad]) => ({ nombre, cantidad }))
   }, [rolesData, asignacionesRolData])
 
-  const pieData = useMemo(() => {
-    return CHART_KEYS
-      .filter((key) => (resources[key]?.length ?? 0) > 0)
-      .map((key) => ({
-        name: ENTITIES[key]?.label ?? key,
-        value: resources[key].length,
-      }))
-  }, [resources])
-
-  const scatterData = useMemo(() => {
-    const puntos = []
-    CHART_KEYS.forEach((key, i) => {
-      const rows = resources[key] ?? []
-      rows.forEach((row, j) => {
-        puntos.push({
-          x: j,
-          y: (resources[key]?.length ?? 0) + i * 10,
-          z: (row.id_usuario ?? row.id_estudiante ?? row.id_capacitacion ?? row.id_matriculacion ?? j) % 50 + 5,
-          name: `${ENTITIES[key]?.label ?? key} #${j + 1}`,
-        })
-      })
-    })
-    return puntos
-  }, [resources])
-
   const ocupacionPorCapacitacion = useMemo(() => {
     const capacitaciones = resources.capacitaciones ?? []
     const aulas = aulasData ?? []
-    const matriculaciones = resources.matriculaciones ?? []
+    const inscripciones = resources.inscripciones ?? []
+    const paralelos = paralelosData ?? []
 
     const mapaAulas = new Map(aulas.map((a) => [String(a.id_aula), a]))
+    const mapaParalelos = new Map(paralelos.map((p) => [String(p.id_paralelo), p]))
 
     const estudiantesPorCurso = new Map()
-    matriculaciones.forEach((m) => {
-      if (m.esta_vigente === false) return
-      const cursoId = String(m.id_curso_capacitacion)
+    inscripciones.forEach((i) => {
+      const paralelo = mapaParalelos.get(String(i.id_paralelo))
+      if (!paralelo) return
+      const cursoId = String(paralelo.id_capacitacion)
       if (!estudiantesPorCurso.has(cursoId)) estudiantesPorCurso.set(cursoId, new Set())
-      estudiantesPorCurso
-        .get(cursoId)
-        .add(String(m.id_estudiante ?? m.id_matriculacion))
+      estudiantesPorCurso.get(cursoId).add(String(i.id_estudiante))
     })
 
     return capacitaciones.map((c) => {
-      const aula = mapaAulas.get(String(c.id_aula))
+      const paralelo = paralelos.find((p) => String(p.id_capacitacion) === String(c.id_capacitacion))
+      const aula = mapaAulas.get(String(paralelo?.id_aula))
       const capacidad = Number(aula?.capacidad) || 0
       const ocupados = estudiantesPorCurso.get(String(c.id_capacitacion))?.size ?? 0
       const porcentaje = capacidad > 0 ? Math.min((ocupados / capacidad) * 100, 100) : 0
@@ -217,7 +184,7 @@ export default function DashboardHome({ onNavigate }) {
         porcentaje: Math.round(porcentaje),
       }
     })
-  }, [resources, aulasData])
+  }, [resources, aulasData, paralelosData])
 
   if (isLoading) return <Skeleton lines={5} />
   if (error) return <p className="error-message">{error}</p>
@@ -225,7 +192,7 @@ export default function DashboardHome({ onNavigate }) {
   return (
     <section>
       <h2>Resumen académico</h2>
-      <p className="muted">Datos reales de la base de datos: usuarios, materias, asesores, capacitaciones, matriculaciones, temas y estudiantes.</p>
+      <p className="muted">Datos reales de la base de datos: usuarios, materias, asesores, capacitaciones, inscripciones, temas y estudiantes.</p>
 
       <div className="cards">
         {visibleKeys.map((key) => (

@@ -28,6 +28,11 @@ const isManagementRoute = (path) =>
 const isInscripcionesRoute = (path) =>
   path === "/inscripciones" || path.startsWith("/inscripciones/");
 
+// Las lecturas de inscripciones también las necesitan "llamar lista" y
+// mensualidades (roles académicos). Solo las escrituras son exclusivas.
+const isInscripcionesWriteRoute = (method, path) =>
+  isInscripcionesRoute(path) && method !== "GET";
+
 const isAuthenticatedOnlyRoute = (method, path) =>
   method === "GET" && (path === "/usuarios/me" || path === "/mis-paralelos");
 
@@ -50,7 +55,7 @@ export const authorizeApi = (req, res, next) => {
       return next();
     }
 
-    const allowedRoles = isInscripcionesRoute(path)
+    const allowedRoles = isInscripcionesWriteRoute(req.method, path)
       ? INSCRIPCIONES_ROLES
       : isManagementRoute(path)
         ? MANAGEMENT_ROLES

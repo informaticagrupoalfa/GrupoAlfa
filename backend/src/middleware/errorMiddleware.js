@@ -23,7 +23,6 @@ const errorHandler = (err, req, res, next) => {
       id_estudiante: "id de estudiante",
       id_inscripcion: "id de inscripción",
       id_apoderado: "id de apoderado",
-      id_matriculacion: "id de matrícula",
       id_mensualidad: "id de mensualidad",
       nro_telefono: "número de teléfono",
     };

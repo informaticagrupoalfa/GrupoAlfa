@@ -6,10 +6,12 @@ import { pool } from "../db.js";
  * estudiante nunca pueda solicitar los datos de otro cambiando un parámetro.
  */
 const SELECT_MIS_PARALELOS = `
-  SELECT m.id_matriculacion,
-         m.esta_vigente,
-         m.nro_comprobante,
-         m.nro_credencial,
+  SELECT i.id_inscripcion AS id_matriculacion,
+         TRUE AS esta_vigente,
+         NULL::integer AS nro_comprobante,
+         i.num_credencial AS nro_credencial,
+         i.id_inscripcion,
+         i.fecha_insc,
          p.id_paralelo,
          p.nombre_paralelo,
          p.nivel,
@@ -24,14 +26,13 @@ const SELECT_MIS_PARALELOS = `
          a.codigo AS aula_codigo,
          a.capacidad AS aula_capacidad
   FROM estudiantes e
-  JOIN matriculaciones m ON m.id_estudiante = e.id_estudiante
-  JOIN paralelos p ON p.id_paralelo = m.id_paralelo
+  JOIN inscripciones i ON i.id_estudiante = e.id_estudiante
+  JOIN paralelos p ON p.id_paralelo = i.id_paralelo
   LEFT JOIN capacitaciones c ON c.id_capacitacion = p.id_capacitacion
   LEFT JOIN convocatorias_preuniversitario cv ON cv.id_convocatoria = c.id_convocatoria
   LEFT JOIN facultades f ON f.id_facultad = cv.id_facultad
   LEFT JOIN aulas a ON a.id_aula = p.id_aula
   WHERE e.id_usuario = $1
-    AND COALESCE(m.esta_vigente, TRUE) = TRUE
   ORDER BY p.nombre_paralelo ASC
 `;
 

@@ -21,8 +21,12 @@ export const MODULE_TABS = {
   },
   matriculaciones: {
     path: "/app/matriculaciones",
-    defaultTab: "matriculaciones",
-    items: buildTabs(["matriculaciones", "mensualidades"]),
+    defaultTab: "mensualidades-tabla",
+    items: [
+      { key: "mensualidades-tabla", label: "Mensualidades tabla" },
+      { key: "mensualidades-estudiantes", label: "Registro de mensualidades" },
+      { key: "mensualidades", label: "Mensualidades" },
+    ],
   },
   inscripciones: {
     path: "/app/inscripciones",

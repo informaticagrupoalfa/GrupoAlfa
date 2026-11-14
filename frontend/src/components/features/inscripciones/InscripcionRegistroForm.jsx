@@ -67,7 +67,6 @@ function buildEmptyForm(elaboradoPor, idAdministrativo) {
     id_carrera: "",
     id_administrativo: idAdministrativo ?? "",
     id_paralelo: "",
-    nro_comprobante: "",
     nro_credencial: "",
     recalculo: false,
     preparacion_previa: false,
@@ -110,8 +109,8 @@ function fromRecord(record) {
   return {
     id_carrera: record.id_carrera ?? "",
     id_administrativo: record.id_administrativo ?? "",
-    nro_comprobante: record.nro_comprobante ?? "",
-    nro_credencial: record.nro_credencial ?? "",
+    id_paralelo: record.id_paralelo ?? "",
+    nro_credencial: record.num_credencial ?? record.nro_credencial ?? "",
     recalculo: Boolean(record.recalculo),
     preparacion_previa: Boolean(record.preparacion_previa),
     tiempo_de_preparacion_meses: record.tiempo_de_preparacion_meses ?? "",
@@ -145,7 +144,7 @@ function fromRecord(record) {
     elaborado_por: record.elaborado_por ?? "",
     sucursal: record.sucursal ?? "",
     fecha_registro: dateOnly(record.fecha_registro),
-    fecha_inscripcion: dateOnly(record.fecha_inscripcion),
+    fecha_inscripcion: dateOnly(record.fecha_insc ?? record.fecha_inscripcion),
   }
 }
 
@@ -204,7 +203,10 @@ export default function InscripcionRegistroForm({
     setLoadError("")
     getResourceById("inscripciones", inscripcionId)
       .then((record) => {
-        if (mounted) setForm(fromRecord(record))
+        if (mounted) {
+          setForm(fromRecord(record))
+          if (record.id_paralelo != null) setSelectedParaleloId(String(record.id_paralelo))
+        }
       })
       .catch((error) => {
         if (mounted) setLoadError(error.userMessage ?? "No se pudo cargar la inscripción.")
@@ -230,10 +232,10 @@ export default function InscripcionRegistroForm({
     if (selectedApoderadoId || !form.apoderado_nombre_completo || apoderados.length === 0) return
     const match = apoderados.find((apoderado) =>
       fullName(apoderado) === form.apoderado_nombre_completo &&
-      (!form.apoderado_celular || String(apoderado.celular ?? "") === String(form.apoderado_celular)),
+      (!form.apoderado_telefono || String(apoderado.telefono ?? "") === String(form.apoderado_telefono)),
     )
     if (match) setSelectedApoderadoId(String(match.id_apoderado))
-  }, [apoderados, form.apoderado_nombre_completo, form.apoderado_celular, selectedApoderadoId])
+  }, [apoderados, form.apoderado_nombre_completo, form.apoderado_telefono, selectedApoderadoId])
 
   useEffect(() => {
     if (form.id_administrativo || !form.elaborado_por || administrativos.length === 0) return
@@ -271,7 +273,6 @@ export default function InscripcionRegistroForm({
       apoderado_contraseña: params.apoderado_contraseña ?? prev.apoderado_contraseña,
       apoderado_parentesco: params.apoderado_parentesco ?? prev.apoderado_parentesco,
       id_carrera: params.id_carrera ?? prev.id_carrera,
-      nro_comprobante: params.nro_comprobante ?? prev.nro_comprobante,
       nro_credencial: params.nro_credencial ?? prev.nro_credencial,
       recalculo: params.recalculo === "true",
       preparacion_previa: params.preparacion_previa === "true",
@@ -315,7 +316,6 @@ export default function InscripcionRegistroForm({
     setParam("apoderado_contraseña", form.apoderado_contraseña)
     setParam("apoderado_parentesco", form.apoderado_parentesco)
     setParam("id_carrera", form.id_carrera)
-    setParam("nro_comprobante", form.nro_comprobante)
     setParam("nro_credencial", form.nro_credencial)
     setParam("recalculo", form.recalculo)
     setParam("preparacion_previa", form.preparacion_previa)
@@ -388,7 +388,7 @@ export default function InscripcionRegistroForm({
       apoderado_apellido_paterno: apoderado ? apoderado.apellido_paterno ?? "" : "",
       apoderado_apellido_materno: apoderado ? apoderado.apellido_materno ?? "" : "",
       apoderado_nombre: apoderado ? apoderado.nombre ?? "" : "",
-      apoderado_telefono: apoderado ? apoderado.nro_telefono ?? "" : "",
+      apoderado_telefono: apoderado ? apoderado.telefono ?? apoderado.nro_telefono ?? "" : "",
       apoderado_parentesco: apoderado ? apoderado.parentesco ?? "" : "",
       apoderado_contraseña: "",
     }))
@@ -473,7 +473,6 @@ export default function InscripcionRegistroForm({
         ? defaultAdministrativo?.id_administrativo
         : toNumberOrUndefined(form.id_administrativo),
       id_paralelo: toNumberOrUndefined(form.id_paralelo),
-      nro_comprobante: toNumberOrUndefined(form.nro_comprobante),
       como_se_entero_de_nosotros: textOrUndefined(form.como_se_entero_de_nosotros),
       recalculo: Boolean(form.recalculo),
       preparacion_previa: Boolean(form.preparacion_previa),
@@ -536,18 +535,6 @@ export default function InscripcionRegistroForm({
                   ))}
                 </select>
               </td>
-              <td><label htmlFor="ins-comprobante">Nº de comprobante</label></td>
-              <td>
-                <input
-                  id="ins-comprobante"
-                  type="number"
-                  value={form.nro_comprobante}
-                  onChange={(e) => set("nro_comprobante", e.target.value)}
-                />
-              </td>
-            </tr>
-            
-            <tr>
               <td><label htmlFor="ins-credencial">Nº de credencial</label></td>
               <td>
                 <input
@@ -557,6 +544,9 @@ export default function InscripcionRegistroForm({
                   onChange={(e) => set("nro_credencial", e.target.value)}
                 />
               </td>
+            </tr>
+
+            <tr>
               <td><label>Recálculo</label></td>
               <td>
                 <input
@@ -566,6 +556,7 @@ export default function InscripcionRegistroForm({
                   onChange={(e) => set("recalculo", e.target.checked)}
                 />
               </td>
+              <td colSpan={2} />
             </tr>
             <tr>
               <td><label>¿Tuviste preparación previa?</label></td>
@@ -872,7 +863,7 @@ export default function InscripcionRegistroForm({
                   {apoderados.map((apoderado) => (
                     <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
                       {fullName(apoderado)}
-                      {apoderado.celular ? ` · ${apoderado.celular}` : ""}
+                      {apoderado.telefono ? ` · ${apoderado.telefono}` : ""}
                     </option>
                   ))}
                 </select>

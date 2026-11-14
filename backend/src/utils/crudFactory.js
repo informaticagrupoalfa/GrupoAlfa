@@ -9,7 +9,7 @@ import { pool } from "../db.js";
  * - Queries parametrizadas `$1..$n`; errores pg vía `next(error)` → `errorMiddleware`
  *   (`23505/23503→409`, `22P02→400`).
  * - `INSERT`/`UPDATE` dinámicos solo con claves provistas: respeta `DEFAULT` de la BD
- *   (ej. `recalculo`, `esta_vigente`) en create y `COALESCE` en update.
+ *   (ej. `recalculo`) en create y `COALESCE` en update.
  *
  * @param {object} cfg
  * @param {string} cfg.table tabla SQL

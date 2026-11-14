@@ -1,7 +1,8 @@
 import { pool } from "../db.js";
 
-const SELECT_APODERADOS = `SELECT a.id_apoderado, a.id_usuario, a.celular,
-  u.nombre, u.apellido_paterno, u.apellido_materno, u.correo_electronico
+const SELECT_APODERADOS = `SELECT a.id_apoderado, a.id_usuario, a.parentesco,
+  u.nombre, u.apellido_paterno, u.apellido_materno, u.correo_electronico,
+  u.nro_carnet AS ci, u.nro_telefono AS telefono
   FROM apoderados a LEFT JOIN usuarios u ON u.id_usuario = a.id_usuario`;
 
 export const getApoderados = async (req, res, next) => {
@@ -27,12 +28,12 @@ export const getApoderadoById = async (req, res, next) => {
 
 export const createApoderado = async (req, res, next) => {
   try {
-    const { id_usuario, celular } = req.body;
+    const { id_usuario, parentesco } = req.body;
     const user = await pool.query("SELECT 1 FROM usuarios WHERE id_usuario = $1", [id_usuario]);
     if (user.rows.length === 0) return res.status(409).json({ error: "El usuario no existe" });
     const { rows } = await pool.query(
-      "INSERT INTO apoderados (id_usuario, celular) VALUES ($1, $2) RETURNING *",
-      [id_usuario, celular ?? null]
+      "INSERT INTO apoderados (id_usuario, parentesco) VALUES ($1, $2) RETURNING *",
+      [id_usuario, parentesco ?? null]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -44,16 +45,16 @@ export const updateApoderado = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
-    const { id_usuario, celular } = req.body;
+    const { id_usuario, parentesco } = req.body;
     if (id_usuario != null) {
       const user = await pool.query("SELECT 1 FROM usuarios WHERE id_usuario = $1", [id_usuario]);
       if (user.rows.length === 0) return res.status(409).json({ error: "El usuario no existe" });
     }
     const { rows } = await pool.query(
       `UPDATE apoderados SET id_usuario = COALESCE($1, id_usuario),
-        celular = COALESCE($2, celular)
+        parentesco = COALESCE($2, parentesco)
        WHERE id_apoderado = $3 RETURNING *`,
-      [id_usuario ?? null, celular ?? null, id]
+      [id_usuario ?? null, parentesco ?? null, id]
     );
     if (rows.length === 0) return res.status(404).json({ message: "Apoderado no encontrado" });
     res.json(rows[0]);
