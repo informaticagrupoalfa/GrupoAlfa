@@ -298,6 +298,7 @@ button:disabled {
   box-shadow: 4px 0 20px rgba(33, 150, 243, 0.15);
   position: relative;
   z-index: 20;
+  transition: width 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sidebar-brand {
@@ -305,10 +306,15 @@ button:disabled {
   font-weight: 700;
   color: #2196f3;
   padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .sidebar nav {
   display: grid;
+  align-content: start;
   gap: 6px;
 }
 
@@ -318,10 +324,9 @@ button:disabled {
 
 .nav-item-group.has-submenu > .nav-item::after {
   content: "›";
-  float: right;
   font-size: 16px;
   line-height: 1;
-  margin-left: 8px;
+  margin-left: auto;
   opacity: 0.7;
   transition: transform 160ms ease;
 }
@@ -391,10 +396,26 @@ button:disabled {
   color: #0a2540;
   border-radius: 0;
   padding: 12px 14px;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-decoration: none;
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, background 200ms ease, color 200ms ease;
   will-change: transform, box-shadow;
+}
+
+.nav-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-item:hover:not(.active) {
@@ -1495,42 +1516,6 @@ button.small {
     width: 100%;
   }
 
-  .sidebar {
-    width: 100%;
-    flex-direction: column;
-    position: static;
-    z-index: auto;
-  }
-
-  .sidebar nav {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-
-  .nav-item-group {
-    position: static;
-  }
-
-  .nav-item-group.has-submenu > .nav-item::after {
-    content: "";
-  }
-
-  .nav-submenu {
-    position: static;
-    display: grid;
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
-    min-width: 0;
-    margin: 4px 0 6px 14px;
-    padding: 0 0 0 10px;
-    background: transparent;
-    border: 0;
-    border-left: 2px solid #b3e5fc;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
   .dashboard-header,
   .dashboard-content,
   .module-navbar {
@@ -2626,4 +2611,298 @@ button.small {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Sidebar: rail colapsable en escritorio + drawer deslizante en móvil
+   ========================================================================== */
+
+.sidebar .nav-item {
+  position: relative;
+}
+
+/* Botón flotante (solo móvil) que abre el drawer */
+.sidebar-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #2196f3;
+  border: 1px solid #1976d2;
+  border-radius: 10px;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.32);
+}
+
+.sidebar-toggle:hover:not(:disabled) {
+  background: #1976d2;
+  transform: none;
+  box-shadow: 0 8px 20px rgba(33, 150, 243, 0.38);
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 2px solid #0d47a1;
+  outline-offset: 2px;
+}
+
+/* Icono hamburguesa dibujado en CSS (sin glifos) */
+.sidebar-toggle-icon,
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.sidebar-toggle-icon {
+  position: relative;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.sidebar-toggle-icon::before {
+  top: -6px;
+}
+
+.sidebar-toggle-icon::after {
+  top: 6px;
+}
+
+/* Botón de cierre dentro del drawer móvil */
+.sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  background: #e0f7fe;
+  color: #1976d2;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sidebar-close:hover:not(:disabled) {
+  background: #b3e5fc;
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-close:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Tirador lateral para colapsar/expandir en escritorio */
+.sidebar-handle {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 56px;
+  padding: 0;
+  background: #ffffff;
+  border: 1px solid #b3e5fc;
+  border-radius: 999px;
+  color: #1976d2;
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.18);
+  transform: translateY(-50%);
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+@media (min-width: 901px) {
+  .sidebar-handle {
+    display: flex;
+  }
+}
+
+.sidebar-handle:hover:not(:disabled) {
+  background: #2196f3;
+  border-color: #2196f3;
+  color: #ffffff;
+  transform: translateY(-50%);
+  box-shadow: 0 8px 20px rgba(33, 150, 243, 0.32);
+}
+
+.sidebar-handle:focus-visible {
+  outline: 2px solid #0d47a1;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Estado colapsado (escritorio): el sidebar sigue en el flujo, solo se
+   estrecha a un rail de iconos, por lo que el contenido se reacomoda sin saltos.
+   -------------------------------------------------------------------------- */
+.sidebar.is-collapsed {
+  width: 76px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.sidebar.is-collapsed .sidebar-brand {
+  padding: 0;
+  justify-content: center;
+}
+
+.sidebar.is-collapsed .brand-logo-name,
+.sidebar.is-collapsed .brand-logo .brand-logo-name,
+.sidebar.is-collapsed .nav-item-label {
+  display: none;
+}
+
+.sidebar.is-collapsed nav {
+  gap: 8px;
+}
+
+.sidebar.is-collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 12px 0;
+}
+
+.sidebar.is-collapsed .nav-item.active {
+  transform: translateY(-2px);
+}
+
+.sidebar.is-collapsed .nav-item-group.has-submenu > .nav-item::after {
+  display: none;
+}
+
+/* Tooltip del rail al pasar el cursor o enfocar */
+.sidebar.is-collapsed .nav-item::before {
+  content: attr(data-label);
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 14px);
+  z-index: 70;
+  padding: 7px 10px;
+  background: #0a2540;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(0.96);
+  transform-origin: left center;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.sidebar.is-collapsed .nav-item:hover::before,
+.sidebar.is-collapsed .nav-item:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* --------------------------------------------------------------------------
+   Móvil (<= 900px): drawer fuera del flujo + fondo oscurecido.
+   -------------------------------------------------------------------------- */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 54;
+  background: rgba(10, 37, 64, 0.42);
+  backdrop-filter: blur(2px);
+  animation: sidebar-backdrop-in 180ms ease both;
+}
+
+@keyframes sidebar-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+
+  /* Deja libre la esquina superior izquierda para el botón flotante */
+  .dashboard-header {
+    padding-left: 76px;
+  }
+
+  .sidebar,
+  .sidebar.is-collapsed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 56;
+    width: min(84vw, 300px);
+    padding: 20px 16px 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-104%);
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 18px 48px rgba(10, 37, 64, 0.28);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.is-collapsed .sidebar-brand {
+    padding: 0 8px;
+    justify-content: space-between;
+  }
+
+  .sidebar.is-collapsed .nav-item-label,
+  .sidebar.is-collapsed .brand-logo .brand-logo-name {
+    display: inline;
+  }
+
+  .sidebar.is-collapsed .nav-item {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .sidebar.is-collapsed .nav-item.active {
+    transform: translate(-4px, -4px);
+  }
+
+  .sidebar.is-collapsed .nav-item::before {
+    display: none;
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  .sidebar nav {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-handle,
+  .sidebar.is-collapsed .nav-item::before {
+    transition: none;
+  }
+}
+
 

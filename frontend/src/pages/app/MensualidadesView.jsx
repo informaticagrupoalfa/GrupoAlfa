@@ -133,7 +133,7 @@ export default function MensualidadesView() {
   return (
     <section className="mensualidades-view">
       <div className="mensualidades-header">
-        <p className="muted">Selecciona un estudiante para ver sus inscripciones y mensualidades.</p>
+        
       </div>
 
       <div className="mensualidades-layout">
