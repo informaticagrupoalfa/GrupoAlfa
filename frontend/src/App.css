@@ -2304,7 +2304,6 @@ button.small {
 .students-panel {
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 .students-panel h2 {
@@ -2318,8 +2317,6 @@ button.small {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  flex: 1;
-  overflow-y: auto;
   padding-right: 4px;
 }
 

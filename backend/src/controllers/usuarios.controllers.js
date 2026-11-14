@@ -45,7 +45,7 @@ export const getUsuarios = async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT ${PUBLIC_COLUMNS}, ${rolesSubquery("usuarios")}
-       FROM usuarios ORDER BY id_usuario ASC`
+       FROM usuarios ORDER BY id_usuario DESC`
     );
     res.status(200).json(rows);
   } catch (error) {
@@ -78,7 +78,7 @@ export const getUsuarioCatalogo = async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre
-       FROM usuarios ORDER BY id_usuario ASC`
+       FROM usuarios ORDER BY id_usuario DESC`
     );
     res.status(200).json(rows);
   } catch (error) {

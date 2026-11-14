@@ -94,7 +94,7 @@ export function createCrud(cfg) {
       values.push(limit, offset);
       const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
       const { rows } = await pool.query(
-        `SELECT * FROM ${table} ${where} ORDER BY ${pk} ASC LIMIT $${values.length - 1} OFFSET $${values.length}`,
+        `SELECT * FROM ${table} ${where} ORDER BY ${pk} DESC LIMIT $${values.length - 1} OFFSET $${values.length}`,
         values,
       );
       res.status(200).json(rows);

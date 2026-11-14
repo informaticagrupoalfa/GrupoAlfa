@@ -6,7 +6,7 @@ const SELECT_ADMINISTRATIVOS = `SELECT a.id_administrativo, a.id_usuario,
 
 export const getAdministrativos = async (req, res, next) => {
   try {
-    const { rows } = await pool.query(`${SELECT_ADMINISTRATIVOS} ORDER BY a.id_administrativo ASC`);
+    const { rows } = await pool.query(`${SELECT_ADMINISTRATIVOS} ORDER BY a.id_administrativo DESC`);
     res.status(200).json(rows);
   } catch (error) {
     next(error);

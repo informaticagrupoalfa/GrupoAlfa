@@ -33,7 +33,7 @@ const SELECT_MIS_PARALELOS = `
   LEFT JOIN facultades f ON f.id_facultad = cv.id_facultad
   LEFT JOIN aulas a ON a.id_aula = p.id_aula
   WHERE e.id_usuario = $1
-  ORDER BY p.nombre_paralelo ASC
+  ORDER BY p.nombre_paralelo DESC
 `;
 
 export const getMisParalelos = async (req, res, next) => {

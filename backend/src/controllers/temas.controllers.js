@@ -109,7 +109,7 @@ export const getTemas = async (req, res, next) => {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await pool.query(
-      `${SELECT_TEMAS} ${where} ${GROUP_BY} ORDER BY t.id_tema ASC`,
+      `${SELECT_TEMAS} ${where} ${GROUP_BY} ORDER BY t.id_tema DESC`,
       values,
     );
     res.status(200).json(rows);

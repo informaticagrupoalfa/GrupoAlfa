@@ -84,7 +84,7 @@ export const getEstudiantesResumen = async (req, res, next) => {
              f.nombre AS nombre_facultad, latest.fecha_fin_mensualidad,
              COALESCE(a.asistencias, 0) AS asistencias
       ${SELECT_BASE}${where}
-      ORDER BY e.id_estudiante ASC
+      ORDER BY e.id_estudiante DESC
       LIMIT $${values.length + 1} OFFSET $${values.length + 2}
     `;
     const dataValues = [...values, limite, offset];

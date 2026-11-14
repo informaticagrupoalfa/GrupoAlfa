@@ -18,7 +18,7 @@ export const getConvocatorias = async (req, res, next) => {
       SELECT c.id_convocatoria, c.id_facultad, c.fecha_inicio, f.nombre AS nombre_facultad
       FROM convocatorias_preuniversitario c
       LEFT JOIN facultades f ON f.id_facultad = c.id_facultad
-      ORDER BY c.id_convocatoria ASC
+      ORDER BY c.id_convocatoria DESC
     `);
     res.status(200).json(rows);
   } catch (error) {

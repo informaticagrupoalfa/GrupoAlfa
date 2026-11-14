@@ -7,7 +7,7 @@ const SELECT_APODERADOS = `SELECT a.id_apoderado, a.id_usuario, a.parentesco,
 
 export const getApoderados = async (req, res, next) => {
   try {
-    const { rows } = await pool.query(`${SELECT_APODERADOS} ORDER BY a.id_apoderado ASC`);
+    const { rows } = await pool.query(`${SELECT_APODERADOS} ORDER BY a.id_apoderado DESC`);
     res.status(200).json(rows);
   } catch (error) {
     next(error);

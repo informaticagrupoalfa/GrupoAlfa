@@ -59,7 +59,7 @@ export const getMateriasFacultades = async (req, res, next) => {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const { rows } = await pool.query(
-      `${SELECT_MATERIA_FACULTAD} ${where} ORDER BY mf.id_materia_facultad ASC`,
+      `${SELECT_MATERIA_FACULTAD} ${where} ORDER BY mf.id_materia_facultad DESC`,
       values,
     );
     res.status(200).json(rows);

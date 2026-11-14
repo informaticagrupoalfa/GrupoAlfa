@@ -20,7 +20,7 @@ export const getEstudiantes = async (req, res, next) => {
       const searchTerm = `%${q}%`;
       params.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
-    query += ` ORDER BY e.id_estudiante ASC`;
+    query += ` ORDER BY e.id_estudiante DESC`;
     const { rows } = await pool.query(query, params);
     res.status(200).json(rows);
   } catch (error) {

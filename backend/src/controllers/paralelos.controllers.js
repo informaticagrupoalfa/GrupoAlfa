@@ -30,7 +30,7 @@ export const getParalelos = async (req, res, next) => {
     }
 
     const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
-    const { rows } = await pool.query(`${SELECT_PARALELO}${where} ORDER BY p.id_paralelo ASC`, values);
+    const { rows } = await pool.query(`${SELECT_PARALELO}${where} ORDER BY p.id_paralelo DESC`, values);
     res.status(200).json(rows);
   } catch (error) {
     next(error);

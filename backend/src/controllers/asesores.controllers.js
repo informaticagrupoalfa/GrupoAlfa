@@ -6,7 +6,7 @@ const SELECT_ASESORES = `SELECT a.id_asesor, a.id_usuario,
 
 export const getAsesores = async (req, res, next) => {
   try {
-    const { rows } = await pool.query(`${SELECT_ASESORES} ORDER BY a.id_asesor ASC`);
+    const { rows } = await pool.query(`${SELECT_ASESORES} ORDER BY a.id_asesor DESC`);
     res.status(200).json(rows);
   } catch (error) {
     next(error);

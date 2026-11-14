@@ -120,7 +120,7 @@ export const getCapacitacionesActivas = async (req, res, next) => {
        WHERE c.activo = TRUE
          AND c.fecha_inicio <= $1
          AND (c.fecha_fin IS NULL OR $1 <= c.fecha_fin)
-       ORDER BY c.fecha_inicio ASC, c.id_capacitacion ASC`,
+        ORDER BY c.fecha_inicio DESC, c.id_capacitacion DESC`,
       [hoy],
     );
     res.status(200).json(rows);
