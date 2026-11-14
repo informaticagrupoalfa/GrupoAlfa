@@ -63,13 +63,20 @@ export default function MensualidadesDetalleView() {
     setEstudianteInfo(null)
     if (!m.id_inscripcion) return
     try {
-      const [inscripcion, estudiantes, usuarios] = await Promise.all([
+      const [inscripcionRaw, estudiantesRaw, usuariosRaw] = await Promise.all([
         getResourceById("inscripciones", m.id_inscripcion).catch(() => null),
         safeList("estudiantes"),
         safeList("usuarios/catalogo"),
       ])
-      const est = estudiantes.find((e) => e.id_estudiante === inscripcion?.id_estudiante)
-      const user = usuarios.find((u) => u.id_usuario === est?.id_usuario)
+      // Unwrap posibles respuestas envueltas ({ data }, { inscripciones }, etc.)
+      const unwrap = (v) => (v && typeof v === "object" && !Array.isArray(v)) ? (v.inscripcion ?? v.data ?? v) : v
+      const inscripcion = unwrap(inscripcionRaw)
+      const estudiantes = Array.isArray(estudiantesRaw) ? estudiantesRaw : (estudiantesRaw?.estudiantes ?? estudiantesRaw?.data ?? [])
+      const usuarios = Array.isArray(usuariosRaw) ? usuariosRaw : (usuariosRaw?.usuarios ?? usuariosRaw?.data ?? [])
+      // Compara IDs normalizados a string para evitar fallos por tipo (texto vs número).
+      const est = estudiantes.find((e) => String(e.id_estudiante) === String(inscripcion?.id_estudiante))
+      const user = est ? usuarios.find((u) => String(u.id_usuario) === String(est.id_usuario)) : null
+      console.log("Estudiante info:", { est, user })
       if (est || user) {
         setEstudianteInfo({
           nombre: [user?.nombre, user?.apellido_paterno, user?.apellido_materno].filter(Boolean).join(" ")

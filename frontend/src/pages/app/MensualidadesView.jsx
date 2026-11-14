@@ -105,8 +105,8 @@ export default function MensualidadesView() {
         safeList("inscripciones", { id_estudiante: id }),
         safeList("mensualidades"),
       ])
-      const inscrIds = new Set(inscrList.map((i) => i.id_inscripcion))
-      const studentMensualidades = mensList.filter((m) => inscrIds.has(m.id_inscripcion))
+      const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
+      const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
       studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
       setInscripciones(inscrList)
       setMensualidades(studentMensualidades)
@@ -115,24 +115,52 @@ export default function MensualidadesView() {
     }
   }
 
-  // Selecciona una mensualidad: obtiene el id_estudiante vía la inscripción y muestra sus datos.
+  // Selecciona una mensualidad: obtiene el id_estudiante vía la inscripción, resuelve
+  // el usuario asociado para obtener el nombre y muestra los datos del estudiante.
   const handleSelectMensualidad = async (m) => {
+    console.log("handleSelectMensualidad", m)
     if (!m?.id_inscripcion) return
-    const insc = inscripciones.find((i) => i.id_inscripcion === m.id_inscripcion)
+    const insc = inscripciones.find((i) => String(i.id_inscripcion) === String(m.id_inscripcion))
     const idEstudiante = insc?.id_estudiante
+    
     if (!idEstudiante) return
     setSelectedInscripcion(null)
     setInscripcionPage(1)
     try {
-      const estudiante = await getResourceById("estudiantes", idEstudiante)
+      let estudiante = await getResourceById("estudiantes", idEstudiante)
+      // Unwrap si la respuesta viene envuelta en un objeto ({ data, estudiante, etc. })
+      if (estudiante && typeof estudiante === "object" && !Array.isArray(estudiante)) {
+        const unwrapped = estudiante.estudiante ?? estudiante.data ?? estudiante
+        if (unwrapped !== estudiante) estudiante = unwrapped
+      }
+      // Los nombres están en usuarios, no en estudiantes (solo tiene id_usuario).
+      let user = null
+      if (estudiante?.id_usuario) {
+        user = await getResourceById("usuarios", estudiante.id_usuario).catch(() => null)
+        if (user && typeof user === "object" && !Array.isArray(user)) {
+          user = user.usuario ?? user.data ?? user
+        }
+      }
+      // Mezcla los campos de nombre del usuario en el estudiante para que
+      // getStudentName() los encuentre al renderizar el detalle.
+      if (user) {
+        estudiante = {
+          ...estudiante,
+          nombre: user.nombre,
+          apellido_paterno: user.apellido_paterno,
+          apellido_materno: user.apellido_materno,
+          nro_carnet: user.nro_carnet,
+          correo_electronico: user.correo_electronico,
+        }
+      }
       setSelectedStudent(estudiante)
       setSelectedStudentId(idEstudiante)
       const [inscrList, mensList] = await Promise.all([
         safeList("inscripciones", { id_estudiante: idEstudiante }),
         safeList("mensualidades"),
       ])
-      const inscrIds = new Set(inscrList.map((i) => i.id_inscripcion))
-      const studentMensualidades = mensList.filter((m) => inscrIds.has(m.id_inscripcion))
+      const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
+      const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
       studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
       setInscripciones(inscrList)
       setMensualidades(studentMensualidades)
