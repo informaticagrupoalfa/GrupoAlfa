@@ -90,6 +90,7 @@ function buildEmptyForm(elaboradoPor, idAdministrativo) {
     foto: null,
     apoderado_nombre_completo: "",
     apoderado_ci: "",
+    apoderado_correo_electronico: "",
     apoderado_parentesco: "",
     apoderado_apellido_paterno: "",
     apoderado_apellido_materno: "",
@@ -133,6 +134,7 @@ function fromRecord(record) {
     foto: record.foto ?? null,
     apoderado_nombre_completo: record.apoderado_nombre_completo ?? "",
     apoderado_ci: record.apoderado_ci ?? "",
+    apoderado_correo_electronico: record.apoderado_correo_electronico ?? "",
     apoderado_parentesco: record.apoderado_parentesco ?? "",
     apoderado_apellido_paterno: record.apoderado_apellido_paterno ?? "",
     apoderado_apellido_materno: record.apoderado_apellido_materno ?? "",
@@ -385,6 +387,7 @@ export default function InscripcionRegistroForm({
       ...prev,
       apoderado_nombre_completo: apoderado ? fullName(apoderado) : "",
       apoderado_ci: apoderado ? apoderado.ci ?? "" : "",
+      apoderado_correo_electronico: apoderado ? apoderado.correo_electronico ?? "" : "",
       apoderado_apellido_paterno: apoderado ? apoderado.apellido_paterno ?? "" : "",
       apoderado_apellido_materno: apoderado ? apoderado.apellido_materno ?? "" : "",
       apoderado_nombre: apoderado ? apoderado.nombre ?? "" : "",
@@ -461,6 +464,7 @@ export default function InscripcionRegistroForm({
       correo_electronico: textOrUndefined(form.correo_electronico),
       contraseña: form.contraseña,
       apoderado_ci: form.apoderado_ci,
+      apoderado_correo_electronico: textOrUndefined(form.apoderado_correo_electronico),
       apoderado_nombre: form.apoderado_nombre.trim(),
       apoderado_apellido_paterno: form.apoderado_apellido_paterno.trim(),
       apoderado_apellido_materno: form.apoderado_apellido_materno.trim(),
@@ -944,6 +948,19 @@ export default function InscripcionRegistroForm({
                   maxLength={30}
                 />
               </td>
+            </tr>
+            <tr>
+              <td><label htmlFor="ins-apoderado-correo">Correo electrónico apoderado</label></td>
+              <td>
+                <input
+                  id="ins-apoderado-correo"
+                  type="email"
+                  value={form.apoderado_correo_electronico}
+                  onChange={(e) => set("apoderado_correo_electronico", e.target.value)}
+                  maxLength={150}
+                />
+              </td>
+              <td colSpan={2} />
             </tr>
             <tr>
               <td><label htmlFor="ins-apoderado-contraseña">Contraseña</label></td>

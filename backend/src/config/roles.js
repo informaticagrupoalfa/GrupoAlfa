@@ -6,6 +6,8 @@ export const ROLE_NAMES = Object.freeze({
   GERENCIA: "Gerencia",
   CAJERO: "Cajero",
   ADMINISTRACION: "Administración",
+  ESTUDIANTE: "Estudiante",
+  APOLDERADO: "Apoderado",
 });
 
 // Administración del sistema: dashboard y gestión de usuarios/roles.

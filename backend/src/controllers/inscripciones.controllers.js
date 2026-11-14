@@ -31,6 +31,18 @@ const crud = createCrud({
   ],
 });
 
+async function assignRole(client, idUsuario, nombreRol) {
+  const { rows } = await client.query(
+    "SELECT id_rol FROM roles WHERE nombre = $1 LIMIT 1",
+    [nombreRol]
+  );
+  if (rows.length === 0) return;
+  await client.query(
+    "INSERT INTO usuario_rol (id_rol, id_usuario) VALUES ($1, $2)",
+    [rows[0].id_rol, idUsuario]
+  );
+}
+
 export const getInscripciones = crud.list;
 export const getInscripcionById = crud.getById;
 export const createInscripcion = crud.create;
@@ -50,13 +62,14 @@ export const registrarEstudiante = async (req, res, next) => {
       fecha_nacimiento,
       correo_electronico,
       contraseña,
-      apoderado_ci,
-      apoderado_nombre,
-      apoderado_apellido_paterno,
-      apoderado_apellido_materno,
-      apoderado_telefono,
-      apoderado_contraseña,
-      apoderado_parentesco,
+    apoderado_ci,
+    apoderado_nombre,
+    apoderado_apellido_paterno,
+    apoderado_apellido_materno,
+    apoderado_telefono,
+    apoderado_correo_electronico,
+    apoderado_contraseña,
+    apoderado_parentesco,
       colegio_de_procedencia,
       direccion_de_domicilio,
       celular,
@@ -107,10 +120,10 @@ export const registrarEstudiante = async (req, res, next) => {
     const salAp = await bcrypt.genSalt(10);
     const contraAp = await bcrypt.hash(apoderado_contraseña, salAp);
     const { rows: usuarioApoderado } = await client.query(
-      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, contraseña, usuario_vigente)
-       VALUES ($1,$2,$3,$4,$5,$6,true)
+      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, correo_electronico, contraseña, usuario_vigente)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
        RETURNING id_usuario`,
-      [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, contraAp]
+      [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, apoderado_correo_electronico ?? null, contraAp]
     );
     const idUsuarioApoderado = usuarioApoderado[0].id_usuario;
 
@@ -137,6 +150,9 @@ export const registrarEstudiante = async (req, res, next) => {
       [id_administrativo, idEstudiante, id_paralelo ?? null, como_se_entero_de_nosotros ?? null, recalculo ?? false, preparacion_previa ?? false, tiempo_de_preparacion_meses ?? 0, lugar_de_preparacion ?? null, nro_credencial ?? null, fecha_inscripcion ?? null]
     );
     const idInscripcion = inscripcionRow[0].id_inscripcion;
+
+    await assignRole(client, idUsuarioEstudiante, "Estudiante");
+    await assignRole(client, idUsuarioApoderado, "Apoderado");
 
     await client.query("COMMIT");
 
