@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { listResource } from "../../services/academicService"
+import { listResource, getResourceById } from "../../services/academicService"
 import Skeleton from "../../components/ui/Skeleton"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 import Pagination from "../../components/ui/Pagination"
 
+// Cantidad de estudiantes mostrados por página en el panel izquierdo.
 const STUDENTS_PER_PAGE = 15
+// Cantidad de inscripciones mostradas por página en el panel derecho.
 const INSCRIPCIONES_PER_PAGE = 6
 
+// Formatea una fecha ISO al formato dd/mm/yyyy.
 function formatDate(value) {
   if (!value) return "—"
   const d = new Date(value)
@@ -17,6 +20,7 @@ function formatDate(value) {
   return `${day}/${month}/${year}`
 }
 
+// Devuelve el primer campo existente entre varios nombres posibles de un objeto.
 function getField(s, ...names) {
   for (const n of names) {
     if (s && typeof s === "object" && s[n] !== undefined && s[n] !== null && s[n] !== "") {
@@ -26,10 +30,13 @@ function getField(s, ...names) {
   return null
 }
 
+// Extrae el ID del estudiante de un objeto usando varios nombres de campo posibles.
 function getStudentId(s) {
-  return getField(s, "id_estudiante", "idEstudiante", "id", "IdEstudiante", "ID_ESTUDIANTE", "estudiante_id", "student_id") ?? null
+  const nomEst = getField(s, "id_estudiante", "idEstudiante", "id", "IdEstudiante", "ID_ESTUDIANTE", "estudiante_id", "student_id") ?? null
+  return nomEst
 }
 
+// Construye el nombre completo del estudiante a partir de nombre y apellidos.
 function getStudentName(s) {
   const nombre = getField(s, "nombre", "nombres", "nombre_completo", "name", "full_name", "fullName", "estudiante")
   const apellidoPaterno = getField(s, "apellido_paterno", "apellidoPaterno", "apellido1") ?? ""
@@ -38,20 +45,19 @@ function getStudentName(s) {
   return parts.length > 0 ? parts.join(" ") : `Estudiante ${getStudentId(s) ?? "?"}`
 }
 
+// Extrae el número de carnet del estudiante.
 function getStudentCarnet(s) {
   return getField(s, "nro_carnet", "carnet", "numero_carnet", "carnet_estudiante") ?? ""
 }
 
+// Llama a listResource y normaliza la respuesta (array, .rows o .filas).
 async function safeList(endpoint, params) {
-  try {
-    const data = await listResource(endpoint, params)
-    return Array.isArray(data) ? data : data.rows || data.filas || []
-  } catch (err) {
-    return []
-  }
+  const data = await listResource(endpoint, params)
+  return Array.isArray(data) ? data : data.rows || data.filas || []
 }
 
 export default function MensualidadesView() {
+  // Estado de la lista de estudiantes (panel izquierdo).
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(true)
   const [studentsError, setStudentsError] = useState("")
@@ -59,11 +65,13 @@ export default function MensualidadesView() {
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [selectedStudentId, setSelectedStudentId] = useState(null)
 
+  // Estado de mensualidades e inscripciones (panel derecho, del estudiante seleccionado).
   const [mensualidades, setMensualidades] = useState([])
   const [inscripciones, setInscripciones] = useState([])
   const [inscripcionPage, setInscripcionPage] = useState(1)
   const [selectedInscripcion, setSelectedInscripcion] = useState(null)
 
+  // Carga los estudiantes paginados cuando cambia studentPage.
   useEffect(() => {
     let mounted = true
     async function load() {
@@ -85,6 +93,7 @@ export default function MensualidadesView() {
     return () => { mounted = false }
   }, [studentPage])
 
+  // Selecciona un estudiante: guarda su info, carga sus inscripciones y sus mensualidades.
   const handleSelectStudent = async (student) => {
     const id = getStudentId(student)
     setSelectedStudent(student)
@@ -106,12 +115,39 @@ export default function MensualidadesView() {
     }
   }
 
+  // Selecciona una mensualidad: obtiene el id_estudiante vía la inscripción y muestra sus datos.
+  const handleSelectMensualidad = async (m) => {
+    if (!m?.id_inscripcion) return
+    const insc = inscripciones.find((i) => i.id_inscripcion === m.id_inscripcion)
+    const idEstudiante = insc?.id_estudiante
+    if (!idEstudiante) return
+    setSelectedInscripcion(null)
+    setInscripcionPage(1)
+    try {
+      const estudiante = await getResourceById("estudiantes", idEstudiante)
+      setSelectedStudent(estudiante)
+      setSelectedStudentId(idEstudiante)
+      const [inscrList, mensList] = await Promise.all([
+        safeList("inscripciones", { id_estudiante: idEstudiante }),
+        safeList("mensualidades"),
+      ])
+      const inscrIds = new Set(inscrList.map((i) => i.id_inscripcion))
+      const studentMensualidades = mensList.filter((m) => inscrIds.has(m.id_inscripcion))
+      studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
+      setInscripciones(inscrList)
+      setMensualidades(studentMensualidades)
+    } catch (err) {
+      // error handled by outer boundary
+    }
+  }
+
   const mountedRef = useRef(true)
   useEffect(() => {
     mountedRef.current = true
     return () => { mountedRef.current = false }
   }, [])
 
+  // Inscripciones ordenadas por fecha descendente.
   const inscripcionesSorted = useMemo(() => {
     return [...inscripciones].sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
   }, [inscripciones])
@@ -119,6 +155,7 @@ export default function MensualidadesView() {
   const totalInscriptionPages = Math.ceil(inscripcionesSorted.length / INSCRIPCIONES_PER_PAGE) || 1
   const visibleInscripciones = inscripcionesSorted.slice((inscripcionPage - 1) * INSCRIPCIONES_PER_PAGE, inscripcionPage * INSCRIPCIONES_PER_PAGE)
 
+  // Primera mensualidad de la lista (se usa para mostrar sus datos principales).
   const mensualidad = mensualidades[0]
 
   const adminName = mensualidad?.administrativo || mensualidad?.id_administrativo || "—"
@@ -137,6 +174,7 @@ export default function MensualidadesView() {
       </div>
 
       <div className="mensualidades-layout">
+        {/* Panel izquierdo: lista de estudiantes paginada. */}
         <div className="students-panel">
           <h2>Estudiantes</h2>
           <div className="students-grid">
@@ -162,6 +200,7 @@ export default function MensualidadesView() {
           </div>
         </div>
 
+        {/* Panel derecho: detalle del estudiante seleccionado. */}
         <div className="details-panel">
           {!selectedStudent ? (
             <div className="empty-state">
@@ -225,8 +264,9 @@ export default function MensualidadesView() {
                         <div className="inscripcion-grupo">{insc.grupo || "—"}</div>
                         <div className="inscripcion-modalidad">{insc.modalidad || "—"}</div>
                         <div className="inscripcion-fecha">{formatDate(insc.fecha_insc)}</div>
+                        {/* Clic en la mensualidad de una inscripción muestra los datos de su estudiante. */}
                         {m && (
-                          <div className="inscripcion-mensualidad">
+                          <div className="inscripcion-mensualidad" onClick={(e) => { e.stopPropagation(); handleSelectMensualidad(m) }}>
                             <span className="label-small">Mensualidad:</span>
                             <span className="value-small">Bs. {m.pago}</span>
                           </div>
@@ -275,6 +315,7 @@ export default function MensualidadesView() {
   )
 }
 
+// Genera los días del calendario entre la fecha de inicio y fin de la mensualidad.
 function generateCalendarDays(startDateStr, endDateStr) {
   const days = []
   const start = new Date(startDateStr)
