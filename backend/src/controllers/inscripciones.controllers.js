@@ -79,7 +79,7 @@ export const registrarEstudiante = async (req, res, next) => {
     );
     if (estudianteExists.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res.status(409).json({ error: "El CI del estudiante ya está registrado" });
+      return res.status(409).json({ error: "El CI del estudiante ya está registrado", campo: "ci", valor: ci });
     }
 
     // 2. Verificar CI del apoderado
@@ -89,7 +89,7 @@ export const registrarEstudiante = async (req, res, next) => {
     );
     if (apoderadoExists.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res.status(409).json({ error: "El CI del apoderado ya está registrado" });
+      return res.status(409).json({ error: "El CI del apoderado ya está registrado", campo: "apoderado_ci", valor: apoderado_ci });
     }
 
     // 3. Crear usuario del estudiante
@@ -163,6 +163,26 @@ export const registrarEstudiante = async (req, res, next) => {
     });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
+
+    // pg unique violation (23505): devolver 409 con el campo y valor duplicado
+    if (error.code === "23505") {
+      const detail = error.detail || "";
+      const columnMatch = detail.match(/Key \((.*?)\)=/);
+      const valueMatch = detail.match(/=\((.*?)\)/);
+      const column = columnMatch ? columnMatch[1] : null;
+      const valor = valueMatch ? valueMatch[1] : null;
+      const columnLabels = {
+        nro_carnet: "ci",
+        correo_electronico: "correo_electronico",
+      };
+      const campo = column ? (columnLabels[column] || column) : "campo";
+      return res.status(409).json({
+        error: `El ${campo} ya está registrado`,
+        campo,
+        valor,
+      });
+    }
+
     next(error);
   } finally {
     client.release();

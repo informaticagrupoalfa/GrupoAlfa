@@ -493,7 +493,16 @@ export default function InscripcionRegistroForm({
       setFotoBase64(null)
       onSaved?.(saved)
     } catch (error) {
-      setFormError(error.userMessage ?? error?.response?.data?.message ?? "No se pudo registrar el estudiante.")
+      const data = error?.response?.data
+      let mensaje = "No se pudo registrar el estudiante."
+      if (data?.campo) {
+        const campoLabel = data.campo === "ci" ? "CI del estudiante"
+          : data.campo === "apoderado_ci" ? "CI del apoderado"
+          : data.campo === "correo_electronico" ? "correo electrónico"
+          : data.campo
+        mensaje = `El ${campoLabel} (${data.valor ?? ""}) ya está registrado.`
+      }
+      setFormError(data?.campo ? mensaje : (error.userMessage ?? data?.error ?? mensaje))
     } finally {
       setSaving(false)
     }
