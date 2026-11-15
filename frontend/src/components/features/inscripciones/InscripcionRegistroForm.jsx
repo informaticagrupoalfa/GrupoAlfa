@@ -87,7 +87,7 @@ function buildEmptyForm(elaboradoPor, idAdministrativo) {
     colegio_de_procedencia: "",
     direccion_de_domicilio: "",
     firma: "",
-    foto: null,
+    fotoBase64: null,
     apoderado_nombre_completo: "",
     apoderado_ci: "",
     apoderado_correo_electronico: "",
@@ -131,7 +131,7 @@ function fromRecord(record) {
     colegio_de_procedencia: record.colegio_de_procedencia ?? "",
     direccion_de_domicilio: record.direccion_de_domicilio ?? "",
     firma: record.firma ?? "",
-    foto: record.foto ?? null,
+    fotoBase64: record.foto ? `data:image/jpeg;base64,${Buffer.from(record.foto).toString("base64")}` : null,
     apoderado_nombre_completo: record.apoderado_nombre_completo ?? "",
     apoderado_ci: record.apoderado_ci ?? "",
     apoderado_correo_electronico: record.apoderado_correo_electronico ?? "",
@@ -176,7 +176,6 @@ export default function InscripcionRegistroForm({
   const [showParalelos, setShowParalelos] = useState(false)
   const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
-  const [fotoBase64, setFotoBase64] = useState(null)
   const [fotoPreview, setFotoPreview] = useState(null)
 
   const paralelosCarrera = useMemo(() => {
@@ -195,7 +194,6 @@ export default function InscripcionRegistroForm({
       setShowParalelos(false)
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
-      setFotoBase64(null)
       setFotoPreview(null)
       setLoading(false)
       setLoadError("")
@@ -401,16 +399,35 @@ export default function InscripcionRegistroForm({
   const handleFotoChange = (event) => {
     const files = event.target.files
     if (files && files.length > 0) {
+      const file = files[0]
       const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result?.toString() ?? null
-        setFotoPreview(result)
-        setFotoBase64(result?.split(",")[1] ?? null)
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement("canvas")
+          const maxWidth = 800
+          const maxHeight = 800
+          let width = img.width
+          let height = img.height
+          if (width > maxWidth || height > maxHeight) {
+            const scale = Math.min(maxWidth / width, maxHeight / height)
+            width = width * scale
+            height = height * scale
+          }
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext("2d")
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressed = canvas.toDataURL("image/jpeg", 0.75)
+          setFotoPreview(compressed)
+          setForm((prev) => ({ ...prev, fotoBase64: compressed.split(",")[1] ?? null }))
+        }
+        img.src = e.target.result?.toString() ?? ""
       }
-      reader.readAsDataURL(files[0])
+      reader.readAsDataURL(file)
     } else {
       setFotoPreview(null)
-      setFotoBase64(null)
+      setForm((prev) => ({ ...prev, fotoBase64: null }))
     }
   }
 
@@ -488,12 +505,13 @@ export default function InscripcionRegistroForm({
       lugar_de_preparacion: textOrUndefined(form.lugar_de_preparacion),
       nro_credencial: toNumberOrUndefined(form.nro_credencial),
       fecha_inscripcion: textOrUndefined(form.fecha_inscripcion),
-      foto: fotoBase64,
+      foto: form.fotoBase64,
     }
 
+    const fotoPesoBytes = form.fotoBase64 ? Math.round((form.fotoBase64.length * 3) / 4) : 0
     console.log("[InscripcionRegistroForm] Enviando payload al endpoint registrar-estudiante:", {
       ...payload,
-      foto: fotoBase64 ? "<base64>" : null,
+      foto: form.fotoBase64 ? { peso: `${(fotoPesoBytes / 1024).toFixed(2)} KB (${fotoPesoBytes} bytes)` } : null,
     })
 
     setSaving(true)
@@ -503,7 +521,6 @@ export default function InscripcionRegistroForm({
       setShowParalelos(false)
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
-      setFotoBase64(null)
       setFotoPreview(null)
       onSaved?.(saved)
     } catch (error) {
