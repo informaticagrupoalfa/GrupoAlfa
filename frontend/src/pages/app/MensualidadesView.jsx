@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { listResource, getResourceById } from "../../services/academicService"
+import { listResource, getResourceById, createResource, updateResource } from "../../services/academicService"
 import Skeleton from "../../components/ui/Skeleton"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 import Pagination from "../../components/ui/Pagination"
+import Button from "../../components/ui/Button"
+import { useAuth } from "../../hooks/useAuth"
 
 // Cantidad de estudiantes mostrados por página en el panel izquierdo.
 const STUDENTS_PER_PAGE = 15
@@ -18,6 +20,23 @@ function formatDate(value) {
   const month = String(d.getMonth() + 1).padStart(2, "0")
   const year = d.getFullYear()
   return `${day}/${month}/${year}`
+}
+
+function todayISO() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function addMonthISO(dateStr, months) {
+  const d = new Date(dateStr)
+  d.setMonth(d.getMonth() + months)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
 // Devuelve el primer campo existente entre varios nombres posibles de un objeto.
@@ -57,6 +76,7 @@ async function safeList(endpoint, params) {
 }
 
 export default function MensualidadesView() {
+  const { loggedUser } = useAuth()
   // Estado de la lista de estudiantes (panel izquierdo).
   const [students, setStudents] = useState([])
   const [studentsLoading, setStudentsLoading] = useState(true)
@@ -70,6 +90,9 @@ export default function MensualidadesView() {
   const [inscripciones, setInscripciones] = useState([])
   const [inscripcionPage, setInscripcionPage] = useState(1)
   const [selectedInscripcion, setSelectedInscripcion] = useState(null)
+  const [mensualidadForm, setMensualidadForm] = useState(null)
+  const [mensualidadSaving, setMensualidadSaving] = useState(false)
+  const [mensualidadFormError, setMensualidadFormError] = useState("")
 
   // Carga los estudiantes paginados cuando cambia studentPage.
   useEffect(() => {
@@ -96,10 +119,20 @@ export default function MensualidadesView() {
   // Selecciona un estudiante: guarda su info, carga sus inscripciones y sus mensualidades.
   const handleSelectStudent = async (student) => {
     const id = getStudentId(student)
+    const hoy = todayISO()
+    const unMesDespues = addMonthISO(hoy, 1)
     setSelectedStudent(student)
     setSelectedStudentId(id)
     setSelectedInscripcion(null)
     setInscripcionPage(1)
+    setMensualidadForm({
+      id_administrativo: loggedUser?.id_usuario ?? "",
+      fecha_inicio_mensualidad: hoy,
+      fecha_fin_mensualidad: unMesDespues,
+      pago: "",
+      codigo_comprobante: "",
+    })
+    setMensualidadFormError("")
     try {
       const [inscrList, mensList] = await Promise.all([
         safeList("inscripciones", { id_estudiante: id }),
@@ -169,6 +202,55 @@ export default function MensualidadesView() {
     }
   }
 
+  // Guarda o crea la mensualidad del estudiante seleccionado.
+  const handleSaveMensualidad = async () => {
+    if (!selectedStudentId) {
+      setMensualidadFormError("Selecciona un estudiante primero.")
+      return
+    }
+    if (!selectedInscripcion) {
+      setMensualidadFormError("Selecciona una inscripción de la lista de abajo.")
+      return
+    }
+    if (!mensualidadForm) return
+    setMensualidadSaving(true)
+    setMensualidadFormError("")
+    try {
+      const hoy = todayISO()
+      const unMesDespues = addMonthISO(hoy, 1)
+      const payload = {
+        id_inscripcion: Number(selectedInscripcion.id_inscripcion),
+        id_administrativo: Number(loggedUser?.id_usuario) || undefined,
+        fecha_inicio_mensualidad: mensualidadForm.fecha_inicio_mensualidad || hoy,
+        fecha_fin_mensualidad: mensualidadForm.fecha_fin_mensualidad || unMesDespues,
+        pago: Number(mensualidadForm.pago) || 0,
+        codigo_comprobante: mensualidadForm.codigo_comprobante || undefined,
+      }
+      console.log("[MensualidadesView] Creando mensualidad del estudiante:", payload)
+      await createResource("mensualidades", payload)
+      // Recargar mensualidades del estudiante
+      const inscrList = await safeList("inscripciones", { id_estudiante: selectedStudentId })
+      const mensList = await safeList("mensualidades")
+      const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
+      const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
+      studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
+      setInscripciones(inscrList)
+      setMensualidades(studentMensualidades)
+      // Limpiar formulario con valores por defecto
+      setMensualidadForm({
+        id_administrativo: loggedUser?.id_usuario ?? "",
+        fecha_inicio_mensualidad: hoy,
+        fecha_fin_mensualidad: unMesDespues,
+        pago: "",
+        codigo_comprobante: "",
+      })
+    } catch (err) {
+      setMensualidadFormError(err.userMessage ?? err?.response?.data?.error ?? "No se pudo guardar la mensualidad.")
+    } finally {
+      setMensualidadSaving(false)
+    }
+  }
+
   const mountedRef = useRef(true)
   useEffect(() => {
     mountedRef.current = true
@@ -186,7 +268,20 @@ export default function MensualidadesView() {
   // Primera mensualidad de la lista (se usa para mostrar sus datos principales).
   const mensualidad = mensualidades[0]
 
-  const adminName = mensualidad?.administrativo || mensualidad?.id_administrativo || "—"
+  // Inicializa el formulario de creación de mensualidad con valores por defecto.
+  useEffect(() => {
+    const hoy = todayISO()
+    const unMesDespues = addMonthISO(hoy, 1)
+    setMensualidadForm({
+      id_administrativo: loggedUser?.id_usuario ?? "",
+      fecha_inicio_mensualidad: hoy,
+      fecha_fin_mensualidad: unMesDespues,
+      pago: "",
+      codigo_comprobante: "",
+    })
+  }, [loggedUser?.id_usuario])
+
+  const adminName = loggedUser?.nombre ? `${loggedUser.nombre} ${loggedUser.apellido_paterno ?? ""} ${loggedUser.apellido_materno ?? ""}`.trim() : "—"
 
   const studentName = selectedStudent ? getStudentName(selectedStudent) : ""
 
@@ -260,20 +355,54 @@ export default function MensualidadesView() {
                 </div>
                 <div className="info-row">
                   <span className="info-label">Fecha inicio</span>
-                  <span className="info-value">{formatDate(mensualidad?.fecha_inicio_mensualidad)}</span>
+                  <input
+                    type="date"
+                    value={mensualidadForm?.fecha_inicio_mensualidad ?? ""}
+                    onChange={(e) => setMensualidadForm((prev) => ({ ...prev, fecha_inicio_mensualidad: e.target.value }))}
+                  />
                 </div>
                 <div className="info-row">
                   <span className="info-label">Fecha fin</span>
-                  <span className="info-value">{formatDate(mensualidad?.fecha_fin_mensualidad)}</span>
+                  <input
+                    type="date"
+                    value={mensualidadForm?.fecha_fin_mensualidad ?? ""}
+                    onChange={(e) => setMensualidadForm((prev) => ({ ...prev, fecha_fin_mensualidad: e.target.value }))}
+                  />
                 </div>
                 <div className="info-row">
                   <span className="info-label">Pago</span>
-                  <span className="info-value">{mensualidad?.pago != null ? `Bs. ${mensualidad.pago}` : "—"}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={mensualidadForm?.pago ?? ""}
+                    onChange={(e) => setMensualidadForm((prev) => ({ ...prev, pago: e.target.value }))}
+                  />
                 </div>
                 <div className="info-row">
                   <span className="info-label">Comprobante</span>
-                  <span className="info-value">{mensualidad?.codigo_comprobante != null ? mensualidad.codigo_comprobante : "—"}</span>
+                  <input
+                    type="text"
+                    value={mensualidadForm?.codigo_comprobante ?? ""}
+                    onChange={(e) => setMensualidadForm((prev) => ({ ...prev, codigo_comprobante: e.target.value }))}
+                  />
                 </div>
+                <div className="info-row">
+                  <span className="info-label">Inscripción</span>
+                  {selectedInscripcion ? (
+                    <span className="info-value">{selectedInscripcion.carrera || "Sin carrera"} · {selectedInscripcion.grupo || "Sin grupo"}</span>
+                  ) : (
+                    <span className="info-value">Selecciona una inscripción de abajo</span>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleSaveMensualidad}
+                  disabled={mensualidadSaving || !selectedInscripcion}
+                  variant="primary"
+                >
+                  {mensualidadSaving ? "Guardando..." : "Agregar mensualidad"}
+                </Button>
+                {mensualidadFormError && <p className="error-message" role="alert">{mensualidadFormError}</p>}
               </div>
 
               <div className="inscripciones-panel">
