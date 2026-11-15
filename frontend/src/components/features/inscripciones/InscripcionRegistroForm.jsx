@@ -177,6 +177,7 @@ export default function InscripcionRegistroForm({
   const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
   const [fotoBase64, setFotoBase64] = useState(null)
+  const [fotoPreview, setFotoPreview] = useState(null)
 
   const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
@@ -195,6 +196,7 @@ export default function InscripcionRegistroForm({
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
       setFotoBase64(null)
+      setFotoPreview(null)
       setLoading(false)
       setLoadError("")
       return undefined
@@ -289,7 +291,6 @@ export default function InscripcionRegistroForm({
     setSelectedParaleloId(params.id_paralelo ?? "")
     setShowParalelos(!!params.id_paralelo)
     setSelectedApoderadoId("")
-    setFotoBase64(null)
     isRestoring.current = false
   }, [searchParams, inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo])
 
@@ -402,10 +403,13 @@ export default function InscripcionRegistroForm({
     if (files && files.length > 0) {
       const reader = new FileReader()
       reader.onload = () => {
-        setFotoBase64(reader.result?.toString().split(",")[1] ?? null)
+        const result = reader.result?.toString() ?? null
+        setFotoPreview(result)
+        setFotoBase64(result?.split(",")[1] ?? null)
       }
       reader.readAsDataURL(files[0])
     } else {
+      setFotoPreview(null)
       setFotoBase64(null)
     }
   }
@@ -487,6 +491,11 @@ export default function InscripcionRegistroForm({
       foto: fotoBase64,
     }
 
+    console.log("[InscripcionRegistroForm] Enviando payload al endpoint registrar-estudiante:", {
+      ...payload,
+      foto: fotoBase64 ? "<base64>" : null,
+    })
+
     setSaving(true)
     try {
       const saved = await registrarEstudiante(payload)
@@ -495,6 +504,7 @@ export default function InscripcionRegistroForm({
       setSelectedParaleloId("")
       setSelectedApoderadoId("")
       setFotoBase64(null)
+      setFotoPreview(null)
       onSaved?.(saved)
     } catch (error) {
       const data = error?.response?.data
@@ -854,6 +864,11 @@ export default function InscripcionRegistroForm({
                   accept="image/png"
                   onChange={handleFotoChange}
                 />
+                {fotoPreview && (
+                  <div style={{ marginTop: 8, maxWidth: 200, maxHeight: 200 }}>
+                    <img src={fotoPreview} alt="Vista previa" style={{ width: "100%", height: "auto", borderRadius: 4, border: "1px solid #ccc" }} />
+                  </div>
+                )}
               </td>
             </tr>
           </tbody>

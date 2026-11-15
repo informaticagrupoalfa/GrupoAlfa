@@ -142,6 +142,7 @@ export const registrarEstudiante = async (req, res, next) => {
       [idUsuarioEstudiante, idApoderado, colegio_de_procedencia ?? null, direccion_de_domicilio ?? null, fotoBuffer]
     );
     const idEstudiante = estudianteRow[0].id_estudiante;
+    console.log("[registrarEstudiante] Insertando en estudiantes:", { idUsuarioEstudiante, idApoderado, colegio_de_procedencia, direccion_de_domicilio, foto: foto ? "<base64>" : null });
 
     // 7. Crear inscripción: el paralelo se guarda directamente en la inscripción
     const { rows: inscripcionRow } = await client.query(
