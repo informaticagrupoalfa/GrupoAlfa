@@ -3,6 +3,7 @@ import {
   getUsuarios,
   getUsuarioById,
   getUsuarioCatalogo,
+  getUsuarioByCarnet,
   getMe,
   createUsuario,
   updateUsuario,
@@ -30,6 +31,7 @@ router.post("/usuarios/logout", logout);
 // protegidas
 router.get("/usuarios/me", authMiddleware, getMe);
 router.get("/usuarios/catalogo", authMiddleware, getUsuarioCatalogo);
+router.get("/usuarios/ci/:ci", authMiddleware, getUsuarioByCarnet);
 router.get("/usuarios", authMiddleware, getUsuarios);
 router.get("/usuarios/:id", authMiddleware, getUsuarioById);
 router.put("/usuarios/:id/roles", authMiddleware, validateRequest(updateUsuarioRolesSchema), updateUsuarioRoles);

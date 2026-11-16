@@ -86,6 +86,29 @@ export const getUsuarioCatalogo = async (req, res, next) => {
   }
 };
 
+export const getUsuarioByCarnet = async (req, res, next) => {
+  try {
+    const nroCarnet = String(req.params.ci ?? "").trim();
+    if (!nroCarnet) return res.status(400).json({ message: "El CI es obligatorio" });
+
+    const { rows } = await pool.query(
+      `SELECT u.id_usuario, u.nro_carnet, u.apellido_paterno, u.apellido_materno,
+              u.nombre, u.fecha_nacimiento, u.correo_electronico, u.nro_telefono,
+              e.colegio_de_procedencia, e.direccion_de_domicilio,
+              CASE WHEN e.foto IS NOT NULL THEN encode(e.foto, 'base64') END AS foto_base64
+       FROM usuarios u
+       LEFT JOIN estudiantes e ON e.id_usuario = u.id_usuario
+       WHERE u.nro_carnet::text = $1
+       LIMIT 1`,
+      [nroCarnet],
+    );
+    if (rows.length === 0) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getMe = (req, res) => res.status(200).json(req.user);
 
 export const createUsuario = async (req, res, next) => {

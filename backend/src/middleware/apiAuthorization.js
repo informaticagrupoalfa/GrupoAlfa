@@ -36,6 +36,9 @@ const isInscripcionesWriteRoute = (method, path) =>
 const isAuthenticatedOnlyRoute = (method, path) =>
   method === "GET" && (path === "/usuarios/me" || path === "/mis-paralelos");
 
+const isInscripcionUserLookup = (method, path) =>
+  method === "GET" && /^\/usuarios\/ci\/[^/]+$/.test(path);
+
 /**
  * Autoriza cada petición a /api después de validar el JWT.
  * - Registro, login y logout siguen siendo públicos.
@@ -55,7 +58,9 @@ export const authorizeApi = (req, res, next) => {
       return next();
     }
 
-    const allowedRoles = isInscripcionesWriteRoute(req.method, path)
+    const allowedRoles = isInscripcionUserLookup(req.method, path)
+      ? INSCRIPCIONES_ROLES
+      : isInscripcionesWriteRoute(req.method, path)
       ? INSCRIPCIONES_ROLES
       : isManagementRoute(path)
         ? MANAGEMENT_ROLES

@@ -177,6 +177,8 @@ export default function InscripcionRegistroForm({
   const [selectedParaleloId, setSelectedParaleloId] = useState("")
   const [selectedApoderadoId, setSelectedApoderadoId] = useState("")
   const [fotoPreview, setFotoPreview] = useState(null)
+  const [existingUser, setExistingUser] = useState(null)
+  const [userLookupStatus, setUserLookupStatus] = useState("")
 
   const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
@@ -238,6 +240,55 @@ export default function InscripcionRegistroForm({
     )
     if (match) setSelectedApoderadoId(String(match.id_apoderado))
   }, [apoderados, form.apoderado_nombre_completo, form.apoderado_telefono, selectedApoderadoId])
+
+  useEffect(() => {
+    if (inscripcionId) return undefined
+    const ci = form.ci.trim()
+    if (!ci) {
+      setExistingUser(null)
+      setUserLookupStatus("")
+      return undefined
+    }
+
+    let active = true
+    const timer = window.setTimeout(async () => {
+      setUserLookupStatus("Buscando usuario…")
+      try {
+        const user = await getResourceById("usuarios/ci", encodeURIComponent(ci))
+        if (!active) return
+        setExistingUser(user)
+        setFotoPreview(user.foto_base64 ? `data:image/jpeg;base64,${user.foto_base64}` : null)
+        setForm((prev) => ({
+          ...prev,
+          ci: String(user.nro_carnet ?? ci),
+          apellido_paterno: user.apellido_paterno ?? "",
+          apellido_materno: user.apellido_materno ?? "",
+          nombre: user.nombre ?? "",
+          fecha_nacimiento: dateOnly(user.fecha_nacimiento),
+          celular: user.nro_telefono ?? "",
+          correo_electronico: user.correo_electronico ?? "",
+          colegio_de_procedencia: user.colegio_de_procedencia ?? "",
+          direccion_de_domicilio: user.direccion_de_domicilio ?? "",
+          fotoBase64: user.foto_base64 ?? null,
+          contraseña: "",
+        }))
+        setUserLookupStatus("Usuario encontrado. Los datos personales se completaron y quedaron bloqueados.")
+      } catch (error) {
+        if (!active) return
+        if (error?.response?.status === 404) {
+          setExistingUser(null)
+          setUserLookupStatus("No existe un usuario con ese CI.")
+        } else {
+          setUserLookupStatus("No se pudo verificar el CI. Intenta nuevamente.")
+        }
+      }
+    }, 1000)
+
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [form.ci, inscripcionId])
 
   useEffect(() => {
     if (form.id_administrativo || !form.elaborado_por || administrativos.length === 0) return
@@ -331,6 +382,25 @@ export default function InscripcionRegistroForm({
   }, [form, setSearchParams, inscripcionId])
 
   const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }))
+  const handleStudentCiChange = (value) => {
+    setExistingUser(null)
+    setUserLookupStatus("")
+    setFotoPreview(null)
+    setForm((prev) => ({
+      ...prev,
+      ci: value,
+      apellido_paterno: "",
+      apellido_materno: "",
+      nombre: "",
+      fecha_nacimiento: "",
+      celular: "",
+      correo_electronico: "",
+      colegio_de_procedencia: "",
+      direccion_de_domicilio: "",
+      fotoBase64: null,
+      contraseña: "",
+    }))
+  }
 
   const handleCarreraChange = (value) => {
     setForm((prev) => ({
@@ -768,9 +838,10 @@ export default function InscripcionRegistroForm({
                   id="ins-ci"
                   type="text"
                   value={form.ci}
-                  onChange={(e) => set("ci", e.target.value)}
+                  onChange={(e) => handleStudentCiChange(e.target.value)}
                   maxLength={20}
                 />
+                {userLookupStatus && <small role="status">{userLookupStatus}</small>}
               </td>
               <td><label htmlFor="ins-apellido-paterno">Apellido paterno</label></td>
               <td>
@@ -781,6 +852,7 @@ export default function InscripcionRegistroForm({
                   onChange={(e) => set("apellido_paterno", e.target.value)}
                   maxLength={100}
                   required
+                  disabled={Boolean(existingUser)}
                 />
               </td>
             </tr>
@@ -793,6 +865,7 @@ export default function InscripcionRegistroForm({
                   value={form.apellido_materno}
                   onChange={(e) => set("apellido_materno", e.target.value)}
                   maxLength={100}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
               <td><label htmlFor="ins-nombre">Nombre</label></td>
@@ -804,6 +877,7 @@ export default function InscripcionRegistroForm({
                   onChange={(e) => set("nombre", e.target.value)}
                   maxLength={100}
                   required
+                  disabled={Boolean(existingUser)}
                 />
               </td>
             </tr>
@@ -815,6 +889,7 @@ export default function InscripcionRegistroForm({
                   type="date"
                   value={form.fecha_nacimiento}
                   onChange={(e) => set("fecha_nacimiento", e.target.value)}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
               <td><label htmlFor="ins-celular">Celular</label></td>
@@ -825,6 +900,7 @@ export default function InscripcionRegistroForm({
                   value={form.celular}
                   onChange={(e) => set("celular", e.target.value)}
                   maxLength={30}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
             </tr>
@@ -837,6 +913,7 @@ export default function InscripcionRegistroForm({
                   value={form.correo_electronico}
                   onChange={(e) => set("correo_electronico", e.target.value)}
                   maxLength={150}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
               <td><label htmlFor="ins-contraseña">Contraseña Grupo alfa</label></td>
@@ -847,6 +924,7 @@ export default function InscripcionRegistroForm({
                   value={form.contraseña}
                   onChange={(e) => set("contraseña", e.target.value)}
                   maxLength={255}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
             </tr>
@@ -859,6 +937,7 @@ export default function InscripcionRegistroForm({
                   value={form.colegio_de_procedencia}
                   onChange={(e) => set("colegio_de_procedencia", e.target.value)}
                   maxLength={150}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
               <td><label htmlFor="ins-direccion">Dirección de domicilio</label></td>
@@ -869,6 +948,7 @@ export default function InscripcionRegistroForm({
                   value={form.direccion_de_domicilio}
                   onChange={(e) => set("direccion_de_domicilio", e.target.value)}
                   maxLength={255}
+                  disabled={Boolean(existingUser)}
                 />
               </td>
             </tr>
@@ -880,6 +960,7 @@ export default function InscripcionRegistroForm({
                   type="file"
                   accept="image/png"
                   onChange={handleFotoChange}
+                  disabled={Boolean(existingUser)}
                 />
                 {fotoPreview && (
                   <div style={{ marginTop: 8, maxWidth: 200, maxHeight: 200 }}>
