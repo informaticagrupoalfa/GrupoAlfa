@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button"
 import { useAuth } from "../../hooks/useAuth"
 
 // Cantidad de estudiantes mostrados por página en el panel izquierdo.
-const STUDENTS_PER_PAGE = 15
+const STUDENTS_PER_PAGE = 12
 // Cantidad de inscripciones mostradas por página en el panel derecho.
 const INSCRIPCIONES_PER_PAGE = 6
 
@@ -69,6 +69,16 @@ function getStudentCarnet(s) {
   return getField(s, "nro_carnet", "carnet", "numero_carnet", "carnet_estudiante") ?? ""
 }
 
+function getStudentPhoto(s) {
+  const photo = getField(s, "foto_base64", "foto", "photo", "imagen")
+  if (!photo) return null
+  if (/^(data:image\/|https?:\/\/|blob:)/i.test(photo)) return photo
+  if (photo.startsWith("/9j/")) return `data:image/jpeg;base64,${photo}`
+  if (photo.startsWith("R0lGOD")) return `data:image/gif;base64,${photo}`
+  if (photo.startsWith("UklGR")) return `data:image/webp;base64,${photo}`
+  return `data:image/png;base64,${photo}`
+}
+
 // Llama a listResource y normaliza la respuesta (array, .rows o .filas).
 async function safeList(endpoint, params) {
   const data = await listResource(endpoint, params)
@@ -79,6 +89,7 @@ export default function MensualidadesView() {
   const { loggedUser } = useAuth()
   // Estado de la lista de estudiantes (panel izquierdo).
   const [students, setStudents] = useState([])
+  const [studentTotalPages, setStudentTotalPages] = useState(1)
   const [studentsLoading, setStudentsLoading] = useState(true)
   const [studentsError, setStudentsError] = useState("")
   const [studentPage, setStudentPage] = useState(1)
@@ -100,9 +111,10 @@ export default function MensualidadesView() {
     async function load() {
       try {
         setStudentsLoading(true)
-        const data = await safeList("estudiantes", { page: studentPage, limit: STUDENTS_PER_PAGE })
+        const response = await listResource("estudiantes/resumen", { page: studentPage, limit: STUDENTS_PER_PAGE })
         if (mounted) {
-          setStudents(data)
+          setStudents(Array.isArray(response?.filas) ? response.filas : [])
+          setStudentTotalPages(Math.max(1, Number(response?.totalPaginas) || 1))
           setStudentsLoading(false)
         }
       } catch (err) {
@@ -288,8 +300,6 @@ export default function MensualidadesView() {
   if (studentsLoading) return <Skeleton lines={15} />
   if (studentsError) return <ErrorFallback message={studentsError} onRetry={() => setStudentPage(1)} />
 
-  const studentTotalPages = Math.ceil(students.length / STUDENTS_PER_PAGE) || 1
-
   return (
     <section className="mensualidades-view">
       <div className="mensualidades-header">
@@ -305,6 +315,8 @@ export default function MensualidadesView() {
               const id = getStudentId(s)
               const name = getStudentName(s)
               const carnet = getStudentCarnet(s) ? `Carnet: ${getStudentCarnet(s)}` : ""
+              const photo = getStudentPhoto(s)
+              console.log(s)
               const isSelected = selectedStudentId === id
               return (
                 <div
@@ -312,6 +324,11 @@ export default function MensualidadesView() {
                   className={`student-card ${isSelected ? "selected" : ""}`}
                   onClick={() => handleSelectStudent(s)}
                 >
+                  {photo ? (
+                    <img className="student-card-photo" src={photo} alt={`Foto de ${name}`} />
+                  ) : (
+                    <div className="student-card-photo-placeholder" aria-hidden="true">{name.charAt(0).toUpperCase()}</div>
+                  )}
                   <div className="student-name">{name}</div>
                   <div className="student-carnet">{carnet}</div>
                 </div>
@@ -417,10 +434,9 @@ export default function MensualidadesView() {
                         className={`inscripcion-card ${isSelected ? "selected" : ""}`}
                         onClick={() => setSelectedInscripcion(insc)}
                       >
-                        <div className="inscripcion-carrera">{insc.carrera || "—"}</div>
-                        <div className="inscripcion-grupo">{insc.grupo || "—"}</div>
-                        <div className="inscripcion-modalidad">{insc.modalidad || "—"}</div>
+                        <div className="inscripcion-paralelo">{insc.grupo || "—"}</div>
                         <div className="inscripcion-fecha">{formatDate(insc.fecha_insc)}</div>
+                        <div className="inscripcion-credencial">{insc.num_credencial != null ? insc.num_credencial : "—"}</div>
                         {/* Clic en la mensualidad de una inscripción muestra los datos de su estudiante. */}
                         {m && (
                           <div className="inscripcion-mensualidad" onClick={(e) => { e.stopPropagation(); handleSelectMensualidad(m) }}>

@@ -82,6 +82,7 @@ export const getEstudiantesResumen = async (req, res, next) => {
              u.apellido_materno, u.correo_electronico, e.colegio_de_procedencia,
              e.direccion_de_domicilio, ins.id_paralelo, p.nombre_paralelo, c.id_capacitacion,
              f.nombre AS nombre_facultad, latest.fecha_fin_mensualidad,
+             CASE WHEN e.foto IS NOT NULL THEN encode(e.foto, 'base64') END AS foto_base64,
              COALESCE(a.asistencias, 0) AS asistencias
       ${SELECT_BASE}${where}
       ORDER BY e.id_estudiante DESC

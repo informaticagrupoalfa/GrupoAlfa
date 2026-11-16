@@ -2330,6 +2330,27 @@ button.small {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: center;
+  text-align: center;
+  min-height: 150px;
+}
+
+.student-card-photo,
+.student-card-photo-placeholder {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e0f2fe;
+}
+
+.student-card-photo-placeholder {
+  display: grid;
+  place-items: center;
+  color: #1976d2;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .student-card:hover {
@@ -2442,8 +2463,6 @@ button.small {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   flex: 1;
-  overflow-y: auto;
-  padding-right: 4px;
 }
 
 .inscripcion-card {
