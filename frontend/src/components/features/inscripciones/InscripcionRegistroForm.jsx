@@ -179,6 +179,8 @@ export default function InscripcionRegistroForm({
   const [fotoPreview, setFotoPreview] = useState(null)
   const [existingUser, setExistingUser] = useState(null)
   const [userLookupStatus, setUserLookupStatus] = useState("")
+  const [existingGuardian, setExistingGuardian] = useState(null)
+  const [guardianLookupStatus, setGuardianLookupStatus] = useState("")
 
   const paralelosCarrera = useMemo(() => {
     if (!form.id_carrera) return []
@@ -291,6 +293,53 @@ export default function InscripcionRegistroForm({
   }, [form.ci, inscripcionId])
 
   useEffect(() => {
+    if (inscripcionId) return undefined
+    const ci = form.apoderado_ci.trim()
+    if (!ci) {
+      setExistingGuardian(null)
+      setGuardianLookupStatus("")
+      return undefined
+    }
+
+    let active = true
+    const timer = window.setTimeout(async () => {
+      setGuardianLookupStatus("Buscando apoderado…")
+      try {
+        const guardian = await getResourceById("usuarios/ci", encodeURIComponent(ci))
+        if (!active) return
+        setExistingGuardian(guardian)
+        const idApoderado = guardian.id_apoderado == null ? "" : String(guardian.id_apoderado)
+        setSelectedApoderadoId(idApoderado)
+        setForm((prev) => ({
+          ...prev,
+          apoderado_ci: String(guardian.nro_carnet ?? ci),
+          apoderado_nombre: guardian.nombre ?? "",
+          apoderado_apellido_paterno: guardian.apellido_paterno ?? "",
+          apoderado_apellido_materno: guardian.apellido_materno ?? "",
+          apoderado_telefono: guardian.nro_telefono ?? "",
+          apoderado_correo_electronico: guardian.correo_electronico ?? "",
+          apoderado_parentesco: guardian.apoderado_parentesco ?? "",
+          apoderado_contraseña: "",
+        }))
+        setGuardianLookupStatus("Usuario encontrado. Los datos del apoderado se completaron y quedaron bloqueados.")
+      } catch (error) {
+        if (!active) return
+        if (error?.response?.status === 404) {
+          setExistingGuardian(null)
+          setGuardianLookupStatus("No existe un usuario con ese CI.")
+        } else {
+          setGuardianLookupStatus("No se pudo verificar el CI. Intenta nuevamente.")
+        }
+      }
+    }, 1000)
+
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [form.apoderado_ci, inscripcionId])
+
+  useEffect(() => {
     if (form.id_administrativo || !form.elaborado_por || administrativos.length === 0) return
     const match = administrativos.find((admin) => fullName(admin) === form.elaborado_por)
     if (match) setForm((prev) => ({ ...prev, id_administrativo: String(match.id_administrativo) }))
@@ -399,6 +448,22 @@ export default function InscripcionRegistroForm({
       direccion_de_domicilio: "",
       fotoBase64: null,
       contraseña: "",
+    }))
+  }
+  const handleGuardianCiChange = (value) => {
+    setExistingGuardian(null)
+    setGuardianLookupStatus("")
+    setSelectedApoderadoId("")
+    setForm((prev) => ({
+      ...prev,
+      apoderado_ci: value,
+      apoderado_nombre: "",
+      apoderado_apellido_paterno: "",
+      apoderado_apellido_materno: "",
+      apoderado_telefono: "",
+      apoderado_correo_electronico: "",
+      apoderado_parentesco: "",
+      apoderado_contraseña: "",
     }))
   }
 
@@ -537,11 +602,15 @@ export default function InscripcionRegistroForm({
       setFormError("El teléfono del apoderado es obligatorio.")
       return
     }
-    if (!form.apoderado_contraseña) {
+    if (!existingGuardian?.id_apoderado && !form.apoderado_contraseña) {
       setFormError("La contraseña del apoderado es obligatoria.")
       return
     }
-    if (!form.contraseña) {
+    
+      console.log(existingUser?.id_estudiante)
+      console.log(!form.contraseña)
+    if (!existingUser?.id_usuario && !form.contraseña) {
+      console.log(existingUser)
       setFormError("La contraseña del estudiante es obligatoria.")
       return
     }
@@ -984,6 +1053,7 @@ export default function InscripcionRegistroForm({
                   id="ins-apoderado"
                   value={selectedApoderadoId}
                   onChange={(e) => handleApoderadoChange(e.target.value)}
+                  disabled={Boolean(existingGuardian)}
                 >
                   <option value="">Sin apoderado</option>
                   {apoderados.map((apoderado) => (
@@ -1003,9 +1073,10 @@ export default function InscripcionRegistroForm({
                   id="ins-apoderado-ci"
                   type="text"
                   value={form.apoderado_ci}
-                  onChange={(e) => set("apoderado_ci", e.target.value)}
+                  onChange={(e) => handleGuardianCiChange(e.target.value)}
                   maxLength={20}
                 />
+                {guardianLookupStatus && <small role="status">{guardianLookupStatus}</small>}
               </td>
               <td><label htmlFor="ins-apoderado-parentesco">Parentesco</label></td>
               <td>
@@ -1015,6 +1086,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_parentesco}
                   onChange={(e) => set("apoderado_parentesco", e.target.value)}
                   maxLength={100}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
             </tr>
@@ -1027,6 +1099,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_apellido_paterno}
                   onChange={(e) => set("apoderado_apellido_paterno", e.target.value)}
                   maxLength={100}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
               <td><label htmlFor="ins-apoderado-apellido-materno">Apellido materno</label></td>
@@ -1037,6 +1110,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_apellido_materno}
                   onChange={(e) => set("apoderado_apellido_materno", e.target.value)}
                   maxLength={100}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
             </tr>
@@ -1049,6 +1123,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_nombre}
                   onChange={(e) => set("apoderado_nombre", e.target.value)}
                   maxLength={100}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
               <td><label htmlFor="ins-apoderado-telefono">Teléfono</label></td>
@@ -1059,6 +1134,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_telefono}
                   onChange={(e) => set("apoderado_telefono", e.target.value)}
                   maxLength={30}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
             </tr>
@@ -1071,6 +1147,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_correo_electronico}
                   onChange={(e) => set("apoderado_correo_electronico", e.target.value)}
                   maxLength={150}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
               <td colSpan={2} />
@@ -1084,6 +1161,7 @@ export default function InscripcionRegistroForm({
                   value={form.apoderado_contraseña}
                   onChange={(e) => set("apoderado_contraseña", e.target.value)}
                   maxLength={255}
+                  disabled={Boolean(existingGuardian)}
                 />
               </td>
             </tr>

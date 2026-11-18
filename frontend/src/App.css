@@ -2463,6 +2463,8 @@ button.small {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .inscripcion-card {

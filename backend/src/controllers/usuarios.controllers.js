@@ -95,9 +95,11 @@ export const getUsuarioByCarnet = async (req, res, next) => {
       `SELECT u.id_usuario, u.nro_carnet, u.apellido_paterno, u.apellido_materno,
               u.nombre, u.fecha_nacimiento, u.correo_electronico, u.nro_telefono,
               e.colegio_de_procedencia, e.direccion_de_domicilio,
-              CASE WHEN e.foto IS NOT NULL THEN encode(e.foto, 'base64') END AS foto_base64
+              CASE WHEN e.foto IS NOT NULL THEN encode(e.foto, 'base64') END AS foto_base64,
+              a.id_apoderado, a.parentesco AS apoderado_parentesco
        FROM usuarios u
        LEFT JOIN estudiantes e ON e.id_usuario = u.id_usuario
+       LEFT JOIN apoderados a ON a.id_usuario = u.id_usuario
        WHERE u.nro_carnet::text = $1
        LIMIT 1`,
       [nroCarnet],
