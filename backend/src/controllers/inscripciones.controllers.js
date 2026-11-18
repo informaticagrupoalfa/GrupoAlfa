@@ -38,7 +38,9 @@ async function assignRole(client, idUsuario, nombreRol) {
   );
   if (rows.length === 0) return;
   await client.query(
-    "INSERT INTO usuario_rol (id_rol, id_usuario) VALUES ($1, $2)",
+    `INSERT INTO usuario_rol (id_rol, id_usuario)
+     VALUES ($1, $2)
+     ON CONFLICT (id_usuario, id_rol) DO NOTHING`,
     [rows[0].id_rol, idUsuario]
   );
 }
