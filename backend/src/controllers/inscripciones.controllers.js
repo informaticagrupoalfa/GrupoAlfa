@@ -85,64 +85,87 @@ export const registrarEstudiante = async (req, res, next) => {
       foto,
     } = req.body;
 
-    // 1. Verificar CI del estudiante
-    const estudianteExists = await client.query(
-      "SELECT 1 FROM usuarios WHERE nro_carnet = $1",
+    // Reutilizar usuarios registrados; crear solo los que todavía no existen.
+    const estudianteExistente = await client.query(
+      "SELECT id_usuario FROM usuarios WHERE nro_carnet = $1 LIMIT 1",
       [ci]
     );
-    if (estudianteExists.rows.length > 0) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "El CI del estudiante ya está registrado", campo: "ci", valor: ci });
+    let idUsuarioEstudiante;
+    if (estudianteExistente.rows.length > 0) {
+      idUsuarioEstudiante = estudianteExistente.rows[0].id_usuario;
+    } else {
+      const salEst = await bcrypt.genSalt(10);
+      const contraEst = await bcrypt.hash(contraseña, salEst);
+      const { rows } = await client.query(
+        `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono, contraseña, usuario_vigente)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+         RETURNING id_usuario`,
+        [ci, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, celular ?? null, contraEst]
+      );
+      idUsuarioEstudiante = rows[0].id_usuario;
     }
 
-    // 2. Verificar CI del apoderado
-    const apoderadoExists = await client.query(
-      "SELECT 1 FROM usuarios WHERE nro_carnet = $1",
+    const apoderadoExistente = await client.query(
+      "SELECT id_usuario FROM usuarios WHERE nro_carnet = $1 LIMIT 1",
       [apoderado_ci]
     );
-    if (apoderadoExists.rows.length > 0) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "El CI del apoderado ya está registrado", campo: "apoderado_ci", valor: apoderado_ci });
+    let idUsuarioApoderado;
+    if (apoderadoExistente.rows.length > 0) {
+      idUsuarioApoderado = apoderadoExistente.rows[0].id_usuario;
+    } else {
+      const salAp = await bcrypt.genSalt(10);
+      const contraAp = await bcrypt.hash(apoderado_contraseña, salAp);
+      const { rows } = await client.query(
+        `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, correo_electronico, contraseña, usuario_vigente)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+         RETURNING id_usuario`,
+        [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, apoderado_correo_electronico ?? null, contraAp]
+      );
+      idUsuarioApoderado = rows[0].id_usuario;
     }
 
-    // 3. Crear usuario del estudiante
-    const salEst = await bcrypt.genSalt(10);
-    const contraEst = await bcrypt.hash(contraseña, salEst);
-    const { rows: usuarioEstudiante } = await client.query(
-      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono, contraseña, usuario_vigente)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
-       RETURNING id_usuario`,
-      [ci, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, celular ?? null, contraEst]
+    // 5. Reutilizar el perfil de apoderado si el usuario ya lo tiene.
+    const apoderadoPerfilExistente = await client.query(
+      "SELECT id_apoderado FROM apoderados WHERE id_usuario = $1 LIMIT 1",
+      [idUsuarioApoderado]
     );
-    const idUsuarioEstudiante = usuarioEstudiante[0].id_usuario;
+    let idApoderado;
+    if (apoderadoPerfilExistente.rows.length > 0) {
+      idApoderado = apoderadoPerfilExistente.rows[0].id_apoderado;
+    } else {
+      const { rows } = await client.query(
+        "INSERT INTO apoderados (id_usuario, parentesco) VALUES ($1,$2) RETURNING id_apoderado",
+        [idUsuarioApoderado, apoderado_parentesco]
+      );
+      idApoderado = rows[0].id_apoderado;
+    }
 
-    // 4. Crear usuario del apoderado
-    const salAp = await bcrypt.genSalt(10);
-    const contraAp = await bcrypt.hash(apoderado_contraseña, salAp);
-    const { rows: usuarioApoderado } = await client.query(
-      `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, correo_electronico, contraseña, usuario_vigente)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-       RETURNING id_usuario`,
-      [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, apoderado_correo_electronico ?? null, contraAp]
-    );
-    const idUsuarioApoderado = usuarioApoderado[0].id_usuario;
-
-    // 5. Crear apoderado
-    const { rows: apoderadoRow } = await client.query(
-      "INSERT INTO apoderados (id_usuario, parentesco) VALUES ($1,$2) RETURNING id_apoderado",
-      [idUsuarioApoderado, apoderado_parentesco]
-    );
-    const idApoderado = apoderadoRow[0].id_apoderado;
-
-    // 6. Crear estudiante
+    // 6. Reutilizar el perfil de estudiante si el usuario ya lo tiene.
     const fotoBuffer = foto ? Buffer.from(foto, "base64") : null;
-    const { rows: estudianteRow } = await client.query(
-      `INSERT INTO estudiantes (id_usuario, id_apoderado, colegio_de_procedencia, direccion_de_domicilio, foto)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id_estudiante`,
-      [idUsuarioEstudiante, idApoderado, colegio_de_procedencia ?? null, direccion_de_domicilio ?? null, fotoBuffer]
+    const estudiantePerfilExistente = await client.query(
+      "SELECT id_estudiante FROM estudiantes WHERE id_usuario = $1 LIMIT 1",
+      [idUsuarioEstudiante]
     );
-    const idEstudiante = estudianteRow[0].id_estudiante;
-    console.log("[registrarEstudiante] Insertando en estudiantes:", { idUsuarioEstudiante, idApoderado, colegio_de_procedencia, direccion_de_domicilio, foto: fotoBuffer ? `${(fotoBuffer.length / 1024).toFixed(2)} KB (${fotoBuffer.length} bytes)` : null });
+    let idEstudiante;
+    if (estudiantePerfilExistente.rows.length > 0) {
+      idEstudiante = estudiantePerfilExistente.rows[0].id_estudiante;
+      await client.query(
+        `UPDATE estudiantes
+         SET id_apoderado = $1,
+             colegio_de_procedencia = COALESCE($2, colegio_de_procedencia),
+             direccion_de_domicilio = COALESCE($3, direccion_de_domicilio),
+             foto = COALESCE($4, foto)
+         WHERE id_estudiante = $5`,
+        [idApoderado, colegio_de_procedencia ?? null, direccion_de_domicilio ?? null, fotoBuffer, idEstudiante]
+      );
+    } else {
+      const { rows } = await client.query(
+        `INSERT INTO estudiantes (id_usuario, id_apoderado, colegio_de_procedencia, direccion_de_domicilio, foto)
+         VALUES ($1,$2,$3,$4,$5) RETURNING id_estudiante`,
+        [idUsuarioEstudiante, idApoderado, colegio_de_procedencia ?? null, direccion_de_domicilio ?? null, fotoBuffer]
+      );
+      idEstudiante = rows[0].id_estudiante;
+    }
 
     // 7. Crear inscripción: el paralelo se guarda directamente en la inscripción
     const { rows: inscripcionRow } = await client.query(

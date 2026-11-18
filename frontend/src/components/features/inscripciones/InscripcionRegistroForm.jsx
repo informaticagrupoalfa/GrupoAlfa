@@ -540,8 +540,8 @@ export default function InscripcionRegistroForm({
         const img = new Image()
         img.onload = () => {
           const canvas = document.createElement("canvas")
-          const maxWidth = 800
-          const maxHeight = 800
+          const maxWidth = 500
+          const maxHeight = 500
           let width = img.width
           let height = img.height
           if (width > maxWidth || height > maxHeight) {
@@ -553,7 +553,7 @@ export default function InscripcionRegistroForm({
           canvas.height = height
           const ctx = canvas.getContext("2d")
           ctx.drawImage(img, 0, 0, width, height)
-          const compressed = canvas.toDataURL("image/jpeg", 0.75)
+          const compressed = canvas.toDataURL("image/webp", 0.75)
           setFotoPreview(compressed)
           setForm((prev) => ({ ...prev, fotoBase64: compressed.split(",")[1] ?? null }))
         }
@@ -648,10 +648,36 @@ export default function InscripcionRegistroForm({
     }
 
     const fotoPesoBytes = form.fotoBase64 ? Math.round((form.fotoBase64.length * 3) / 4) : 0
-    console.log("[InscripcionRegistroForm] Enviando payload al endpoint registrar-estudiante:", {
-      ...payload,
-      foto: form.fotoBase64 ? { peso: `${(fotoPesoBytes / 1024).toFixed(2)} KB (${fotoPesoBytes} bytes)` } : null,
-    })
+    if (form.fotoBase64) {
+      console.log(`[InscripcionRegistroForm] Tamaño de imagen a enviar: ${(fotoPesoBytes / 1024).toFixed(2)} KB (${fotoPesoBytes} bytes)`)
+    }
+    const payloadStr = JSON.stringify(payload)
+    const partes = {
+      ci: form.ci ? new Blob([form.ci]).size : 0,
+      apellido_paterno: form.apellido_paterno ? new Blob([form.apellido_paterno]).size : 0,
+      apellido_materno: form.apellido_materno ? new Blob([form.apellido_materno]).size : 0,
+      nombre: form.nombre ? new Blob([form.nombre]).size : 0,
+      fecha_nacimiento: form.fecha_nacimiento ? new Blob([form.fecha_nacimiento]).size : 0,
+      correo_electronico: form.correo_electronico ? new Blob([form.correo_electronico]).size : 0,
+      contraseña: form.contraseña ? new Blob([form.contraseña]).size : 0,
+      apoderado_ci: form.apoderado_ci ? new Blob([form.apoderado_ci]).size : 0,
+      apoderado_correo_electronico: form.apoderado_correo_electronico ? new Blob([form.apoderado_correo_electronico]).size : 0,
+      apoderado_nombre: form.apoderado_nombre ? new Blob([form.apoderado_nombre]).size : 0,
+      apoderado_apellido_paterno: form.apoderado_apellido_paterno ? new Blob([form.apoderado_apellido_paterno]).size : 0,
+      apoderado_apellido_materno: form.apoderado_apellido_materno ? new Blob([form.apoderado_apellido_materno]).size : 0,
+      apoderado_telefono: form.apoderado_telefono ? new Blob([form.apoderado_telefono]).size : 0,
+      apoderado_contraseña: form.apoderado_contraseña ? new Blob([form.apoderado_contraseña]).size : 0,
+      apoderado_parentesco: form.apoderado_parentesco ? new Blob([form.apoderado_parentesco]).size : 0,
+      colegio_de_procedencia: form.colegio_de_procedencia ? new Blob([form.colegio_de_procedencia]).size : 0,
+      direccion_de_domicilio: form.direccion_de_domicilio ? new Blob([form.direccion_de_domicilio]).size : 0,
+      id_administrativo: form.id_administrativo ? new Blob([String(form.id_administrativo)]).size : 0,
+      id_paralelo: form.id_paralelo ? new Blob([String(form.id_paralelo)]).size : 0,
+      como_se_entero_de_nosotros: form.como_se_entero_de_nosotros ? new Blob([form.como_se_entero_de_nosotros]).size : 0,
+      foto: fotoPesoBytes,
+    }
+    const totalSinFoto = Object.values(partes).reduce((a, b) => a + b, 0) - fotoPesoBytes
+    console.log("[InscripcionRegistroForm] Peso del payload por parte (bytes):", partes)
+    console.log(`[InscripcionRegistroForm] Tamaño total del payload JSON: ${(new Blob([payloadStr]).size / 1024).toFixed(2)} KB (${new Blob([payloadStr]).size} bytes). Partes sin foto: ${(totalSinFoto / 1024).toFixed(2)} KB, Foto: ${(fotoPesoBytes / 1024).toFixed(2)} KB`)
 
     setSaving(true)
     try {
@@ -672,6 +698,7 @@ export default function InscripcionRegistroForm({
           : data.campo
         mensaje = `El ${campoLabel} (${data.valor ?? ""}) ya está registrado.`
       }
+      console.log(error)
       setFormError(data?.campo ? mensaje : (error.userMessage ?? data?.error ?? mensaje))
     } finally {
       setSaving(false)
