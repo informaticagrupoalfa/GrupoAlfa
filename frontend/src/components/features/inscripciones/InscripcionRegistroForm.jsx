@@ -1,3 +1,4 @@
+/* global Buffer */
 import { useEffect, useMemo, useRef, useState } from "react"
 import PropTypes from "prop-types"
 import { useSearchParams } from "react-router-dom"

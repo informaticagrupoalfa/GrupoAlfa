@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
-import Modal from "../ui/Modal"
-import Button from "../ui/Button"
-import Skeleton from "../ui/Skeleton"
+import Modal from "../../../components/ui/Modal"
+import Button from "../../../components/ui/Button"
+import Skeleton from "../../../components/ui/Skeleton"
 import {
   deleteClase,
   fetchAsistenciasPorClase,
   fetchClasesFiltradas,
-} from "../../services/paseListaService"
+} from "../../../services/paseListaService"
 
 const STORAGE_KEY = "ga_pase_lista"
 const PAGE_SIZE = 10
@@ -89,6 +89,12 @@ function ListaDetalleModal({ detalle, onClose, onDelete }) {
   )
 }
 
+ListaDetalleModal.propTypes = {
+  detalle: PropTypes.object.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+}
+
 const FILTER_TABS = [
   { key: "fecha", label: "Fecha" },
   { key: "paralelo", label: "Paralelo" },
@@ -96,7 +102,7 @@ const FILTER_TABS = [
   { key: "tema", label: "Tema" },
 ]
 
-export default function AsistenciasTab({ catalogs, version }) {
+export default function AsistenciasView({ catalogs, version }) {
   const [activeFilters, setActiveFilters] = useState([])
   const [desde, setDesde] = useState("")
   const [hasta, setHasta] = useState("")
@@ -445,7 +451,7 @@ export default function AsistenciasTab({ catalogs, version }) {
   )
 }
 
-AsistenciasTab.propTypes = {
+AsistenciasView.propTypes = {
   catalogs: PropTypes.object.isRequired,
   version: PropTypes.number.isRequired,
 }

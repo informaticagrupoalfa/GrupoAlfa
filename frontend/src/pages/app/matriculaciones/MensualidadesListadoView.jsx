@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
-import { getResourceById, listResource } from "../../services/academicService"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import Pagination from "../../components/ui/Pagination"
+import { getResourceById, listResource } from "../../../services/academicService"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
+import Pagination from "../../../components/ui/Pagination"
 
 const MENSUALIDADES_PER_PAGE = 15
 
@@ -25,7 +25,7 @@ async function safeList(endpoint, params) {
   }
 }
 
-export default function MensualidadesDetalleView() {
+export default function MensualidadesListadoView() {
   const [mensualidades, setMensualidades] = useState([])
   const [mensualidadesLoading, setMensualidadesLoading] = useState(true)
   const [mensualidadesError, setMensualidadesError] = useState("")

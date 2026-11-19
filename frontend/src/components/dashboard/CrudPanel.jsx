@@ -13,7 +13,7 @@ const EntityFormModal = lazy(() => import("./EntityFormModal.jsx"))
 
 const PAGE_SIZE = 25
 
-export default function CrudPage({ entity, defaultParams }) {
+export default function CrudPanel({ entity, defaultParams }) {
   const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity, defaultParams)
   const [search, setSearch] = useState("")
   const [filterMateria, setFilterMateria] = useState("")
@@ -213,7 +213,7 @@ export default function CrudPage({ entity, defaultParams }) {
   )
 }
 
-CrudPage.propTypes = {
+CrudPanel.propTypes = {
   entity: PropTypes.object.isRequired,
   defaultParams: PropTypes.object,
 }

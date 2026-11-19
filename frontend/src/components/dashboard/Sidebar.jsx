@@ -6,12 +6,22 @@ import { ENTITIES, ENTITY_ORDER } from "../../config/entities"
 import { canAccessModuleWithRole } from "../../config/permissions"
 import { useAuth } from "../../hooks/useAuth"
 
-const lazyCrud = () => import("./CrudPage.jsx")
+const lazyCrud = () => import("./CrudPanel.jsx")
 const lazyHome = () => import("./DashboardHome.jsx")
-const lazyPaseLista = () => import("../../pages/app/PaseListaPage.jsx")
-const lazyInscripciones = () => import("../../pages/app/InscripcionesPage.jsx")
-const lazyDataExplorer = () => import("../../pages/app/DataExplorerPage.jsx")
-const lazyEstudiantes = () => import("../../pages/app/EstudiantesPage.jsx")
+const lazyUsuariosPage = () => import("../../pages/app/usuarios/UsuariosPage.jsx")
+const lazyCapacitacionesPage = () => import("../../pages/app/capacitaciones/CapacitacionesPage.jsx")
+const lazyMatriculacionesPage = () => import("../../pages/app/matriculaciones/MatriculacionesPage.jsx")
+const lazyPaseLista = () => import("../../pages/app/pase-lista/PaseListaPage.jsx")
+const lazyInscripciones = () => import("../../pages/app/inscripciones/InscripcionesPage.jsx")
+const lazyDataExplorer = () => import("../../pages/app/datos/DataExplorerPage.jsx")
+const lazyEstudiantes = () => import("../../pages/app/estudiantes/EstudiantesPage.jsx")
+
+const PAGE_PRELOADS = {
+  usuarios: lazyUsuariosPage,
+  capacitaciones: lazyCapacitacionesPage,
+  matriculaciones: lazyMatriculacionesPage,
+  inscripciones: lazyInscripciones,
+}
 
 const STORAGE_KEY = "ga.sidebar.collapsed"
 const MOBILE_QUERY = "(max-width: 900px)"
@@ -160,7 +170,7 @@ export default function Sidebar() {
       key,
       label: ENTITIES[key].label,
       to: ENTITIES[key].path,
-      preload: key === "inscripciones" ? lazyInscripciones : lazyCrud,
+      preload: PAGE_PRELOADS[key] ?? lazyCrud,
     })
   })
   if (canAccessModuleWithRole(loggedUser, activeRole, "pase-lista")) {

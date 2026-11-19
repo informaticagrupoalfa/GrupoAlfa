@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
-import { apiClient } from "../../services/apiClient"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import Pagination from "../../components/ui/Pagination"
+import { apiClient } from "../../../services/apiClient"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
+import Pagination from "../../../components/ui/Pagination"
 
 const LIMIT = 15
 

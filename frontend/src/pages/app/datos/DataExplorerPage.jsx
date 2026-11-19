@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import { fetchDatabaseTables, fetchTableRows } from "../../services/dataExplorerService"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
+import { fetchDatabaseTables, fetchTableRows } from "../../../services/dataExplorerService"
 
 const PAGE_SIZE = 20
 

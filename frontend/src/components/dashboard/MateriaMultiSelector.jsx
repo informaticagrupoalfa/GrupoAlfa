@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import PropTypes from "prop-types"
 import { apiClient } from "../../services/apiClient"
 
 export default function MateriaMultiSelector({ value, onChange, label = "Materias vinculadas" }) {
@@ -54,4 +55,10 @@ export default function MateriaMultiSelector({ value, onChange, label = "Materia
       )}
     </div>
   )
+}
+
+MateriaMultiSelector.propTypes = {
+  value: PropTypes.array,
+  onChange: PropTypes.func.isRequired,
+  label: PropTypes.string,
 }

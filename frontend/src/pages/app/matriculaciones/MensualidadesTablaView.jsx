@@ -1,25 +1,20 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
 import PropTypes from "prop-types"
-import { useCrud } from "../../hooks/useCrud"
-import { ENTITIES, getDisplayName } from "../../config/entities"
-import { listResource } from "../../services/academicService"
-import DataTable from "../../components/dashboard/DataTable"
-import Button from "../../components/ui/Button"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import MensualidadesView from "./MensualidadesView"
-import MensualidadesDetalleView from "./MensualidadesDetalleView"
+import { useCrud } from "../../../hooks/useCrud"
+import { ENTITIES, getDisplayName } from "../../../config/entities"
+import { listResource } from "../../../services/academicService"
+import DataTable from "../../../components/dashboard/DataTable"
+import Button from "../../../components/ui/Button"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
 
 // split-component-lazy: modales pesados fuera del chunk inicial.
 // split-prefetch-hints: se precargan al pasar el cursor por "Nuevo".
 // Modal de formulario de mensualidad, cargado de forma lazy para no incluirlo en el bundle principal.
-const loadMensualidadModal = () => import("../../components/features/matriculaciones/MensualidadFormModal")
+const loadMensualidadModal = () => import("../../../components/features/matriculaciones/MensualidadFormModal")
 const MensualidadFormModal = lazy(loadMensualidadModal)
 
 const PAGE_SIZE = 25
-// Pestañas disponibles del módulo de matrículas/mensualidades.
-const TABS = ["mensualidades-tabla", "mensualidades-estudiantes", "mensualidades"]
 
 // Devuelve una etiqueta legible para un usuario (nombre, correo o fallback por ID).
 function userLabel(u) {
@@ -116,7 +111,7 @@ function useOptions(catalogs) {
 }
 
 // Pestaña de tabla de mensualidades: CRUD de pagos mensuales asociados a inscripciones.
-function MensualidadesTab({ options }) {
+function MensualidadesTabla({ options }) {
   const entity = ENTITIES.mensualidades
   const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity)
   const [search, setSearch] = useState("")
@@ -165,6 +160,7 @@ function MensualidadesTab({ options }) {
 
   return (
     <section>
+      <p className="muted">Registra los pagos mensuales de los estudiantes (tabla).</p>
       <div className="crud-toolbar">
         <input type="search" placeholder="Buscar en Mensualidades..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Buscar" />
         {/*
@@ -207,35 +203,14 @@ const OPTIONS_PROP = PropTypes.shape({
   estudianteByInscripcion: PropTypes.instanceOf(Map).isRequired,
 }).isRequired
 
-MensualidadesTab.propTypes = { options: OPTIONS_PROP }
+MensualidadesTabla.propTypes = { options: OPTIONS_PROP }
 
-// Página principal de Matrículas. Según el parámetro ?tab en la URL muestra:
-// - "mensualidades-tabla": tabla CRUD de mensualidades.
-// - "mensualidades-estudiantes": lista de estudiantes con sus inscripciones y mensualidades.
-// - "mensualidades": detalle de una mensualidad seleccionada.
-export default function MatriculacionesPage() {
-  const [searchParams] = useSearchParams()
-  const requestedTab = searchParams.get("tab")
-  const active = TABS.includes(requestedTab) ? requestedTab : "mensualidades-tabla"
+// Pestaña de tabla de mensualidades. Carga catálogos y opciones y renderiza el CRUD.
+export default function MensualidadesTablaView() {
   const { catalogs, isLoading } = useCatalogs()
   const options = useOptions(catalogs)
 
   if (isLoading) return <Skeleton lines={6} />
 
-  return (
-    <section>
-      <p className="muted">
-        {active === "mensualidades-tabla"
-          ? "Registra los pagos mensuales de los estudiantes (tabla)."
-          : active === "mensualidades-estudiantes"
-            ? "Selecciona un estudiante para ver sus inscripciones y mensualidades."
-            : "Selecciona una mensualidad para ver su detalle."}
-      </p>
-      {active === "mensualidades-tabla"
-        ? <MensualidadesTab options={options} />
-        : active === "mensualidades-estudiantes"
-          ? <MensualidadesView />
-          : <MensualidadesDetalleView />}
-    </section>
-  )
+  return <MensualidadesTabla options={options} />
 }

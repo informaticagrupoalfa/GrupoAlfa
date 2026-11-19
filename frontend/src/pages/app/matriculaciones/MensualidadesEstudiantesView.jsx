@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { listResource, getResourceById, createResource, updateResource } from "../../services/academicService"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import Pagination from "../../components/ui/Pagination"
-import Button from "../../components/ui/Button"
-import { useAuth } from "../../hooks/useAuth"
+import { listResource, getResourceById, createResource } from "../../../services/academicService"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
+import Pagination from "../../../components/ui/Pagination"
+import Button from "../../../components/ui/Button"
+import { useAuth } from "../../../hooks/useAuth"
 
 // Cantidad de estudiantes mostrados por página en el panel izquierdo.
 const STUDENTS_PER_PAGE = 12
@@ -107,7 +107,7 @@ async function enrichInscripciones(inscripciones) {
   }))
 }
 
-export default function MensualidadesView() {
+export default function MensualidadesEstudiantesView() {
   const { loggedUser } = useAuth()
   // Estado de la lista de estudiantes (panel izquierdo).
   const [students, setStudents] = useState([])
@@ -262,7 +262,7 @@ export default function MensualidadesView() {
         pago: Number(mensualidadForm.pago) || 0,
         codigo_comprobante: mensualidadForm.codigo_comprobante || undefined,
       }
-      console.log("[MensualidadesView] Creando mensualidad del estudiante:", payload)
+      console.log("[MensualidadesEstudiantesView] Creando mensualidad del estudiante:", payload)
       await createResource("mensualidades", payload)
       // Recargar mensualidades del estudiante
       const inscrList = await enrichInscripciones(await safeList("inscripciones", { id_estudiante: selectedStudentId }))

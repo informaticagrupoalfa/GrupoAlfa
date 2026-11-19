@@ -1,12 +1,12 @@
 import { Suspense, lazy, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
-import { loadPaseListaCatalogs } from "../../services/paseListaService"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
+import { loadPaseListaCatalogs } from "../../../services/paseListaService"
 
 // split-component-lazy: cada pestaña en su propio chunk.
-const TomarClaseTab = lazy(() => import("../../components/pase-lista/TomarClaseTab.jsx"))
-const AsistenciasTab = lazy(() => import("../../components/pase-lista/AsistenciasTab.jsx"))
+const TomarClaseView = lazy(() => import("./TomarClaseView.jsx"))
+const AsistenciasView = lazy(() => import("./AsistenciasView.jsx"))
 
 const TABS = ["asistencias", "tomar-clase"]
 
@@ -54,13 +54,13 @@ export default function PaseListaPage() {
     <section>
       {active === "tomar-clase" && (
         <Suspense fallback={<Skeleton lines={6} />}>
-          <TomarClaseTab catalogs={catalogs} onSaved={() => setListVersion((v) => v + 1)} />
+          <TomarClaseView catalogs={catalogs} onSaved={() => setListVersion((v) => v + 1)} />
         </Suspense>
       )}
 
       {active === "asistencias" && (
         <Suspense fallback={<Skeleton lines={5} />}>
-          <AsistenciasTab catalogs={catalogs} version={listVersion} />
+          <AsistenciasView catalogs={catalogs} version={listVersion} />
         </Suspense>
       )}
     </section>

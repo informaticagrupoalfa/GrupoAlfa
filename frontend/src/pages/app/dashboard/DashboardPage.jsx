@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom"
-import DashboardHome from "../../components/dashboard/DashboardHome"
-import Card from "../../components/ui/Card"
-import { ENTITIES } from "../../config/entities"
+import DashboardHome from "../../../components/dashboard/DashboardHome"
+import Card from "../../../components/ui/Card"
+import { ENTITIES } from "../../../config/entities"
 
 export default function DashboardPage() {
   const navigate = useNavigate()

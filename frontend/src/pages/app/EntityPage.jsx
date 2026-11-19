@@ -1,15 +1,15 @@
 import { Suspense, lazy } from "react"
 import { Navigate, useParams } from "react-router-dom"
-import CrudPage from "../../components/dashboard/CrudPage"
+import CrudPanel from "../../components/dashboard/CrudPanel"
 import ErrorFallback from "../../components/ui/ErrorFallback"
 import Skeleton from "../../components/ui/Skeleton"
 import { ENTITIES } from "../../config/entities"
 import { useAuth } from "../../hooks/useAuth"
 import { canAccessModule } from "../../config/permissions"
 
-const UsuariosPage = lazy(() => import("./UsuariosPage"))
-const CapacitacionesPage = lazy(() => import("./CapacitacionesPage"))
-const MatriculacionesPage = lazy(() => import("./MatriculacionesPage"))
+const UsuariosPage = lazy(() => import("./usuarios/UsuariosPage"))
+const CapacitacionesPage = lazy(() => import("./capacitaciones/CapacitacionesPage"))
+const MatriculacionesPage = lazy(() => import("./matriculaciones/MatriculacionesPage"))
 
 export default function EntityPage() {
   const { entityKey } = useParams()
@@ -43,5 +43,5 @@ export default function EntityPage() {
       </Suspense>
     )
   }
-  return <CrudPage key={entity.key} entity={entity} />
+  return <CrudPanel key={entity.key} entity={entity} />
 }

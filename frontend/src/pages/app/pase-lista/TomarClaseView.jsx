@@ -1,14 +1,15 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react"
-import Skeleton from "../ui/Skeleton"
-import Button from "../ui/Button"
-import TextField from "../ui/TextField"
-import { createResource, listResource } from "../../services/academicService"
-import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../services/paseListaService"
-import "./TomarClase.css"
+import PropTypes from "prop-types"
+import Skeleton from "../../../components/ui/Skeleton"
+import Button from "../../../components/ui/Button"
+import TextField from "../../../components/ui/TextField"
+import { createResource, listResource } from "../../../services/academicService"
+import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
+import "../../../components/pase-lista/TomarClase.css"
 
 // split-dynamic-imports: la tabla solo se carga cuando hay curso seleccionado.
-const PaseListaTable = lazy(() => import("./PaseListaTable.jsx"))
-const PersonCombobox = lazy(() => import("../features/matriculaciones/PersonCombobox.jsx"))
+const PaseListaTable = lazy(() => import("../../../components/pase-lista/PaseListaTable.jsx"))
+const PersonCombobox = lazy(() => import("../../../components/features/matriculaciones/PersonCombobox.jsx"))
 
 const initialForm = {
   idMateria: "",
@@ -27,7 +28,7 @@ function userName(u) {
   return full || u.nombre_completo || u.correo_electronico || `Usuario ${u.id_usuario ?? u.nro_carnet ?? ""}`
 }
 
-export default function TomarClaseTab({ catalogs, onSaved }) {
+export default function TomarClaseView({ catalogs, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [alumnos, setAlumnos] = useState([])
   const [loadingAlumnos, setLoadingAlumnos] = useState(false)
@@ -484,4 +485,9 @@ export default function TomarClaseTab({ catalogs, onSaved }) {
       )}
     </section>
   )
+}
+
+TomarClaseView.propTypes = {
+  catalogs: PropTypes.object.isRequired,
+  onSaved: PropTypes.func.isRequired,
 }

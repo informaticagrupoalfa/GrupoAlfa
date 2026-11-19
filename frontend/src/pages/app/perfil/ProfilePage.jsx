@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import PropTypes from "prop-types"
-import { useAuth } from "../../hooks/useAuth"
-import { fetchCurrentUser } from "../../services/usersService"
-import { getDefaultAppPath } from "../../config/permissions"
+import { useAuth } from "../../../hooks/useAuth"
+import { fetchCurrentUser } from "../../../services/usersService"
+import { getDefaultAppPath } from "../../../config/permissions"
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("es-BO", {
   day: "2-digit",

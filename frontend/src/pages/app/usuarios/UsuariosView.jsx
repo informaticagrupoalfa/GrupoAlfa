@@ -1,11 +1,10 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
-import { useCrud } from "../../hooks/useCrud"
-import { ENTITIES } from "../../config/entities"
-import DataTable from "../../components/dashboard/DataTable"
-import Pagination from "../../components/ui/Pagination"
-import Skeleton from "../../components/ui/Skeleton"
-import ErrorFallback from "../../components/ui/ErrorFallback"
+import { useCrud } from "../../../hooks/useCrud"
+import { ENTITIES } from "../../../config/entities"
+import DataTable from "../../../components/dashboard/DataTable"
+import Pagination from "../../../components/ui/Pagination"
+import Skeleton from "../../../components/ui/Skeleton"
+import ErrorFallback from "../../../components/ui/ErrorFallback"
 import {
   ROLE_KEYS,
   ROLE_LABELS,
@@ -13,14 +12,12 @@ import {
   fetchRoleMap,
   getUserRoles,
   syncRoles,
-} from "../../services/rolesService"
-import { fetchRoleCatalog, updateUsuarioRoles } from "../../services/usersService"
+} from "../../../services/rolesService"
+import { fetchRoleCatalog, updateUsuarioRoles } from "../../../services/usersService"
 
-const UsuarioFormModal = lazy(() => import("../../components/features/usuarios/UsuarioFormModal"))
-const CrudPanel = lazy(() => import("../../components/dashboard/CrudPage"))
+const UsuarioFormModal = lazy(() => import("../../../components/features/usuarios/UsuarioFormModal"))
 
 const PAGE_SIZE = 25
-const USERS_TABS = ["usuarios", "asesores", "administrativos", "apoderados", "estudiantes"]
 const entity = ENTITIES.usuarios
 
 function toIdApoderado(value) {
@@ -42,23 +39,7 @@ async function persistSystemRoles(idUsuario, roles) {
   }
 }
 
-export default function UsuariosPage() {
-  const [searchParams] = useSearchParams()
-  const requestedTab = searchParams.get("tab")
-  const activeTab = USERS_TABS.includes(requestedTab) ? requestedTab : "usuarios"
-
-  if (activeTab !== "usuarios") {
-    return (
-      <Suspense fallback={<Skeleton lines={6} />}>
-        <CrudPanel key={activeTab} entity={ENTITIES[activeTab]} />
-      </Suspense>
-    )
-  }
-
-  return <UsuariosTab />
-}
-
-function UsuariosTab() {
+export default function UsuariosView() {
   const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity)
   const [roleMap, setRoleMap] = useState(null)
   const [roleCatalog, setRoleCatalog] = useState([])
