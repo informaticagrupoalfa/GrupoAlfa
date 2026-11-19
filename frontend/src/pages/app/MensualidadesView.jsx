@@ -85,6 +85,28 @@ async function safeList(endpoint, params) {
   return Array.isArray(data) ? data : data.rows || data.filas || []
 }
 
+function unwrapResource(value, key) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value
+  return value[key] ?? value.data ?? value
+}
+
+async function enrichInscripciones(inscripciones) {
+  return Promise.all(inscripciones.map(async (inscripcion) => {
+    if (!inscripcion.id_paralelo) return { ...inscripcion, paraleloInfo: null, capacitacionInfo: null }
+    const paralelo = unwrapResource(
+      await getResourceById("paralelos", inscripcion.id_paralelo).catch(() => null),
+      "paralelo",
+    )
+    const capacitacion = paralelo?.id_capacitacion
+      ? unwrapResource(
+        await getResourceById("capacitaciones", paralelo.id_capacitacion).catch(() => null),
+        "capacitacion",
+      )
+      : null
+    return { ...inscripcion, paraleloInfo: paralelo, capacitacionInfo: capacitacion }
+  }))
+}
+
 export default function MensualidadesView() {
   const { loggedUser } = useAuth()
   // Estado de la lista de estudiantes (panel izquierdo).
@@ -146,10 +168,11 @@ export default function MensualidadesView() {
     })
     setMensualidadFormError("")
     try {
-      const [inscrList, mensList] = await Promise.all([
+      const [inscrListRaw, mensList] = await Promise.all([
         safeList("inscripciones", { id_estudiante: id }),
         safeList("mensualidades"),
       ])
+      const inscrList = await enrichInscripciones(inscrListRaw)
       const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
       const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
       studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
@@ -200,10 +223,11 @@ export default function MensualidadesView() {
       }
       setSelectedStudent(estudiante)
       setSelectedStudentId(idEstudiante)
-      const [inscrList, mensList] = await Promise.all([
+      const [inscrListRaw, mensList] = await Promise.all([
         safeList("inscripciones", { id_estudiante: idEstudiante }),
         safeList("mensualidades"),
       ])
+      const inscrList = await enrichInscripciones(inscrListRaw)
       const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
       const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
       studentMensualidades.sort((a, b) => new Date(b.fecha_insc || b.fecha_inicio_mensualidad) - new Date(a.fecha_insc || a.fecha_inicio_mensualidad))
@@ -241,7 +265,7 @@ export default function MensualidadesView() {
       console.log("[MensualidadesView] Creando mensualidad del estudiante:", payload)
       await createResource("mensualidades", payload)
       // Recargar mensualidades del estudiante
-      const inscrList = await safeList("inscripciones", { id_estudiante: selectedStudentId })
+      const inscrList = await enrichInscripciones(await safeList("inscripciones", { id_estudiante: selectedStudentId }))
       const mensList = await safeList("mensualidades")
       const inscrIds = new Set(inscrList.map((i) => String(i.id_inscripcion)))
       const studentMensualidades = mensList.filter((m) => inscrIds.has(String(m.id_inscripcion)))
@@ -426,17 +450,34 @@ export default function MensualidadesView() {
                 <h3>Inscripciones</h3>
                 <div className="inscripciones-grid">
                   {visibleInscripciones.map((insc) => {
-                    const isSelected = selectedInscripcion?.id_inscripcion === insc.id_inscripcion
-                    const m = mensualidades.find((m) => m.id_inscripcion === insc.id_inscripcion)
+                    const isSelected = String(selectedInscripcion?.id_inscripcion) === String(insc.id_inscripcion)
+                    const m = mensualidades.find((item) => String(item.id_inscripcion) === String(insc.id_inscripcion))
+                    const paralelo = insc.paraleloInfo
+                    const capacitacion = insc.capacitacionInfo
+                    const horario = paralelo?.hora_inicio || paralelo?.hora_fin
+                      ? `${paralelo?.hora_inicio ? String(paralelo.hora_inicio).slice(0, 5) : "—"} - ${paralelo?.hora_fin ? String(paralelo.hora_fin).slice(0, 5) : "—"}`
+                      : "—"
+                    const nombreCapacitacion = capacitacion?.nombre_facultad
+                      ? `Facultad de ${capacitacion.nombre_facultad}`
+                      : (capacitacion?.id_capacitacion ? `Capacitación #${capacitacion.id_capacitacion}` : "—")
                     return (
                       <div
                         key={insc.id_inscripcion}
                         className={`inscripcion-card ${isSelected ? "selected" : ""}`}
                         onClick={() => setSelectedInscripcion(insc)}
                       >
-                        <div className="inscripcion-paralelo">{insc.grupo || "—"}</div>
-                        <div className="inscripcion-fecha">{formatDate(insc.fecha_insc)}</div>
-                        <div className="inscripcion-credencial">{insc.num_credencial != null ? insc.num_credencial : "—"}</div>
+                        <div className="inscripcion-paralelo">{paralelo?.nombre_paralelo || insc.grupo || "—"}</div>
+                        <div className="inscripcion-fecha">Inscripción: {formatDate(insc.fecha_insc)}</div>
+                        <div className="inscripcion-credencial">Credencial: {insc.num_credencial != null ? insc.num_credencial : "—"}</div>
+                        <div className="inscripcion-fecha">Nivel: {paralelo?.nivel || "—"}</div>
+                        <div className="inscripcion-fecha">Modalidad: {paralelo?.modalidad || "—"}</div>
+                        <div className="inscripcion-fecha">Horario: {horario}</div>
+                        <div className="inscripcion-fecha">Capacitación: {nombreCapacitacion}</div>
+                        <div className="inscripcion-fecha">
+                          Fechas: {capacitacion?.fecha_inicio
+                            ? `${formatDate(capacitacion.fecha_inicio)} - ${capacitacion?.fecha_fin ? formatDate(capacitacion.fecha_fin) : "Sin fecha fin"}`
+                            : "—"}
+                        </div>
                         {/* Clic en la mensualidad de una inscripción muestra los datos de su estudiante. */}
                         {m && (
                           <div className="inscripcion-mensualidad" onClick={(e) => { e.stopPropagation(); handleSelectMensualidad(m) }}>

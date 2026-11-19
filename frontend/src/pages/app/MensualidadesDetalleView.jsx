@@ -33,6 +33,7 @@ export default function MensualidadesDetalleView() {
   const [selectedMensualidad, setSelectedMensualidad] = useState(null)
 
   const [estudianteInfo, setEstudianteInfo] = useState(null)
+  const [inscripcionInfo, setInscripcionInfo] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -61,6 +62,7 @@ export default function MensualidadesDetalleView() {
   const handleSelectMensualidad = async (m) => {
     setSelectedMensualidad(m)
     setEstudianteInfo(null)
+    setInscripcionInfo(null)
     if (!m.id_inscripcion) return
     try {
       const [inscripcionRaw, estudiantesRaw, usuariosRaw] = await Promise.all([
@@ -71,6 +73,14 @@ export default function MensualidadesDetalleView() {
       // Unwrap posibles respuestas envueltas ({ data }, { inscripciones }, etc.)
       const unwrap = (v) => (v && typeof v === "object" && !Array.isArray(v)) ? (v.inscripcion ?? v.data ?? v) : v
       const inscripcion = unwrap(inscripcionRaw)
+      const paraleloRaw = inscripcion?.id_paralelo
+        ? await getResourceById("paralelos", inscripcion.id_paralelo).catch(() => null)
+        : null
+      const paralelo = paraleloRaw?.paralelo ?? paraleloRaw?.data ?? paraleloRaw
+      const capacitacionRaw = paralelo?.id_capacitacion
+        ? await getResourceById("capacitaciones", paralelo.id_capacitacion).catch(() => null)
+        : null
+      const capacitacion = capacitacionRaw?.capacitacion ?? capacitacionRaw?.data ?? capacitacionRaw
       const estudiantes = Array.isArray(estudiantesRaw) ? estudiantesRaw : (estudiantesRaw?.estudiantes ?? estudiantesRaw?.data ?? [])
       const usuarios = Array.isArray(usuariosRaw) ? usuariosRaw : (usuariosRaw?.usuarios ?? usuariosRaw?.data ?? [])
       // Compara IDs normalizados a string para evitar fallos por tipo (texto vs número).
@@ -86,6 +96,19 @@ export default function MensualidadesDetalleView() {
           telefono: user?.nro_telefono || "—",
         })
       }
+      setInscripcionInfo({
+        paralelo: paralelo?.nombre_paralelo || (inscripcion?.id_paralelo ? `Paralelo #${inscripcion.id_paralelo}` : "—"),
+        nivel: paralelo?.nivel || "—",
+        modalidad: paralelo?.modalidad || "—",
+        horario: paralelo?.hora_inicio || paralelo?.hora_fin
+          ? `${paralelo?.hora_inicio ? String(paralelo.hora_inicio).slice(0, 5) : "—"} - ${paralelo?.hora_fin ? String(paralelo.hora_fin).slice(0, 5) : "—"}`
+          : "—",
+        capacitacion: capacitacion?.nombre_facultad
+          ? `Facultad de ${capacitacion.nombre_facultad}`
+          : (capacitacion?.id_capacitacion ? `Capacitación #${capacitacion.id_capacitacion}` : "—"),
+        fechaInicioCapacitacion: capacitacion?.fecha_inicio || paralelo?.capacitacion_fecha_inicio || null,
+        fechaFinCapacitacion: capacitacion?.fecha_fin || null,
+      })
     } catch (err) {
       // error handled by outer boundary
     }
@@ -204,6 +227,38 @@ export default function MensualidadesDetalleView() {
                 <div className="info-row">
                   <span className="info-label">Comprobante</span>
                   <span className="info-value">{selectedMensualidad.codigo_comprobante != null ? selectedMensualidad.codigo_comprobante : "—"}</span>
+                </div>
+              </div>
+
+              <div className="info-card">
+                <h3>Inscripción</h3>
+                <div className="info-row">
+                  <span className="info-label">Paralelo</span>
+                  <span className="info-value">{inscripcionInfo?.paralelo || "—"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Nivel</span>
+                  <span className="info-value">{inscripcionInfo?.nivel || "—"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Modalidad</span>
+                  <span className="info-value">{inscripcionInfo?.modalidad || "—"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Horario</span>
+                  <span className="info-value">{inscripcionInfo?.horario || "—"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Capacitación</span>
+                  <span className="info-value">{inscripcionInfo?.capacitacion || "—"}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Fechas de capacitación</span>
+                  <span className="info-value">
+                    {inscripcionInfo?.fechaInicioCapacitacion
+                      ? `${formatDate(inscripcionInfo.fechaInicioCapacitacion)} - ${inscripcionInfo?.fechaFinCapacitacion ? formatDate(inscripcionInfo.fechaFinCapacitacion) : "Sin fecha fin"}`
+                      : "—"}
+                  </span>
                 </div>
               </div>
 
