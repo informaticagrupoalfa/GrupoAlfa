@@ -3,6 +3,7 @@ export const ACCESS_ROLE_GROUPS = {
   academic: ["SysAdmin", "Rooter", "Gerencia", "Cajero", "Administración"],
   enrollment: ["SysAdmin", "Administración"],
   sysadmin: ["SysAdmin"],
+  advisor: ["Asesor", "Asesor Coordinador"],
 }
 
 // Módulos visibles en la aplicación. La autorización real también se valida en la API.
@@ -22,6 +23,7 @@ export const MODULE_ACCESS = {
   mensualidades: "academic",
   inscripciones: "enrollment",
   "pase-lista": "academic",
+  "llamar-lista": "advisor",
   datos: "sysadmin",
 }
 
@@ -31,6 +33,7 @@ const DEFAULT_MODULE_ORDER = [
   "capacitaciones",
   "matriculaciones",
   "pase-lista",
+  "llamar-lista",
 ]
 
 export function hasAllowedRole(user, allowedRoles) {

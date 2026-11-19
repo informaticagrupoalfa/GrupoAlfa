@@ -82,7 +82,6 @@ export const getEstudiantesResumen = async (req, res, next) => {
              u.apellido_materno, u.correo_electronico, e.colegio_de_procedencia,
              e.direccion_de_domicilio, ins.id_paralelo, p.nombre_paralelo, c.id_capacitacion,
              f.nombre AS nombre_facultad, latest.fecha_fin_mensualidad,
-             CASE WHEN e.foto IS NOT NULL THEN encode(e.foto, 'base64') END AS foto_base64,
              COALESCE(a.asistencias, 0) AS asistencias
       ${SELECT_BASE}${where}
       ORDER BY e.id_estudiante DESC
@@ -100,6 +99,29 @@ export const getEstudiantesResumen = async (req, res, next) => {
       limite,
       totalPaginas,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Las fotos se consultan por separado para que el listado paginado no cargue
+// blobs/base64 junto con la información ligera de las cards.
+export const getEstudiantesFotos = async (req, res, next) => {
+  try {
+    const ids = String(req.query.ids ?? "")
+      .split(",")
+      .map((value) => parseInt(value, 10))
+      .filter((value) => Number.isInteger(value) && value > 0);
+    const uniqueIds = [...new Set(ids)].slice(0, 100);
+    if (uniqueIds.length === 0) return res.status(200).json({ filas: [] });
+
+    const { rows } = await pool.query(
+      `SELECT id_estudiante, encode(foto, 'base64') AS foto_base64
+       FROM estudiantes
+       WHERE id_estudiante = ANY($1::int[]) AND foto IS NOT NULL`,
+      [uniqueIds],
+    );
+    res.status(200).json({ filas: rows });
   } catch (error) {
     next(error);
   }

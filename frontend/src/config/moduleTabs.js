@@ -44,6 +44,11 @@ export const MODULE_TABS = {
       { key: "tomar-clase", label: "Tomar clase" },
     ],
   },
+  "llamar-lista": {
+    path: "/app/llamar-lista",
+    defaultTab: "tomar-clase",
+    items: [{ key: "tomar-clase", label: "Tomar clase" }],
+  },
 }
 
 export function getModuleTabConfig(moduleKey) {

@@ -11,6 +11,7 @@ const LoginPage = lazy(() => import("../pages/auth/LoginPage"))
 // const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"))
 const DashboardPage = lazy(() => import("../pages/app/dashboard/DashboardPage"))
 const PaseListaPage = lazy(() => import("../pages/app/pase-lista/PaseListaPage"))
+const LlamarListaDocentePage = lazy(() => import("../pages/app/pase-lista/LlamarListaDocentePage"))
 const InscripcionesPage = lazy(() => import("../pages/app/inscripciones/InscripcionesPage"))
 const EstudiantesPage = lazy(() => import("../pages/app/estudiantes/EstudiantesPage"))
 const ProfilePage = lazy(() => import("../pages/app/perfil/ProfilePage"))
@@ -53,6 +54,14 @@ export default function AppRouter() {
           element={
             <RequireModuleAccess moduleKey="pase-lista">
               <PaseListaPage />
+            </RequireModuleAccess>
+          }
+        />
+        <Route
+          path="llamar-lista"
+          element={
+            <RequireModuleAccess moduleKey="llamar-lista">
+              <LlamarListaDocentePage />
             </RequireModuleAccess>
           }
         />

@@ -17,13 +17,15 @@ export default function DashboardLayout() {
       ? "Dashboard"
       : key === "pase-lista"
         ? "Llamar lista"
-        : key === "perfil"
-          ? "Mi perfil"
-          : key === "datos"
-            ? "Explorador de datos"
-            : key === "sin-acceso"
-              ? "Acceso denegado"
-              : (ENTITIES[key]?.label ?? "Dashboard")
+        : key === "llamar-lista"
+          ? "Llamar lista"
+          : key === "perfil"
+            ? "Mi perfil"
+            : key === "datos"
+              ? "Explorador de datos"
+              : key === "sin-acceso"
+                ? "Acceso denegado"
+                : (ENTITIES[key]?.label ?? "Dashboard")
 
   const handleSignOut = () => {
     signOut()

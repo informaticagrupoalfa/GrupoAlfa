@@ -1,6 +1,23 @@
 import { authMiddleware } from "./authMiddleware.js";
 import { hasAnyRole } from "./roleMiddleware.js";
-import { ACADEMIC_ROLES, INSCRIPCIONES_ROLES, MANAGEMENT_ROLES } from "../config/roles.js";
+import { ACADEMIC_ROLES, INSCRIPCIONES_ROLES, MANAGEMENT_ROLES, ROLE_NAMES } from "../config/roles.js";
+import { pool } from "../db.js";
+
+const ADVISOR_ROUTES = new Set([
+  "GET /materias",
+  "GET /asesores",
+  "GET /capacitaciones",
+  "GET /paralelos",
+  "GET /temas",
+  "GET /estudiantes",
+  "GET /usuarios/catalogo",
+  "GET /aulas",
+  "GET /materias-capacitacion",
+  "GET /inscripciones",
+  "POST /temas",
+  "POST /clases",
+  "POST /asistencias",
+]);
 
 const PUBLIC_ROUTES = new Set([
   "POST /usuarios",
@@ -53,9 +70,40 @@ export const authorizeApi = (req, res, next) => {
     return next();
   }
 
-  authMiddleware(req, res, () => {
+  authMiddleware(req, res, async () => {
     if (isAuthenticatedOnlyRoute(req.method, path)) {
       return next();
+    }
+
+    if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR]) && ADVISOR_ROUTES.has(routeKey)) {
+      try {
+        if (routeKey === "POST /clases") {
+          const { rows } = await pool.query(
+            "SELECT 1 FROM asesores WHERE id_asesor = $1 AND id_usuario = $2",
+            [req.body.id_asesor, req.user.id_usuario],
+          );
+          if (rows.length === 0) {
+            return res.status(403).json({ error: "Solo puedes registrar clases como tu propio perfil de asesor" });
+          }
+        }
+
+        if (routeKey === "POST /asistencias") {
+          const { rows } = await pool.query(
+            `SELECT 1
+             FROM clases c
+             JOIN asesores a ON a.id_asesor = c.id_asesor
+             WHERE c.id_clase = $1 AND a.id_usuario = $2`,
+            [req.body.id_clase, req.user.id_usuario],
+          );
+          if (rows.length === 0) {
+            return res.status(403).json({ error: "Solo puedes registrar asistencia en tus propias clases" });
+          }
+        }
+
+        return next();
+      } catch (error) {
+        return next(error);
+      }
     }
 
     const allowedRoles = isInscripcionUserLookup(req.method, path)

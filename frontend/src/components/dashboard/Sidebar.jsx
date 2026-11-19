@@ -12,6 +12,7 @@ const lazyUsuariosPage = () => import("../../pages/app/usuarios/UsuariosPage.jsx
 const lazyCapacitacionesPage = () => import("../../pages/app/capacitaciones/CapacitacionesPage.jsx")
 const lazyMatriculacionesPage = () => import("../../pages/app/matriculaciones/MatriculacionesPage.jsx")
 const lazyPaseLista = () => import("../../pages/app/pase-lista/PaseListaPage.jsx")
+const lazyLlamarLista = () => import("../../pages/app/pase-lista/LlamarListaDocentePage.jsx")
 const lazyInscripciones = () => import("../../pages/app/inscripciones/InscripcionesPage.jsx")
 const lazyDataExplorer = () => import("../../pages/app/datos/DataExplorerPage.jsx")
 const lazyEstudiantes = () => import("../../pages/app/estudiantes/EstudiantesPage.jsx")
@@ -109,6 +110,7 @@ function NavIcon({ name }) {
         </svg>
       )
     case "pase-lista":
+    case "llamar-lista":
       return (
         <svg {...svgProps}>
           <path d="M9 11l3 3L22 4" />
@@ -179,6 +181,14 @@ export default function Sidebar() {
       label: "Llamar lista",
       to: "/app/pase-lista",
       preload: lazyPaseLista,
+    })
+  }
+  if (canAccessModuleWithRole(loggedUser, activeRole, "llamar-lista")) {
+    navItems.push({
+      key: "llamar-lista",
+      label: "Llamar lista",
+      to: "/app/llamar-lista",
+      preload: lazyLlamarLista,
     })
   }
   if (canAccessModuleWithRole(loggedUser, activeRole, "datos")) {

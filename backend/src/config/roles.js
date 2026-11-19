@@ -6,6 +6,8 @@ export const ROLE_NAMES = Object.freeze({
   GERENCIA: "Gerencia",
   CAJERO: "Cajero",
   ADMINISTRACION: "Administración",
+  ASESOR: "Asesor",
+  ASESOR_COORDINADOR: "Asesor Coordinador",
   ESTUDIANTE: "Estudiante",
   APOLDERADO: "Apoderado",
 });

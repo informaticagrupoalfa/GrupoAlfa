@@ -28,7 +28,7 @@ function userName(u) {
   return full || u.nombre_completo || u.correo_electronico || `Usuario ${u.id_usuario ?? u.nro_carnet ?? ""}`
 }
 
-export default function TomarClaseView({ catalogs, onSaved }) {
+export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = null }) {
   const [form, setForm] = useState(initialForm)
   const [alumnos, setAlumnos] = useState([])
   const [loadingAlumnos, setLoadingAlumnos] = useState(false)
@@ -44,6 +44,12 @@ export default function TomarClaseView({ catalogs, onSaved }) {
   useEffect(() => {
     setTemasLocal(catalogs.temas ?? [])
   }, [catalogs.temas])
+
+  useEffect(() => {
+    if (initialAsesorId != null) {
+      setForm((current) => ({ ...current, idAsesor: initialAsesorId }))
+    }
+  }, [initialAsesorId])
 
   const usuariosById = useMemo(() => {
     const map = new Map()
@@ -490,4 +496,5 @@ export default function TomarClaseView({ catalogs, onSaved }) {
 TomarClaseView.propTypes = {
   catalogs: PropTypes.object.isRequired,
   onSaved: PropTypes.func.isRequired,
+  initialAsesorId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 }

@@ -14,9 +14,8 @@ const fecha = (label) =>
       message: `${label} debe ser una fecha válida`,
     });
 
-const mensualidadSchema = z.object({
+const mensualidadFields = {
   id_inscripcion: fk("id_inscripcion"),
-  id_administrativo: fk("id_administrativo"),
   fecha_inicio_mensualidad: fecha("La fecha de inicio"),
   fecha_fin_mensualidad: fecha("La fecha de fin"),
   pago: z.coerce
@@ -26,7 +25,18 @@ const mensualidadSchema = z.object({
     .number({ invalid_type_error: "El código de comprobante debe ser numérico" })
     .int("El código de comprobante debe ser un entero")
     .optional(),
-});
+};
 
-export const createMensualidadSchema = mensualidadSchema;
-export const updateMensualidadSchema = mensualidadSchema.partial();
+const validateDateRange = (mensualidad, context) => {
+  const { fecha_inicio_mensualidad: inicio, fecha_fin_mensualidad: fin } = mensualidad;
+  if (inicio && fin && new Date(inicio).getTime() > new Date(fin).getTime()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fecha_fin_mensualidad"],
+      message: "La fecha de inicio no puede ser posterior a la fecha de fin",
+    });
+  }
+};
+
+export const createMensualidadSchema = z.object(mensualidadFields).superRefine(validateDateRange);
+export const updateMensualidadSchema = z.object(mensualidadFields).partial().superRefine(validateDateRange);

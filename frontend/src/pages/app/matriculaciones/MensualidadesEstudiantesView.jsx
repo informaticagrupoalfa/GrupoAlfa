@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { listResource, getResourceById, createResource } from "../../../services/academicService"
+import { listResource, getResourceById, createResource, updateResource, deleteResource } from "../../../services/academicService"
 import Skeleton from "../../../components/ui/Skeleton"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
 import Pagination from "../../../components/ui/Pagination"
 import Button from "../../../components/ui/Button"
+import Modal from "../../../components/ui/Modal"
 import { useAuth } from "../../../hooks/useAuth"
 
 // Cantidad de estudiantes mostrados por página en el panel izquierdo.
@@ -111,6 +112,7 @@ export default function MensualidadesEstudiantesView() {
   const { loggedUser } = useAuth()
   // Estado de la lista de estudiantes (panel izquierdo).
   const [students, setStudents] = useState([])
+  const [studentPhotos, setStudentPhotos] = useState({})
   const [studentTotalPages, setStudentTotalPages] = useState(1)
   const [studentsLoading, setStudentsLoading] = useState(true)
   const [studentsError, setStudentsError] = useState("")
@@ -126,18 +128,41 @@ export default function MensualidadesEstudiantesView() {
   const [mensualidadForm, setMensualidadForm] = useState(null)
   const [mensualidadSaving, setMensualidadSaving] = useState(false)
   const [mensualidadFormError, setMensualidadFormError] = useState("")
+  const [editingMensualidad, setEditingMensualidad] = useState(null)
+  const [editMensualidadForm, setEditMensualidadForm] = useState(null)
+  const [editMensualidadError, setEditMensualidadError] = useState("")
+  const [editMensualidadSaving, setEditMensualidadSaving] = useState(false)
+  const [monthlyListError, setMonthlyListError] = useState("")
+  const [calendarYearPage, setCalendarYearPage] = useState(1)
 
-  // Carga los estudiantes paginados cuando cambia studentPage.
+  // Carga primero los datos livianos de las cards y luego sus fotos en una
+  // solicitud independiente para que el listado aparezca sin esperar imágenes.
   useEffect(() => {
     let mounted = true
     async function load() {
       try {
         setStudentsLoading(true)
+        setStudentsError("")
         const response = await listResource("estudiantes/resumen", { page: studentPage, limit: STUDENTS_PER_PAGE })
         if (mounted) {
-          setStudents(Array.isArray(response?.filas) ? response.filas : [])
+          const rows = Array.isArray(response?.filas) ? response.filas : []
+          setStudents(rows)
+          setStudentPhotos({})
           setStudentTotalPages(Math.max(1, Number(response?.totalPaginas) || 1))
           setStudentsLoading(false)
+
+          const ids = rows.map(getStudentId).filter((id) => id != null)
+          if (ids.length) {
+            listResource("estudiantes/fotos", { ids: ids.join(",") })
+              .then((photoResponse) => {
+                if (!mounted) return
+                const fotos = Array.isArray(photoResponse?.filas) ? photoResponse.filas : []
+                setStudentPhotos(Object.fromEntries(fotos.map((item) => [String(item.id_estudiante), item.foto_base64])))
+              })
+              .catch(() => {
+                // La información de las cards permanece disponible si fallan las fotos.
+              })
+          }
         }
       } catch (err) {
         if (mounted) {
@@ -160,7 +185,6 @@ export default function MensualidadesEstudiantesView() {
     setSelectedInscripcion(null)
     setInscripcionPage(1)
     setMensualidadForm({
-      id_administrativo: loggedUser?.id_usuario ?? "",
       fecha_inicio_mensualidad: hoy,
       fecha_fin_mensualidad: unMesDespues,
       pago: "",
@@ -192,7 +216,7 @@ export default function MensualidadesEstudiantesView() {
     const idEstudiante = insc?.id_estudiante
     
     if (!idEstudiante) return
-    setSelectedInscripcion(null)
+    setSelectedInscripcion(insc)
     setInscripcionPage(1)
     try {
       let estudiante = await getResourceById("estudiantes", idEstudiante)
@@ -249,17 +273,27 @@ export default function MensualidadesEstudiantesView() {
       return
     }
     if (!mensualidadForm) return
+    const hoy = todayISO()
+    const unMesDespues = addMonthISO(hoy, 1)
+    const fechaInicio = mensualidadForm.fecha_inicio_mensualidad || hoy
+    const fechaFin = mensualidadForm.fecha_fin_mensualidad || unMesDespues
+    const pago = mensualidadForm.pago === "" ? 0 : Number(mensualidadForm.pago)
+    if (!Number.isFinite(pago) || pago < 0) {
+      setMensualidadFormError("El pago no puede ser negativo.")
+      return
+    }
+    if (fechaInicio > fechaFin) {
+      setMensualidadFormError("La fecha de inicio no puede ser posterior a la fecha de fin.")
+      return
+    }
     setMensualidadSaving(true)
     setMensualidadFormError("")
     try {
-      const hoy = todayISO()
-      const unMesDespues = addMonthISO(hoy, 1)
       const payload = {
         id_inscripcion: Number(selectedInscripcion.id_inscripcion),
-        id_administrativo: Number(loggedUser?.id_usuario) || undefined,
-        fecha_inicio_mensualidad: mensualidadForm.fecha_inicio_mensualidad || hoy,
-        fecha_fin_mensualidad: mensualidadForm.fecha_fin_mensualidad || unMesDespues,
-        pago: Number(mensualidadForm.pago) || 0,
+        fecha_inicio_mensualidad: fechaInicio,
+        fecha_fin_mensualidad: fechaFin,
+        pago,
         codigo_comprobante: mensualidadForm.codigo_comprobante || undefined,
       }
       console.log("[MensualidadesEstudiantesView] Creando mensualidad del estudiante:", payload)
@@ -274,7 +308,6 @@ export default function MensualidadesEstudiantesView() {
       setMensualidades(studentMensualidades)
       // Limpiar formulario con valores por defecto
       setMensualidadForm({
-        id_administrativo: loggedUser?.id_usuario ?? "",
         fecha_inicio_mensualidad: hoy,
         fecha_fin_mensualidad: unMesDespues,
         pago: "",
@@ -284,6 +317,65 @@ export default function MensualidadesEstudiantesView() {
       setMensualidadFormError(err.userMessage ?? err?.response?.data?.error ?? "No se pudo guardar la mensualidad.")
     } finally {
       setMensualidadSaving(false)
+    }
+  }
+
+  const openEditMensualidad = (mensualidad) => {
+    setEditingMensualidad(mensualidad)
+    setEditMensualidadForm({
+      fecha_inicio_mensualidad: mensualidad.fecha_inicio_mensualidad?.slice(0, 10) ?? "",
+      fecha_fin_mensualidad: mensualidad.fecha_fin_mensualidad?.slice(0, 10) ?? "",
+      pago: mensualidad.pago ?? "",
+      codigo_comprobante: mensualidad.codigo_comprobante ?? "",
+    })
+    setEditMensualidadError("")
+  }
+
+  const handleUpdateMensualidad = async (event) => {
+    event.preventDefault()
+    if (!editingMensualidad || !editMensualidadForm) return
+    const pago = editMensualidadForm.pago === "" ? 0 : Number(editMensualidadForm.pago)
+    if (!Number.isFinite(pago) || pago < 0) {
+      setEditMensualidadError("El pago no puede ser negativo.")
+      return
+    }
+    if (editMensualidadForm.fecha_inicio_mensualidad > editMensualidadForm.fecha_fin_mensualidad) {
+      setEditMensualidadError("La fecha de inicio no puede ser posterior a la fecha de fin.")
+      return
+    }
+
+    setEditMensualidadSaving(true)
+    setEditMensualidadError("")
+    try {
+      const payload = {
+        fecha_inicio_mensualidad: editMensualidadForm.fecha_inicio_mensualidad,
+        fecha_fin_mensualidad: editMensualidadForm.fecha_fin_mensualidad,
+        pago,
+        codigo_comprobante: editMensualidadForm.codigo_comprobante || undefined,
+      }
+      const updated = await updateResource("mensualidades", editingMensualidad.id_mensualidad, payload)
+      setMensualidades((current) => current.map((item) => (
+        String(item.id_mensualidad) === String(editingMensualidad.id_mensualidad)
+          ? { ...item, ...payload, ...updated }
+          : item
+      )))
+      setEditingMensualidad(null)
+      setEditMensualidadForm(null)
+    } catch (err) {
+      setEditMensualidadError(err.userMessage ?? err?.response?.data?.error ?? "No se pudo actualizar la mensualidad.")
+    } finally {
+      setEditMensualidadSaving(false)
+    }
+  }
+
+  const handleDeleteMensualidad = async (mensualidad) => {
+    if (!window.confirm("¿Eliminar esta mensualidad?")) return
+    setMonthlyListError("")
+    try {
+      await deleteResource("mensualidades", mensualidad.id_mensualidad)
+      setMensualidades((current) => current.filter((item) => String(item.id_mensualidad) !== String(mensualidad.id_mensualidad)))
+    } catch (err) {
+      setMonthlyListError(err.userMessage ?? err?.response?.data?.error ?? "No se pudo eliminar la mensualidad.")
     }
   }
 
@@ -303,13 +395,29 @@ export default function MensualidadesEstudiantesView() {
 
   // Primera mensualidad de la lista (se usa para mostrar sus datos principales).
   const mensualidad = mensualidades[0]
+  const inscripcionMensualidades = selectedInscripcion
+    ? mensualidades.filter((item) => String(item.id_inscripcion) === String(selectedInscripcion.id_inscripcion))
+    : []
+  const calendarYears = inscripcionMensualidades.flatMap((item) => [
+    new Date(`${item.fecha_inicio_mensualidad.slice(0, 10)}T00:00:00`).getFullYear(),
+    new Date(`${item.fecha_fin_mensualidad.slice(0, 10)}T00:00:00`).getFullYear(),
+  ])
+  const calendarStartYear = calendarYears.length ? Math.min(...calendarYears) : null
+  const calendarEndYear = calendarYears.length ? Math.max(...calendarYears) : null
+  const calendarTotalPages = calendarStartYear != null && calendarEndYear != null
+    ? Math.max(1, calendarEndYear - calendarStartYear + 1)
+    : 1
+  const calendarYear = calendarStartYear == null ? null : calendarStartYear + calendarYearPage - 1
+
+  useEffect(() => {
+    setCalendarYearPage(1)
+  }, [selectedInscripcion?.id_inscripcion, mensualidades])
 
   // Inicializa el formulario de creación de mensualidad con valores por defecto.
   useEffect(() => {
     const hoy = todayISO()
     const unMesDespues = addMonthISO(hoy, 1)
     setMensualidadForm({
-      id_administrativo: loggedUser?.id_usuario ?? "",
       fecha_inicio_mensualidad: hoy,
       fecha_fin_mensualidad: unMesDespues,
       pago: "",
@@ -339,8 +447,7 @@ export default function MensualidadesEstudiantesView() {
               const id = getStudentId(s)
               const name = getStudentName(s)
               const carnet = getStudentCarnet(s) ? `Carnet: ${getStudentCarnet(s)}` : ""
-              const photo = getStudentPhoto(s)
-              console.log(s)
+              const photo = getStudentPhoto({ ...s, foto_base64: studentPhotos[String(id)] })
               const isSelected = selectedStudentId === id
               return (
                 <div
@@ -496,55 +603,168 @@ export default function MensualidadesEstudiantesView() {
                 )}
               </div>
 
-              {mensualidad?.fecha_inicio_mensualidad && mensualidad?.fecha_fin_mensualidad && (
-                <div className="calendar-panel">
-                  <h3>Calendario de Mensualidad</h3>
-                  <div className="calendar">
-                    <div className="calendar-header">
-                      <span className="calendar-label">Inicio:</span>
-                      <span className="calendar-date">{formatDate(mensualidad.fecha_inicio_mensualidad)}</span>
-                    </div>
-                    <div className="calendar-header">
-                      <span className="calendar-label">Fin:</span>
-                      <span className="calendar-date">{formatDate(mensualidad.fecha_fin_mensualidad)}</span>
-                    </div>
-                    <div className="calendar-grid">
-                      {generateCalendarDays(mensualidad.fecha_inicio_mensualidad, mensualidad.fecha_fin_mensualidad).map((day) => (
-                        <div
-                          key={day.date}
-                          className={`calendar-day ${day.isSelected ? "calendar-day-selected" : ""} ${day.isRange ? "calendar-day-range" : ""}`}
-                        >
-                          {day.day}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
       </div>
+      {selectedStudent && selectedInscripcion && (
+        <div className="calendar-panel">
+          <h3>Calendario de Mensualidades · {selectedInscripcion.carrera || selectedInscripcion.grupo || `Inscripción ${selectedInscripcion.id_inscripcion}`}</h3>
+          {inscripcionMensualidades.length === 0 ? (
+            <p className="muted">Esta inscripción no tiene mensualidades registradas.</p>
+          ) : (
+            <>
+              {monthlyListError && <p className="error-message" role="alert">{monthlyListError}</p>}
+              <div className="calendar">
+                <div className="calendar-year-pagination">
+                  <h4>{calendarYear}</h4>
+                  <Pagination page={calendarYearPage} totalPages={calendarTotalPages} onPageChange={setCalendarYearPage} />
+                </div>
+                <div className="calendar-heatmap">
+                  <div className="calendar-months">
+                    {generateCalendarMonths(calendarYear, inscripcionMensualidades).map((month) => (
+                      <div className="calendar-month" key={month.key}>
+                        <h4>{month.label}</h4>
+                        <div className="calendar-month-layout">
+                          <div className="calendar-weekdays" aria-hidden="true">
+                            {WEEKDAYS.map((weekday) => <span key={weekday}>{weekday}</span>)}
+                          </div>
+                          <div className="calendar-month-grid">
+                            {month.cells.map((day, index) => (
+                              <div
+                                key={day?.date ?? "empty-" + index}
+                                className={`calendar-heat-day ${day?.paymentColor ? "calendar-payment-day" : ""} ${day?.isSelected ? "calendar-day-selected" : ""}`}
+                                style={day?.paymentColor ? { "--payment-color": day.paymentColor } : undefined}
+                                title={day ? day.date + ((day.paymentColor || day.isSelected) ? " · Dentro de la mensualidad" : "") : undefined}
+                                aria-label={day ? day.day + " de " + month.label : undefined}
+                              >
+                                {day?.day ?? ""}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="calendar-payment-list" aria-label="Mensualidades de la inscripción">
+                {inscripcionMensualidades.map((item, index) => (
+                  <div className="calendar-payment-item" key={item.id_mensualidad ?? `${item.fecha_inicio_mensualidad}-${item.fecha_fin_mensualidad}`}>
+                    <span className="calendar-payment-swatch" style={{ backgroundColor: MONTHLY_COLORS[index % MONTHLY_COLORS.length] }} aria-hidden="true" />
+                    <span><strong>{formatDate(item.fecha_inicio_mensualidad)} – {formatDate(item.fecha_fin_mensualidad)}</strong></span>
+                    {item.pago != null && <span>Bs. {item.pago}</span>}
+                    <div className="calendar-payment-actions">
+                      <Button variant="secondary" size="sm" onClick={() => openEditMensualidad(item)}>Editar</Button>
+                      <Button variant="secondary" size="sm" onClick={() => handleDeleteMensualidad(item)}>Eliminar</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {editingMensualidad && editMensualidadForm && (
+        <Modal
+          title="Editar mensualidad"
+          hint="Modifica las fechas, el pago y el código de comprobante."
+          onClose={() => {
+            if (!editMensualidadSaving) {
+              setEditingMensualidad(null)
+              setEditMensualidadForm(null)
+            }
+          }}
+        >
+          <form onSubmit={handleUpdateMensualidad}>
+            <Modal.Body>
+              <label className="form-row">
+                <span>Fecha de inicio</span>
+                <input
+                  type="date"
+                  required
+                  value={editMensualidadForm.fecha_inicio_mensualidad}
+                  onChange={(event) => setEditMensualidadForm((current) => ({ ...current, fecha_inicio_mensualidad: event.target.value }))}
+                />
+              </label>
+              <label className="form-row">
+                <span>Fecha de fin</span>
+                <input
+                  type="date"
+                  required
+                  value={editMensualidadForm.fecha_fin_mensualidad}
+                  onChange={(event) => setEditMensualidadForm((current) => ({ ...current, fecha_fin_mensualidad: event.target.value }))}
+                />
+              </label>
+              <label className="form-row">
+                <span>Pago</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editMensualidadForm.pago}
+                  onChange={(event) => setEditMensualidadForm((current) => ({ ...current, pago: event.target.value }))}
+                />
+              </label>
+              <label className="form-row">
+                <span>Código de comprobante</span>
+                <input
+                  type="number"
+                  step="1"
+                  value={editMensualidadForm.codigo_comprobante}
+                  onChange={(event) => setEditMensualidadForm((current) => ({ ...current, codigo_comprobante: event.target.value }))}
+                />
+              </label>
+              {editMensualidadError && <p className="error-message" role="alert">{editMensualidadError}</p>}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" disabled={editMensualidadSaving} onClick={() => {
+                setEditingMensualidad(null)
+                setEditMensualidadForm(null)
+              }}>Cancelar</Button>
+              <Button type="submit" disabled={editMensualidadSaving}>
+                {editMensualidadSaving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal>
+      )}
     </section>
   )
 }
 
-// Genera los días del calendario entre la fecha de inicio y fin de la mensualidad.
-function generateCalendarDays(startDateStr, endDateStr) {
-  const days = []
-  const start = new Date(startDateStr)
-  const end = new Date(endDateStr)
-  end.setHours(23, 59, 59, 999)
-  const current = new Date(start)
-  current.setHours(0, 0, 0, 0)
-  while (current <= end) {
-    days.push({
-      date: current.toISOString().split("T")[0],
-      day: current.getDate(),
-      isSelected: current.getTime() === start.getTime() || current.getTime() === end.getTime(),
-      isRange: current.getTime() > start.getTime() && current.getTime() < end.getTime(),
-    })
-    current.setDate(current.getDate() + 1)
+const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+const MONTHS_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+const MONTHLY_COLORS = ["#86efac", "#93c5fd", "#fca5a5", "#fcd34d", "#c4b5fd", "#f9a8d4", "#67e8f9", "#fdba74"]
+
+// Los doce meses del año en cuatro columnas, con la semana de lunes a domingo
+// en el eje horizontal.
+function generateCalendarMonths(year, mensualidades) {
+  const periods = mensualidades.map((item) => ({
+    start: new Date(`${item.fecha_inicio_mensualidad.slice(0, 10)}T00:00:00`),
+    end: new Date(`${item.fecha_fin_mensualidad.slice(0, 10)}T00:00:00`),
+  })).map((period, index) => ({ ...period, color: MONTHLY_COLORS[index % MONTHLY_COLORS.length] }))
+  const months = []
+
+  for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
+    const monthDate = new Date(year, monthIndex, 1)
+    const firstWeekday = (monthDate.getDay() + 6) % 7
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+    const cells = Array(42).fill(null)
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, monthIndex, day)
+      const dateString = year + "-" + String(monthIndex + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0")
+      const paymentPeriod = periods.find((period) => date >= period.start && date <= period.end)
+      cells[firstWeekday + day - 1] = {
+        date: dateString,
+        day,
+        isSelected: periods.some((period) => date.getTime() === period.start.getTime() || date.getTime() === period.end.getTime()),
+        paymentColor: paymentPeriod?.color,
+      }
+    }
+
+    months.push({ key: year + "-" + (monthIndex + 1), label: MONTHS_ES[monthIndex] + " " + year, cells })
   }
-  return days
+  return months
 }
