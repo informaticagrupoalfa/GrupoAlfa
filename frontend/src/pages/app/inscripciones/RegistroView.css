@@ -1,0 +1,241 @@
+.registro-layout {
+  display: grid;
+  grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.registro-lista,
+.registro-panel {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--row-border);
+  border-radius: 12px;
+}
+
+.registro-lista {
+  position: sticky;
+  top: 16px;
+  padding: 18px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.registro-lista-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.registro-lista-head h2,
+.registro-ficha-head h2,
+.registro-panel-vacio h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.registro-lista-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.registro-lista-head .submit-button {
+  margin: 0;
+}
+
+.registro-buscar {
+  display: grid;
+  gap: 6px;
+  margin: 20px 0 14px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.registro-buscar input {
+  width: 100%;
+}
+
+.registro-tarjetas {
+  display: grid;
+  gap: 8px;
+}
+
+.registro-tarjeta {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 13px 14px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--row-border);
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.registro-tarjeta:hover,
+.registro-tarjeta:focus-visible {
+  border-color: var(--blue);
+}
+
+.registro-tarjeta.selected {
+  border-color: var(--blue-dark);
+  border-left-color: var(--blue-dark);
+  background: var(--content-bg);
+}
+
+.registro-tarjeta strong {
+  line-height: 1.3;
+}
+
+.registro-tarjeta span:not(.registro-tarjeta-numero),
+.registro-tarjeta small {
+  color: var(--muted);
+}
+
+.registro-tarjeta-numero {
+  color: var(--blue-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.registro-vacio {
+  margin: 12px 0;
+  color: var(--muted);
+}
+
+.registro-panel {
+  padding: clamp(16px, 2.5vw, 28px);
+}
+
+.registro-panel-vacio {
+  min-height: 290px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  color: var(--muted);
+}
+
+.registro-panel-vacio p {
+  max-width: 36ch;
+}
+
+.registro-mensaje {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  color: #14532d;
+  background: #dcfce7;
+  border-radius: 8px;
+}
+
+.registro-ficha {
+  display: grid;
+  gap: 18px;
+}
+
+.registro-ficha-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+  border-bottom: 1px solid var(--row-border);
+  padding-bottom: 16px;
+}
+
+.registro-ficha-head span {
+  color: var(--blue-dark);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.registro-ficha-head p {
+  margin: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.registro-ficha-section {
+  padding: 18px;
+  border: 1px solid var(--row-border);
+  border-radius: 9px;
+}
+
+.registro-ficha-section h3 {
+  margin: 0 0 15px;
+  color: var(--text);
+}
+
+.registro-ficha-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 0;
+}
+
+.registro-ficha-dato dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.registro-ficha-dato dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.registro-edicion label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.registro-edicion input,
+.registro-edicion select {
+  width: 100%;
+}
+
+.registro-edicion .registro-campo-ancho {
+  grid-column: 1 / -1;
+}
+
+.registro-edicion .registro-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.registro-edicion .registro-check input {
+  width: auto;
+}
+
+.registro-ficha-actions {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.registro-ficha-actions button {
+  margin: 0;
+}
+
+.registro-panel .inscripcion-form .card {
+  overflow-x: auto;
+}
+
+@media (max-width: 900px) {
+  .registro-layout { grid-template-columns: minmax(0, 1fr); }
+  .registro-lista { position: static; max-height: 430px; }
+  .registro-ficha-head { display: block; }
+}
+
+@media (max-width: 560px) {
+  .registro-ficha-datos { grid-template-columns: minmax(0, 1fr); }
+  .registro-panel { padding: 14px; }
+}

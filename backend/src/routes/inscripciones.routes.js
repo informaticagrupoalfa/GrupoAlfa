@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   getInscripciones,
   getInscripcionById,
+  getInscripcionFichas,
+  getInscripcionFichaById,
   createInscripcion,
   updateInscripcion,
   deleteInscripcion,
@@ -17,6 +19,8 @@ import {
 const router = Router();
 
 router.get("/inscripciones", authMiddleware, getInscripciones);
+router.get("/inscripciones/fichas", authMiddleware, getInscripcionFichas);
+router.get("/inscripciones/:id/ficha", authMiddleware, getInscripcionFichaById);
 router.get("/inscripciones/:id", authMiddleware, getInscripcionById);
 router.post("/inscripciones/registrar-estudiante", authMiddleware, registrarEstudiante);
 router.post("/inscripciones", authMiddleware, validateRequest(createInscripcionSchema), createInscripcion);

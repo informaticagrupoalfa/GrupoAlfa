@@ -54,6 +54,9 @@ const isInscripcionesRoute = (path) =>
 const isInscripcionesWriteRoute = (method, path) =>
   isInscripcionesRoute(path) && method !== "GET";
 
+const isInscripcionFichaRoute = (method, path) =>
+  method === "GET" && (path === "/inscripciones/fichas" || /^\/inscripciones\/\d+\/ficha$/.test(path));
+
 const isAuthenticatedOnlyRoute = (method, path) =>
   method === "GET" && (path === "/usuarios/me" || path === "/mis-paralelos");
 
@@ -147,7 +150,9 @@ export const authorizeApi = (req, res, next) => {
       }
     }
 
-    const allowedRoles = isInscripcionUserLookup(req.method, path)
+    const allowedRoles = isInscripcionFichaRoute(req.method, path)
+      ? INSCRIPCIONES_ROLES
+      : isInscripcionUserLookup(req.method, path)
       ? INSCRIPCIONES_ROLES
       : isInscripcionesWriteRoute(req.method, path)
       ? INSCRIPCIONES_ROLES

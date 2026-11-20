@@ -11,7 +11,7 @@ export default function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const key = location.pathname.split("/")[2] ?? "dashboard"
-  const tabConfig = getModuleTabConfig(key)
+  const tabConfig = getModuleTabConfig(key, activeRole)
   const title =
     key === "dashboard"
       ? "Dashboard"

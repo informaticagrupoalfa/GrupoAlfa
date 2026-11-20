@@ -37,6 +37,15 @@ class UsuarioRepository(
         return usuario
     }
 
+    /** Usa el ID de sus paralelos; si aún no tiene, busca su registro de estudiante. */
+    suspend fun getIdEstudiante(idUsuario: Int): Int? {
+        val idEnParalelos = api.getMisParalelos()
+            .firstNotNullOfOrNull { it.idEstudiante?.takeIf { id -> id > 0 } }
+        return idEnParalelos ?: api.getEstudiantes()
+            .firstOrNull { it.idUsuario == idUsuario }
+            ?.idEstudiante
+    }
+
     suspend fun getUsuarioConRol(idUsuario: Int): UsuarioConRol {
         val usuario = api.getUsuarioById(idUsuario)
         val asignaciones = api.getAsignacionesRol(idUsuario)

@@ -13,7 +13,10 @@ import kotlinx.coroutines.launch
 data class UsuarioUiState(
     val usuario: Usuario? = null,
     val cargando: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val idEstudiante: Int? = null,
+    val cargandoQr: Boolean = false,
+    val errorQr: String? = null
 )
 
 class UsuarioViewModel(
@@ -29,10 +32,29 @@ class UsuarioViewModel(
 
     fun cargarPerfil() {
         viewModelScope.launch {
-            uiState = uiState.copy(cargando = true, error = null)
+            uiState = UsuarioUiState(cargando = true)
             runCatching { repository.getPerfil() }
                 .onSuccess { usuario ->
-                    uiState = UsuarioUiState(usuario = usuario, cargando = false)
+                    val esEstudiante = usuario.roles?.any {
+                        it.equals("Estudiante", ignoreCase = true)
+                    } == true
+                    uiState = UsuarioUiState(
+                        usuario = usuario,
+                        cargando = false,
+                        cargandoQr = esEstudiante
+                    )
+                    if (esEstudiante) {
+                        runCatching { repository.getIdEstudiante(usuario.idUsuario) }
+                            .onSuccess { id ->
+                                uiState = uiState.copy(idEstudiante = id, cargandoQr = false)
+                            }
+                            .onFailure { error ->
+                                uiState = uiState.copy(
+                                    cargandoQr = false,
+                                    errorQr = error.mensajeAmigable()
+                                )
+                            }
+                    }
                 }
                 .onFailure { error ->
                     uiState = uiState.copy(cargando = false, error = error.mensajeAmigable())

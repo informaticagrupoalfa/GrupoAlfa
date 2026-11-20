@@ -31,10 +31,7 @@ export const MODULE_TABS = {
   inscripciones: {
     path: "/app/inscripciones",
     defaultTab: "registro",
-    items: [
-      { key: "registro", label: "Registro de usuario" },
-      { key: "lista", label: "Registros" },
-    ],
+    items: [{ key: "registro", label: "Inscripciones" }],
   },
   "pase-lista": {
     path: "/app/pase-lista",
@@ -51,8 +48,10 @@ export const MODULE_TABS = {
   },
 }
 
-export function getModuleTabConfig(moduleKey) {
-  return MODULE_TABS[moduleKey] ?? null
+export function getModuleTabConfig(moduleKey, activeRole) {
+  const config = MODULE_TABS[moduleKey] ?? null
+  if (!config || moduleKey !== "capacitaciones" || activeRole === "SysAdmin") return config
+  return { ...config, items: config.items.filter((item) => item.key === "gestion") }
 }
 
 export function resolveModuleTab(config, search) {

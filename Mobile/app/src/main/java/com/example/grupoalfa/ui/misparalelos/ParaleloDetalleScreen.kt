@@ -1,11 +1,6 @@
 package com.example.grupoalfa.ui.misparalelos
 
-import android.graphics.Bitmap
-import android.graphics.Color
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,20 +17,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.grupoalfa.data.model.MiParalelo
+import com.example.grupoalfa.ui.components.EstudianteQr
 import com.example.grupoalfa.ui.theme.AlfaWhite
 import com.example.grupoalfa.ui.theme.BlueWash
 import com.example.grupoalfa.ui.theme.Navy
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun ParaleloDetalleScreen(
@@ -44,11 +34,7 @@ fun ParaleloDetalleScreen(
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val codigo = paralelo.idEstudiante?.takeIf { it > 0 }?.toString()
-    val qr = remember(codigo) {
-        codigo?.let { value -> runCatching { generarQr(value) }.getOrNull() }
-    }
-
+    val idEstudiante = paralelo.idEstudiante?.takeIf { it > 0 }
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -92,12 +78,9 @@ fun ParaleloDetalleScreen(
                     fontWeight = FontWeight.Bold, color = Navy)
                 Text("Es el mismo QR para todos tus paralelos. Muéstralo al asesor al ingresar a clase.", textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium)
-                if (qr != null && codigo != null) {
-                    Box(Modifier.background(AlfaWhite, RoundedCornerShape(16.dp)).padding(14.dp)) {
-                        Image(bitmap = qr.asImageBitmap(), contentDescription = "QR de asistencia $codigo",
-                            modifier = Modifier.size(248.dp), filterQuality = FilterQuality.None)
-                    }
-                    Text(codigo, style = MaterialTheme.typography.labelLarge, color = Navy)
+                if (idEstudiante != null) {
+                    EstudianteQr(idEstudiante = idEstudiante, size = 248.dp)
+                    Text(idEstudiante.toString(), style = MaterialTheme.typography.labelLarge, color = Navy)
                 } else {
                     Text("El QR aún no está disponible. Vuelve a cargar tus paralelos.",
                         textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
@@ -116,14 +99,4 @@ private fun DetailRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-private fun generarQr(value: String): Bitmap {
-    val matrix = QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, 744, 744)
-    val pixels = IntArray(matrix.width * matrix.height) { index ->
-        if (matrix[index % matrix.width, index / matrix.width]) Color.BLACK else Color.WHITE
-    }
-    return Bitmap.createBitmap(matrix.width, matrix.height, Bitmap.Config.ARGB_8888).apply {
-        setPixels(pixels, 0, matrix.width, 0, 0, matrix.width, matrix.height)
-    }
 }

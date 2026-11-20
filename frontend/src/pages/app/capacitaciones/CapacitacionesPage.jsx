@@ -1,6 +1,8 @@
 import { Suspense, lazy } from "react"
 import { useSearchParams } from "react-router-dom"
 import Skeleton from "../../../components/ui/Skeleton"
+import { getModuleTabConfig, resolveModuleTab } from "../../../config/moduleTabs"
+import { useAuth } from "../../../hooks/useAuth"
 
 const VIEWS = {
   gestion: lazy(() => import("./GestionAcademicaView")),
@@ -12,12 +14,10 @@ const VIEWS = {
   materias: lazy(() => import("./MateriasView")),
 }
 
-const TABS = Object.keys(VIEWS)
-
 export default function CapacitacionesPage() {
+  const { activeRole } = useAuth()
   const [searchParams] = useSearchParams()
-  const requestedTab = searchParams.get("tab")
-  const active = TABS.includes(requestedTab) ? requestedTab : "gestion"
+  const active = resolveModuleTab(getModuleTabConfig("capacitaciones", activeRole), searchParams.toString())
   const ActiveView = VIEWS[active]
 
   return (

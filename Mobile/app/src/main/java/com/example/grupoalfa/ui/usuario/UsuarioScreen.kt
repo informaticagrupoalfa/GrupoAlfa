@@ -36,6 +36,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.grupoalfa.data.model.Usuario
+import com.example.grupoalfa.data.session.SesionActual
+import com.example.grupoalfa.ui.components.EstudianteQr
 import com.example.grupoalfa.ui.theme.AlfaWhite
 import com.example.grupoalfa.ui.theme.Amber
 import com.example.grupoalfa.ui.theme.Blue
@@ -86,7 +88,7 @@ fun UsuarioScreen(
     onLogout: () -> Unit,
     onGoToLista: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: UsuarioViewModel = viewModel()
+    viewModel: UsuarioViewModel = viewModel(key = "usuario-${SesionActual.usuario?.idUsuario}")
 ) {
     val uiState = viewModel.uiState
     val usuario = uiState.usuario
@@ -113,7 +115,15 @@ fun UsuarioScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ProfileHero(usuario = usuario.toUiModel())
+                    ProfileHero(
+                        usuario = usuario.toUiModel(),
+                        esEstudiante = usuario.roles?.any {
+                            it.equals("Estudiante", ignoreCase = true)
+                        } == true,
+                        idEstudiante = uiState.idEstudiante,
+                        cargandoQr = uiState.cargandoQr,
+                        errorQr = uiState.errorQr
+                    )
 
                     AccountCard(
                         usuario = usuario.toUiModel(),
@@ -195,7 +205,13 @@ private fun ErrorState(
 }
 
 @Composable
-private fun ProfileHero(usuario: UsuarioUiModel) {
+private fun ProfileHero(
+    usuario: UsuarioUiModel,
+    esEstudiante: Boolean,
+    idEstudiante: Int?,
+    cargandoQr: Boolean,
+    errorQr: String?
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -246,6 +262,38 @@ private fun ProfileHero(usuario: UsuarioUiModel) {
                             color = AlfaWhite.copy(alpha = 0.92f),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
+            if (esEstudiante) {
+                Spacer(Modifier.height(24.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Mi QR de asistencia",
+                        color = AlfaWhite,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    when {
+                        idEstudiante != null -> {
+                            EstudianteQr(idEstudiante = idEstudiante, size = 200.dp)
+                            Text(
+                                text = idEstudiante.toString(),
+                                color = AlfaWhite,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                        cargandoQr -> CircularProgressIndicator(color = AlfaWhite)
+                        else -> Text(
+                            text = errorQr ?: "Tu ID de estudiante aún no está disponible.",
+                            color = AlfaWhite.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

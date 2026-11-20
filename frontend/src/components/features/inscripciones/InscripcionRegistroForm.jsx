@@ -158,6 +158,7 @@ export default function InscripcionRegistroForm({
   administrativos,
   apoderados,
   onSaved,
+  syncSearchParams = true,
 }) {
   const { loggedUser, activeRole } = useAuth()
   const defaultAdministrativo = useMemo(
@@ -349,7 +350,7 @@ export default function InscripcionRegistroForm({
   const isRestoring = useRef(false)
 
   useEffect(() => {
-    if (inscripcionId) return
+    if (inscripcionId || !syncSearchParams) return
     const params = {}
     for (const [key, value] of searchParams.entries()) {
       params[key] = value
@@ -391,10 +392,10 @@ export default function InscripcionRegistroForm({
     setShowParalelos(!!params.id_paralelo)
     setSelectedApoderadoId("")
     isRestoring.current = false
-  }, [searchParams, inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo])
+  }, [searchParams, inscripcionId, defaultElaborado, defaultAdministrativo?.id_administrativo, syncSearchParams])
 
   useEffect(() => {
-    if (isRestoring.current || inscripcionId) return
+    if (isRestoring.current || inscripcionId || !syncSearchParams) return
     const next = {}
     const setParam = (key, value) => {
       if (value === null || value === undefined || value === "") return
@@ -429,7 +430,7 @@ export default function InscripcionRegistroForm({
     setParam("fecha_inscripcion", form.fecha_inscripcion)
     setParam("como_se_entero_de_nosotros", form.como_se_entero_de_nosotros)
     setSearchParams(next, { replace: true })
-  }, [form, setSearchParams, inscripcionId])
+  }, [form, setSearchParams, inscripcionId, syncSearchParams])
 
   const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }))
   const handleStudentCiChange = (value) => {
@@ -1269,4 +1270,5 @@ InscripcionRegistroForm.propTypes = {
   administrativos: PropTypes.arrayOf(PropTypes.object).isRequired,
   apoderados: PropTypes.arrayOf(PropTypes.object).isRequired,
   onSaved: PropTypes.func,
+  syncSearchParams: PropTypes.bool,
 }

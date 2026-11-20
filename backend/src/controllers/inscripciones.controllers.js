@@ -51,6 +51,59 @@ export const createInscripcion = crud.create;
 export const updateInscripcion = crud.update;
 export const deleteInscripcion = crud.remove;
 
+export const getInscripcionFichas = async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 15, 1), 50);
+    const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
+    const search = String(req.query.q ?? "").trim().slice(0, 100);
+    const values = search ? [`%${search}%`] : [];
+    const where = search ? `WHERE CONCAT_WS(' ', u.nombre, u.apellido_paterno, u.apellido_materno) ILIKE $1
+      OR u.nro_carnet::text ILIKE $1 OR p.nombre_paralelo ILIKE $1
+      OR i.id_inscripcion::text ILIKE $1` : "";
+    const from = `FROM inscripciones i
+      LEFT JOIN estudiantes e ON e.id_estudiante = i.id_estudiante
+      LEFT JOIN usuarios u ON u.id_usuario = e.id_usuario
+      LEFT JOIN paralelos p ON p.id_paralelo = i.id_paralelo ${where}`;
+    const [{ rows }, count] = await Promise.all([
+      pool.query(`SELECT i.id_inscripcion, i.id_estudiante, i.id_paralelo, i.fecha_insc,
+          i.num_credencial, u.nombre, u.apellido_paterno, u.apellido_materno,
+          u.nro_carnet AS ci, p.nombre_paralelo
+        ${from} ORDER BY i.id_inscripcion DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      [...values, limit, offset]),
+      pool.query(`SELECT COUNT(*)::integer AS total ${from}`, values),
+    ]);
+    res.json({ items: rows, total: count.rows[0].total });
+  } catch (error) { next(error); }
+};
+
+export const getInscripcionFichaById = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "ID inválido" });
+    const { rows } = await pool.query(
+      `SELECT i.*, u.nombre, u.apellido_paterno, u.apellido_materno,
+          u.nro_carnet AS ci, u.correo_electronico, u.nro_telefono AS celular,
+          u.fecha_nacimiento, e.colegio_de_procedencia, e.direccion_de_domicilio,
+          a.parentesco AS apoderado_parentesco, au.nombre AS apoderado_nombre,
+          au.apellido_paterno AS apoderado_apellido_paterno,
+          au.apellido_materno AS apoderado_apellido_materno,
+          au.nro_carnet AS apoderado_ci, au.nro_telefono AS apoderado_telefono,
+          au.correo_electronico AS apoderado_correo_electronico,
+          p.nombre_paralelo, p.nivel, p.modalidad, p.dias, p.hora_inicio, p.hora_fin
+       FROM inscripciones i
+       LEFT JOIN estudiantes e ON e.id_estudiante = i.id_estudiante
+       LEFT JOIN usuarios u ON u.id_usuario = e.id_usuario
+       LEFT JOIN apoderados a ON a.id_apoderado = e.id_apoderado
+       LEFT JOIN usuarios au ON au.id_usuario = a.id_usuario
+       LEFT JOIN paralelos p ON p.id_paralelo = i.id_paralelo
+       WHERE i.id_inscripcion = $1`,
+      [id],
+    );
+    if (!rows.length) return res.status(404).json({ error: "Inscripción no encontrada" });
+    res.json(rows[0]);
+  } catch (error) { next(error); }
+};
+
 export const registrarEstudiante = async (req, res, next) => {
   const client = await pool.connect();
   try {
