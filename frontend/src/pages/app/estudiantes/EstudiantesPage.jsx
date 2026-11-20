@@ -1,9 +1,34 @@
 import { useCallback, useEffect, useState } from "react"
+import PropTypes from "prop-types"
+import QRCode from "qrcode"
 import { apiClient } from "../../../services/apiClient"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
 import Pagination from "../../../components/ui/Pagination"
 
 const LIMIT = 15
+
+function StudentQr({ id, nombre }) {
+  const [image, setImage] = useState("")
+
+  useEffect(() => {
+    let active = true
+    setImage("")
+    if (id != null) {
+      QRCode.toDataURL(String(id), { width: 180, margin: 2 })
+        .then(url => { if (active) setImage(url) })
+        .catch(() => { if (active) setImage(null) })
+    }
+    return () => { active = false }
+  }, [id])
+
+  if (image === null) return <small>El QR no está disponible.</small>
+  return image ? <img width="180" height="180" alt={`Código QR de ${nombre}`} src={image} /> : null
+}
+
+StudentQr.propTypes = {
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  nombre: PropTypes.string.isRequired,
+}
 
 function nombreCompleto(estudiante) {
   if (!estudiante) return ""
@@ -251,14 +276,8 @@ export default function EstudiantesPage() {
         <div className="estudiante-detail-fields">
           <div className="info-row" style={{ gridColumn: "1 / -1", display: "grid", justifyItems: "start", gap: 8 }}>
             <span className="info-label">QR de asistencia</span>
-            <img
-              width="180"
-              height="180"
-              loading="lazy"
-              alt={`Código QR de ${nombre}`}
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`GA-STUDENT-${detalle.id_estudiante}`)}`}
-            />
-            <small>El asesor puede escanearlo desde Llamar lista.</small>
+            <StudentQr id={detalle.id_estudiante} nombre={nombre} />
+            <small>ID {detalle.id_estudiante} · Un mismo QR para todos sus paralelos. El asesor puede escanearlo desde Llamar lista.</small>
           </div>
           <div className="info-row">
             <span className="info-label">Correo</span>

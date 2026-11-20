@@ -3,7 +3,7 @@ import { createResource, deleteResource, listResource } from "./academicService"
 /**
  * Catálogos necesarios para el pase de lista.
  * Reutiliza los endpoints CRUD existentes (materias, asesores,
- * capacitaciones, paralelos, temas, estudiantes, usuarios).
+ * capacitaciones, paralelos, estudiantes, usuarios).
  */
 export async function loadPaseListaCatalogs() {
   const [
@@ -11,7 +11,6 @@ export async function loadPaseListaCatalogs() {
     asesores,
     capacitaciones,
     paralelos,
-    temas,
     estudiantes,
     usuarios,
     aulas,
@@ -21,7 +20,6 @@ export async function loadPaseListaCatalogs() {
     listResource("asesores").catch(() => []),
     listResource("capacitaciones").catch(() => []),
     listResource("paralelos").catch(() => []),
-    listResource("temas").catch(() => []),
     listResource("estudiantes").catch(() => []),
     listResource("usuarios/catalogo").catch(() => []),
     listResource("aulas").catch(() => []),
@@ -32,7 +30,6 @@ export async function loadPaseListaCatalogs() {
     asesores,
     capacitaciones,
     paralelos,
-    temas,
     estudiantes,
     usuarios,
     aulas,
@@ -59,24 +56,6 @@ export async function loadEstudiantesPorParalelo(idParalelo) {
 /** Compatibilidad con llamadas antiguas. */
 export const loadEstudiantesPorCurso = loadEstudiantesPorParalelo
 
-/**
- * Resuelve el id de un tema por su nombre (case-insensitive).
- * Devuelve `null` si no existe: la columna `clases.id_tema` es nulleable.
- */
-export async function resolverTemaPorNombre(nombre) {
-  const term = String(nombre ?? "").trim().toLowerCase()
-  if (!term) return null
-  try {
-    const temas = await listResource("temas")
-    const match = (Array.isArray(temas) ? temas : []).find(
-      (t) => String(t.nombre_tema ?? "").trim().toLowerCase() === term,
-    )
-    return match?.id_tema ?? null
-  } catch {
-    return null
-  }
-}
-
 function toApiError(error, fallback) {
   return (
     error?.userMessage ??
@@ -92,13 +71,13 @@ function toApiError(error, fallback) {
  * (presente → hora_entrada; ausente → hora_entrada + permiso false).
  * Devuelve `{ idClase, fallos }`.
  */
-export async function guardarListaEnBD({ idParalelo, idAsesor, idTema, fecha, marcados }) {
+export async function guardarListaEnBD({ idParalelo, idAsesor, tema, fecha, marcados }) {
   const hora = new Date().toTimeString().slice(0, 8)
   const clase = await createResource("clases", {
     id_paralelo: Number(idParalelo),
     id_asesor: Number(idAsesor),
-    ...(idTema != null ? { id_tema: Number(idTema) } : {}),
-    inicioClase: fecha,
+    tema: String(tema).trim(),
+    inicioclase: fecha,
   }).catch((error) => {
     throw new Error(toApiError(error, "No se pudo crear la clase."))
   })
@@ -122,13 +101,13 @@ export async function guardarListaEnBD({ idParalelo, idAsesor, idTema, fecha, ma
  * `limit`/`offset` los aplica el backend; para detectar página siguiente
  * se pide `limit + 1` (técnica hasMore sin cambiar el formato array).
  */
-export async function fetchClasesFiltradas({ desde, hasta, idParalelo, idMateria, idTema, limit, offset }) {
+export async function fetchClasesFiltradas({ desde, hasta, idParalelo, idMateria, tema, limit, offset }) {
   const params = {}
   if (desde) params.desde = desde
   if (hasta) params.hasta = hasta
   if (idParalelo) params.id_paralelo = idParalelo
   if (idMateria) params.id_materia = idMateria
-  if (idTema) params.id_tema = idTema
+  if (tema) params.tema = tema
   if (limit != null) params.limit = limit
   if (offset != null) params.offset = offset
   const rows = await listResource("clases", params)

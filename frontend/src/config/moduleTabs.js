@@ -17,7 +17,7 @@ export const MODULE_TABS = {
   capacitaciones: {
     path: "/app/capacitaciones",
     defaultTab: "gestion",
-    items: [{ key: "gestion", label: "Gestión académica" }, ...buildTabs(["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias", "temas"])],
+    items: [{ key: "gestion", label: "Gestión académica" }, ...buildTabs(["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias"])],
   },
   matriculaciones: {
     path: "/app/matriculaciones",

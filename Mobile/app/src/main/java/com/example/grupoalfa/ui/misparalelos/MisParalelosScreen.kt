@@ -1,5 +1,6 @@
 package com.example.grupoalfa.ui.misparalelos
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -43,6 +48,13 @@ fun MisParalelosScreen(
     viewModel: MisParalelosViewModel = viewModel()
 ) {
     val uiState = viewModel.uiState
+    var detalle by remember { mutableStateOf<MiParalelo?>(null) }
+    BackHandler(enabled = detalle != null) { detalle = null }
+
+    detalle?.let { paralelo ->
+        ParaleloDetalleScreen(paralelo = paralelo, onVolver = { detalle = null }, modifier = modifier)
+        return
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         when {
@@ -101,7 +113,7 @@ fun MisParalelosScreen(
                         item { EmptyState() }
                     } else {
                         items(uiState.paralelos, key = { it.idParalelo }) { paralelo ->
-                            ParaleloCard(paralelo = paralelo)
+                            ParaleloCard(paralelo = paralelo, onClick = { detalle = paralelo })
                         }
                     }
                 }
@@ -175,8 +187,9 @@ private fun EmptyState() {
 }
 
 @Composable
-private fun ParaleloCard(paralelo: MiParalelo) {
+private fun ParaleloCard(paralelo: MiParalelo, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -265,6 +278,13 @@ private fun ParaleloCard(paralelo: MiParalelo) {
             paralelo.fechaFin?.let { InfoRow(label = "Fin", value = it) }
             paralelo.nroComprobante?.let { InfoRow(label = "Comprobante", value = it.toString()) }
             paralelo.nroCredencial?.let { InfoRow(label = "Credencial", value = it.toString()) }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Ver detalle y código QR  →",
+                color = Navy,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

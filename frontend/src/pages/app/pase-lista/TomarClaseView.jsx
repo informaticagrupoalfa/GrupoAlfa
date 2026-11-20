@@ -3,7 +3,7 @@ import PropTypes from "prop-types"
 import Skeleton from "../../../components/ui/Skeleton"
 import Button from "../../../components/ui/Button"
 import TextField from "../../../components/ui/TextField"
-import { createResource, listResource } from "../../../services/academicService"
+import { listResource } from "../../../services/academicService"
 import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
 import "../../../components/pase-lista/TomarClase.css"
 
@@ -19,7 +19,7 @@ const initialForm = {
   idParalelo: "",
   idAula: "",
   fecha: new Date().toISOString().slice(0, 10),
-  idTema: "",
+  tema: "",
 }
 
 function userName(u) {
@@ -36,14 +36,6 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
   const [asistencia, setAsistencia] = useState({})
   const [guardado, setGuardado] = useState("")
   const [saving, setSaving] = useState(false)
-  const [temasLocal, setTemasLocal] = useState(catalogs.temas ?? [])
-  const [showNuevoTema, setShowNuevoTema] = useState(false)
-  const [nuevoTemaNombre, setNuevoTemaNombre] = useState("")
-  const [savingTema, setSavingTema] = useState(false)
-
-  useEffect(() => {
-    setTemasLocal(catalogs.temas ?? [])
-  }, [catalogs.temas])
 
   useEffect(() => {
     if (initialAsesorId != null) {
@@ -109,14 +101,6 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         label: `Aula ${a.id_aula} — cap. ${a.capacidad ?? "—"}`,
       })),
     [catalogs.aulas],
-  )
-  const temaOptions = useMemo(
-    () => (temasLocal ?? []).map((t) => ({ value: t.id_tema, label: t.nombre_tema })),
-    [temasLocal],
-  )
-  const temaSeleccionado = useMemo(
-    () => (temasLocal ?? []).find((t) => String(t.id_tema) === String(form.idTema)),
-    [temasLocal, form.idTema],
   )
 
   // Al elegir paralelo: autocompleta aula/horario y carga la lista de abajo.
@@ -202,44 +186,10 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
     }
   }, [asistencia, alumnos.length])
 
-  const handleCrearTema = async () => {
-    const nombre = nuevoTemaNombre.trim()
-    if (!nombre) {
-      setGuardado("Escribe el nombre del tema nuevo antes de adicionarlo.")
-      return
-    }
-    if (!form.idMateria) {
-      setGuardado("Elige primero la materia para adicionar el tema.")
-      return
-    }
-    setSavingTema(true)
-    try {
-      const creado = await createResource("temas", {
-        nombre_tema: nombre,
-        id_materia: Number(form.idMateria),
-      })
-      const lista = await listResource("temas").catch(() => null)
-      if (Array.isArray(lista)) {
-        setTemasLocal(lista)
-      } else if (creado?.id_tema != null) {
-        setTemasLocal((prev) => [...prev, creado])
-      }
-      const nuevoId = creado?.id_tema != null ? String(creado.id_tema) : null
-      if (nuevoId) setField("idTema", nuevoId)
-      setNuevoTemaNombre("")
-      setShowNuevoTema(false)
-      setGuardado(`Tema "${nombre}" adicionado. Ya puedes guardar la lista.`)
-    } catch {
-      setGuardado("No se pudo adicionar el tema.")
-    } finally {
-      setSavingTema(false)
-    }
-  }
-
   const handleGuardar = async () => {
     if (saving) return
-    if (!form.idMateria || !form.idAsesor || !form.idParalelo || !form.idAula || !form.idTema) {
-      setGuardado("Elige materia, asesor, paralelo, aula y tema avanzado de las sugerencias antes de guardar.")
+    if (!form.idMateria || !form.idAsesor || !form.idParalelo || !form.idAula || !form.tema.trim()) {
+      setGuardado("Elige materia, asesor, paralelo y aula, e indica el tema antes de guardar.")
       return
     }
     if (!form.horaInicio || !form.horaFin) {
@@ -268,7 +218,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
       const { idClase, fallos } = await guardarListaEnBD({
         idParalelo: form.idParalelo,
         idAsesor: form.idAsesor,
-        idTema: Number(form.idTema),
+        tema: form.tema.trim(),
         fecha: form.fecha,
         marcados,
       })
@@ -282,7 +232,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         ...form,
         horario,
         aula: form.idAula,
-        temaAvanzado: temaSeleccionado?.nombre_tema ?? "",
+        temaAvanzado: form.tema.trim(),
         curso: paraleloSeleccionado?.nombre_paralelo ?? "",
         paralelo: paraleloSeleccionado?.nombre_paralelo ?? "",
         id_clase: idClase,
@@ -357,44 +307,15 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                   hint="Escribe y elige una sugerencia de la lista."
                 />
               </Suspense>
-              <Suspense fallback={<Skeleton lines={1} />}>
-                <PersonCombobox
-                  key={`tema-${form.idTema}`}
-                  id="pl-tema"
-                  label="Tema avanzado"
-                  options={temaOptions}
-                  value={form.idTema || null}
-                  onSelect={(v) => setField("idTema", v)}
-                  placeholder="Escribe para buscar tema..."
-                  hint="Escribe y elige una sugerencia de la lista."
-                />
-              </Suspense>
-              {!showNuevoTema ? (
-                <button type="button" className="tc-textbtn" onClick={() => setShowNuevoTema(true)}>
-                  ＋ Nuevo tema para esta materia
-                </button>
-              ) : (
-                <div className="tc-newtema">
-                  <p className="tc-hint" style={{ margin: 0 }}>Adicionar tema a la base de datos (materia seleccionada).</p>
-                  <TextField
-                    id="pl-nuevo-tema"
-                    label="Nombre del tema nuevo"
-                    type="text"
-                    value={nuevoTemaNombre}
-                    onChange={(e) => setNuevoTemaNombre(e.target.value)}
-                    maxLength={150}
-                    required
-                  />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Button size="sm" type="button" disabled={savingTema} onClick={handleCrearTema}>
-                      {savingTema ? "Adicionando..." : "Adicionar tema"}
-                    </Button>
-                    <Button size="sm" variant="secondary" type="button" onClick={() => { setShowNuevoTema(false); setNuevoTemaNombre("") }}>
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <TextField
+                id="pl-tema"
+                label="Tema avanzado"
+                type="text"
+                value={form.tema}
+                onChange={(event) => setField("tema", event.target.value)}
+                maxLength={100}
+                required
+              />
             </div>
 
             <div className="tc-block">

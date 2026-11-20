@@ -12,6 +12,7 @@ const SELECT_MIS_PARALELOS = `
          i.num_credencial AS nro_credencial,
          i.id_inscripcion,
          i.fecha_insc,
+         e.id_estudiante,
          p.id_paralelo,
          p.nombre_paralelo,
          p.nivel,

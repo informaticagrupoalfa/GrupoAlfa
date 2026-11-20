@@ -125,7 +125,6 @@ export default function AsistenciasView({ catalogs, version }) {
       return full || u.nombre_completo || u.correo_electronico || ""
     }
     const materiaById = new Map((catalogs.materias ?? []).map((m) => [String(m.id_materia), m.nombre_materia]))
-    const temaById = new Map((catalogs.temas ?? []).map((t) => [String(t.id_tema), t.nombre_tema]))
     const capacitacionById = new Map((catalogs.capacitaciones ?? []).map((c) => [String(c.id_capacitacion), c]))
     const paraleloById = new Map((catalogs.paralelos ?? []).map((p) => [String(p.id_paralelo), p]))
     const aulaById = new Map((catalogs.aulas ?? []).map((a) => [String(a.id_aula), a.codigo ?? `Aula ${a.id_aula}`]))
@@ -156,7 +155,6 @@ export default function AsistenciasView({ catalogs, version }) {
     }
     return {
       materiaById,
-      temaById,
       capacitacionById,
       paraleloById,
       aulaById,
@@ -197,7 +195,7 @@ export default function AsistenciasView({ catalogs, version }) {
           hasta: activeFilters.includes("fecha") ? hasta : "",
           idParalelo: activeFilters.includes("paralelo") ? idParalelo : "",
           idMateria: activeFilters.includes("materia") ? idMateria : "",
-          idTema: activeFilters.includes("tema") ? idTema : "",
+          tema: activeFilters.includes("tema") ? idTema.trim() : "",
           limit: PAGE_SIZE + 1,
           offset,
         })
@@ -227,7 +225,7 @@ export default function AsistenciasView({ catalogs, version }) {
     const paralelo = nombres.paraleloById.get(String(clase.id_paralelo))
     const materias = nombres.materiasPorParalelo.get(String(clase.id_paralelo)) ?? []
     return {
-      fecha: String(clase.inicioClase ?? "").slice(0, 10),
+      fecha: String(clase.inicioclase ?? "").slice(0, 10),
       curso: paralelo?.nombre_paralelo ?? `Paralelo ${clase.id_paralelo}`,
       materia: materias.length > 0 ? materias.join(", ") : "—",
       asesor: nombres.asesorById.get(String(clase.id_asesor)) ?? "—",
@@ -235,7 +233,7 @@ export default function AsistenciasView({ catalogs, version }) {
       aula: paralelo?.id_aula != null
         ? nombres.aulaById.get(String(paralelo.id_aula)) ?? String(paralelo.id_aula)
         : "—",
-      tema: nombres.temaById.get(String(clase.id_tema)) ?? "—",
+      tema: clase.tema || "—",
       guardadoEn: null,
       lista: asistencias.map((a) => ({
         id_estudiante: a.id_estudiante,
@@ -343,12 +341,7 @@ export default function AsistenciasView({ catalogs, version }) {
           {activeFilters.includes("tema") && (
             <div className="form-row">
               <label htmlFor="as-tema">Tema avanzado</label>
-              <select id="as-tema" value={idTema} onChange={(e) => setFilterValue(setIdTema)(e.target.value)}>
-                <option value="">Todos</option>
-                {(catalogs.temas ?? []).map((t) => (
-                  <option key={t.id_tema} value={t.id_tema}>{t.nombre_tema}</option>
-                ))}
-              </select>
+              <input id="as-tema" type="search" value={idTema} onChange={(e) => setFilterValue(setIdTema)(e.target.value)} placeholder="Nombre exacto del tema" />
             </div>
           )}
         </div>
@@ -386,7 +379,7 @@ export default function AsistenciasView({ catalogs, version }) {
                       <td>{String(clase.inicioclase ?? "No Hay").slice(0, 10)}</td>
                       <td>{nombres.paraleloById.get(String(clase.id_paralelo))?.nombre_paralelo ?? "—"}</td>
                       <td>{(nombres.materiasPorParalelo.get(String(clase.id_paralelo)) ?? []).join(", ") || "—"}</td>
-                      <td>{nombres.temaById.get(String(clase.id_tema)) ?? "—"}</td>
+                      <td>{clase.tema || "—"}</td>
                       <td>{asistencias.filter((a) => a.permiso !== false).length}</td>
                       <td>{asistencias.filter((a) => a.permiso === false).length}</td>
                     </tr>

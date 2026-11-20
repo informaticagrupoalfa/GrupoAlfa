@@ -16,6 +16,10 @@ import com.example.grupoalfa.data.model.LoginResponse
 import com.example.grupoalfa.data.model.Matriculacion
 import com.example.grupoalfa.data.model.Materia
 import com.example.grupoalfa.data.model.MiParalelo
+import com.example.grupoalfa.data.model.AsignacionAsesor
+import com.example.grupoalfa.data.model.ClaseAsesor
+import com.example.grupoalfa.data.model.EstudianteParalelo
+import com.example.grupoalfa.data.model.CreateClaseAsesorRequest
 import com.example.grupoalfa.data.model.Rol
 import com.example.grupoalfa.data.model.Tema
 import com.example.grupoalfa.data.model.Usuario
@@ -83,6 +87,18 @@ interface ApiService {
     @GET("mis-paralelos")
     suspend fun getMisParalelos(): List<MiParalelo>
 
+    @GET("llamar-lista/asignaciones")
+    suspend fun getMisAsignaciones(): List<AsignacionAsesor>
+
+    @GET("llamar-lista/clases")
+    suspend fun getMisClases(): List<ClaseAsesor>
+
+    @GET("llamar-lista/paralelos/{id}/estudiantes")
+    suspend fun getEstudiantesParalelo(@Path("id") idParalelo: Int): List<EstudianteParalelo>
+
+    @POST("clases")
+    suspend fun createClaseAsesor(@Body request: CreateClaseAsesorRequest): ClaseAsesor
+
     // --- Clases y asistencias ----------------------------------------------
 
     @GET("clases")
@@ -107,7 +123,8 @@ interface ApiService {
     @GET("asistencias")
     suspend fun getAsistencias(
         @Query("id_clase") idClase: Int,
-        @Query("limit") limit: Int = 100
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0
     ): List<Asistencia>
 
     @POST("temas")

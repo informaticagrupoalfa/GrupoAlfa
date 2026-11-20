@@ -17,6 +17,7 @@ const ADVISOR_ROUTES = new Set([
   "GET /llamar-lista/asignaciones",
   "GET /llamar-lista/clases",
   "GET /llamar-lista/paralelos/:id/estudiantes",
+  "GET /asistencias",
   "POST /temas",
   "POST /clases",
   "POST /asistencias",
@@ -81,6 +82,33 @@ export const authorizeApi = (req, res, next) => {
     const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/estudiantes$/.test(path);
     if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR]) && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute)) {
       try {
+        if (advisorListRoute) {
+          const parallelId = Number(path.match(/\/paralelos\/(\d+)\/estudiantes$/)[1]);
+          const { rows } = await pool.query(
+            `SELECT 1 FROM asesor_paralelo_materia apm
+             JOIN asesores a ON a.id_asesor = apm.id_asesor
+             JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
+             WHERE pm.id_paralelo = $1 AND a.id_usuario = $2 LIMIT 1`,
+            [parallelId, req.user.id_usuario],
+          );
+          if (!rows.length) return res.status(403).json({ error: "Solo puedes ver estudiantes de tus paralelos" });
+        }
+
+        if (routeKey === "GET /asistencias") {
+          const classId = Number(req.query.id_clase);
+          if (!Number.isInteger(classId) || classId <= 0) {
+            return res.status(400).json({ error: "Indica una clase válida" });
+          }
+          const { rows } = await pool.query(
+            `SELECT 1 FROM clases c
+             JOIN asesor_paralelo_materia apm ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = apm.id_asesor
+             WHERE c.id_clase = $1 AND a.id_usuario = $2 LIMIT 1`,
+            [classId, req.user.id_usuario],
+          );
+          if (!rows.length) return res.status(403).json({ error: "Solo puedes ver la asistencia de tus clases" });
+        }
+
         if (routeKey === "POST /clases") {
           const { rows } = await pool.query(
             `SELECT 1
@@ -102,11 +130,14 @@ export const authorizeApi = (req, res, next) => {
              JOIN asesor_paralelo_materia apm
                ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
              JOIN asesores a ON a.id_asesor = apm.id_asesor
-             WHERE c.id_clase = $1 AND a.id_usuario = $2`,
-            [req.body.id_clase, req.user.id_usuario],
+             JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
+             JOIN inscripciones i ON i.id_paralelo = pm.id_paralelo
+             WHERE c.id_clase = $1 AND a.id_usuario = $2
+               AND i.id_estudiante = $3`,
+            [req.body.id_clase, req.user.id_usuario, req.body.id_estudiante],
           );
           if (rows.length === 0) {
-            return res.status(403).json({ error: "Solo puedes registrar asistencia en tus propias clases" });
+            return res.status(403).json({ error: "Solo puedes registrar estudiantes inscritos en tu clase" });
           }
         }
 

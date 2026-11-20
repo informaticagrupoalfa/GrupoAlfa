@@ -10,7 +10,6 @@ const VIEWS = {
   facultades: lazy(() => import("./FacultadesView")),
   aulas: lazy(() => import("./AulasView")),
   materias: lazy(() => import("./MateriasView")),
-  temas: lazy(() => import("./TemasView")),
 }
 
 const TABS = Object.keys(VIEWS)

@@ -29,11 +29,12 @@ import androidx.compose.ui.unit.dp
 enum class MainTab(
     val title: String,
     val navLabel: String,
-    val soloEstudiante: Boolean = false
+    val soloEstudiante: Boolean = false,
+    val soloAsesor: Boolean = false
 ) {
     Usuario(title = "Mi usuario", navLabel = "Usuario"),
     MisParalelos(title = "Mis paralelos", navLabel = "Paralelos", soloEstudiante = true),
-    LlamarLista(title = "Llamar lista", navLabel = "Llamar lista")
+    LlamarLista(title = "Llamar lista", navLabel = "Lista", soloAsesor = true)
 }
 
 @Composable

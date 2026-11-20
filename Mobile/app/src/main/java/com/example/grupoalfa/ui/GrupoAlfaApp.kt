@@ -30,7 +30,7 @@ import com.example.grupoalfa.data.session.SesionActual
 import com.example.grupoalfa.ui.components.BrandMark
 import com.example.grupoalfa.ui.components.GrupoAlfaBottomBar
 import com.example.grupoalfa.ui.components.MainTab
-import com.example.grupoalfa.ui.llamarlista.LlamarListaScreen
+import com.example.grupoalfa.ui.llamarlista.LlamarListaAsesorScreen
 import com.example.grupoalfa.ui.login.LoginScreen
 import com.example.grupoalfa.ui.misparalelos.MisParalelosScreen
 import com.example.grupoalfa.ui.theme.AlfaWhite
@@ -55,7 +55,12 @@ fun GrupoAlfaApp() {
 
     val esEstudiante = usuario?.roles
         ?.any { it.equals("Estudiante", ignoreCase = true) } == true
-    val tabs = MainTab.entries.filter { tab -> !tab.soloEstudiante || esEstudiante }
+    val esAsesor = usuario?.roles?.any {
+        it.equals("Asesor", ignoreCase = true) || it.equals("Asesor Coordinador", ignoreCase = true)
+    } == true
+    val tabs = MainTab.entries.filter { tab ->
+        (!tab.soloEstudiante || esEstudiante) && (!tab.soloAsesor || esAsesor)
+    }
 
     if (!loggedIn) {
         LoginScreen(
@@ -171,7 +176,7 @@ private fun MainShell(
                 modifier = Modifier.padding(innerPadding)
             )
 
-            MainTab.LlamarLista -> LlamarListaScreen(
+            MainTab.LlamarLista -> LlamarListaAsesorScreen(
                 modifier = Modifier.padding(innerPadding)
             )
         }

@@ -117,7 +117,11 @@ fun UsuarioScreen(
 
                     AccountCard(
                         usuario = usuario.toUiModel(),
-                        onGoToLista = onGoToLista
+                        onGoToLista = onGoToLista,
+                        puedeLlamarLista = usuario.roles?.any {
+                            it.equals("Asesor", ignoreCase = true) ||
+                                it.equals("Asesor Coordinador", ignoreCase = true)
+                        } == true
                     )
 
                     OutlinedButton(
@@ -298,7 +302,8 @@ private fun HeroDatum(
 @Composable
 private fun AccountCard(
     usuario: UsuarioUiModel,
-    onGoToLista: () -> Unit
+    onGoToLista: () -> Unit,
+    puedeLlamarLista: Boolean
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -326,34 +331,26 @@ private fun AccountCard(
                 valueColor = Present
             )
 
-            Spacer(Modifier.height(20.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = BlueWash
-            ) {
-                Row(
-                    modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            if (puedeLlamarLista) {
+                Spacer(Modifier.height(20.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = BlueWash
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Llamar lista",
-                            color = Navy,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Toma asistencia de la clase de hoy.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    TextButton(onClick = onGoToLista) {
-                        Text(
-                            text = "Abrir",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Llamar lista", color = Navy, style = MaterialTheme.typography.titleMedium)
+                            Text("Toma asistencia de la clase de hoy.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        TextButton(onClick = onGoToLista) {
+                            Text("Abrir", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }

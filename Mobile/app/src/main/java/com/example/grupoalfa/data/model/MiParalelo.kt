@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 /** Paralelo en el que está inscrito el estudiante autenticado. */
 data class MiParalelo(
+    @SerializedName("id_estudiante") val idEstudiante: Int?,
     @SerializedName("id_matriculacion") val idMatriculacion: Int,
     @SerializedName("esta_vigente") val estaVigente: Boolean?,
     @SerializedName("nro_comprobante") val nroComprobante: Int?,

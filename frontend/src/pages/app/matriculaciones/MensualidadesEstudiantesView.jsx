@@ -393,8 +393,6 @@ export default function MensualidadesEstudiantesView() {
   const totalInscriptionPages = Math.ceil(inscripcionesSorted.length / INSCRIPCIONES_PER_PAGE) || 1
   const visibleInscripciones = inscripcionesSorted.slice((inscripcionPage - 1) * INSCRIPCIONES_PER_PAGE, inscripcionPage * INSCRIPCIONES_PER_PAGE)
 
-  // Primera mensualidad de la lista (se usa para mostrar sus datos principales).
-  const mensualidad = mensualidades[0]
   const inscripcionMensualidades = selectedInscripcion
     ? mensualidades.filter((item) => String(item.id_inscripcion) === String(selectedInscripcion.id_inscripcion))
     : []
