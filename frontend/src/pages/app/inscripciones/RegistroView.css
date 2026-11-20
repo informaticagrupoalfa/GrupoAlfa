@@ -1,6 +1,6 @@
 .registro-layout {
   display: grid;
-  grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
   align-items: start;
   gap: 20px;
 }
@@ -109,13 +109,136 @@
 
 .registro-panel {
   padding: clamp(16px, 2.5vw, 28px);
-  overflow-x: auto;
 }
 
 .registro-panel > .inscripcion-form {
-  width: 960px;
-  min-width: 960px;
-  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.registro-panel .inscripcion-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.registro-panel .inscripcion-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px 20px;
+  min-width: 0;
+}
+
+.registro-panel .inscripcion-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.registro-panel .inscripcion-field > label {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.registro-panel .inscripcion-field > input:not([type="checkbox"]),
+.registro-panel .inscripcion-field > select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.registro-panel .inscripcion-field > input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 4px 0 0;
+  accent-color: var(--blue);
+}
+
+.registro-panel .inscripcion-field > small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.registro-panel .inscripcion-check-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--row-border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.registro-panel .inscripcion-check-field input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.registro-panel .inscripcion-radio-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.registro-panel .inscripcion-radio-field legend {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.registro-panel .inscripcion-radio-field .radio-group {
+  margin-top: 10px;
+}
+
+.registro-panel .inscripcion-paralelo-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 14px 20px;
+  min-width: 0;
+  margin: 18px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--row-border);
+}
+
+.registro-panel .inscripcion-paralelo-resumen dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.registro-panel .inscripcion-paralelo-resumen dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.registro-panel .inscripcion-foto-preview {
+  display: block;
+  width: min(200px, 100%);
+  height: auto;
+  margin-top: 8px;
+  border: 1px solid var(--row-border);
+  border-radius: 6px;
+}
+
+.registro-panel .inscripcion-course-section {
+  margin-top: 0;
+}
+
+.registro-panel .curso-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
 }
 
 .registro-panel-vacio {

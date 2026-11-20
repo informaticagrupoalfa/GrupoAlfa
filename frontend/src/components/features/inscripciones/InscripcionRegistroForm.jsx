@@ -63,6 +63,22 @@ function textOrUndefined(value) {
   return trimmed === "" ? undefined : trimmed
 }
 
+function RegistroCampo({ id, label, children, wide = false }) {
+  return (
+    <div className={`inscripcion-field${wide ? " inscripcion-field--wide" : ""}`}>
+      <label htmlFor={id}>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+RegistroCampo.propTypes = {
+  id: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+  wide: PropTypes.bool,
+}
+
 function buildEmptyForm(elaboradoPor, idAdministrativo) {
   return {
     id_carrera: "",
@@ -729,535 +745,289 @@ export default function InscripcionRegistroForm({
     <form className="inscripcion-form" onSubmit={handleSubmit}>
       <div className="inscripcion-form-header">
         <h2>CCTP Grupo alfa Malaver S.R.L.</h2>
-        <p className="muted">
-          {inscripcionId ? "Editando registro de usuario" : "Registro de usuario"}
-        </p>
+        <p className="muted">{inscripcionId ? "Editando registro de usuario" : "Registro de usuario"}</p>
       </div>
 
-      <section className="card">
-        <h3>Datos académicos</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-carrera">Carrera a la que postula</label></td>
-              <td>
-                <select
-                  id="ins-carrera"
-                  value={form.id_carrera}
-                  onChange={(e) => handleCarreraChange(e.target.value)}
-                >
-                  <option value="">Selecciona…</option>
-                  {carreraOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </td>
-              <td><label htmlFor="ins-credencial">Nº de credencial</label></td>
-              <td>
-                <input
-                  id="ins-credencial"
-                  type="number"
-                  value={form.nro_credencial}
-                  onChange={(e) => set("nro_credencial", e.target.value)}
-                />
-              </td>
-            </tr>
-
-            <tr>
-              <td><label>Recálculo</label></td>
-              <td>
-                <input
-                  id="ins-recalculo"
-                  type="checkbox"
-                  checked={Boolean(form.recalculo)}
-                  onChange={(e) => set("recalculo", e.target.checked)}
-                />
-              </td>
-              <td colSpan={2} />
-            </tr>
-            <tr>
-              <td><label>¿Tuviste preparación previa?</label></td>
-              <td>
-                <input
-                  id="ins-preparacion"
-                  type="checkbox"
-                  checked={Boolean(form.preparacion_previa)}
-                  onChange={(e) => set("preparacion_previa", e.target.checked)}
-                />
-              </td>
-              <td><label htmlFor="ins-tiempo">Preparación (meses)</label></td>
-              <td>
-                <input
-                  id="ins-tiempo"
-                  type="number"
-                  value={form.tiempo_de_preparacion_meses}
-                  onChange={(e) => set("tiempo_de_preparacion_meses", e.target.value)}
-                  min="0"
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-lugar-preparacion">¿Dónde realizó su preparación?</label></td>
-              <td colSpan={3}>
-                <input
-                  id="ins-lugar-preparacion"
-                  type="text"
-                  value={form.lugar_de_preparacion}
-                  onChange={(e) => set("lugar_de_preparacion", e.target.value)}
-                  maxLength={255}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-fecha-inscripcion">Fecha inscripción</label></td>
-              <td>
-                <input
-                  id="ins-fecha-inscripcion"
-                  type="date"
-                  value={form.fecha_inscripcion}
-                  onChange={(e) => set("fecha_inscripcion", e.target.value)}
-                />
-              </td>
-              <td colSpan={2} />
-            </tr>
-            <tr>
-              <td><label>¿Cómo se enteró de nosotros?</label></td>
-              <td colSpan={3}>
-                <div className="radio-group">
-                  {MEDIOS.map((medio) => (
-                    <label key={medio} className="radio-option">
-                      <input
-                        type="radio"
-                        name="como-se-entero"
-                        value={medio}
-                        checked={form.como_se_entero_de_nosotros === medio}
-                        onChange={(e) => set("como_se_entero_de_nosotros", e.target.value)}
-                      />
-                      {medio}
-                    </label>
-                  ))}
-                </div>
-              </td>
-            </tr>
-            {needsDetalle && (
-              <tr>
-                <td>
-                  <label htmlFor="ins-como-detalle">
-                    {form.como_se_entero_de_nosotros === "Redes sociales" ? "¿Cuál?" : "Menciónalo"}
-                  </label>
-                </td>
-                <td colSpan={3}>
-                  <input
-                    id="ins-como-detalle"
-                    type="text"
-                    value={form.como_se_entero_detalle}
-                    onChange={(e) => set("como_se_entero_detalle", e.target.value)}
-                    maxLength={255}
-                  />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
-      {form.id_carrera && (
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td colSpan={2}>
-                <label className={`create-toggle inscripcion-course-toggle${showParalelos ? " is-active" : ""}`} htmlFor="ins-mostrar-paralelos">
-                  <span className="create-toggle-label">
-                    Paralelos disponibles{paralelosCarrera.length > 0 ? ` (${paralelosCarrera.length})` : ""}
-                  </span>
-                  <input
-                    id="ins-mostrar-paralelos"
-                    type="checkbox"
-                    checked={showParalelos}
-                    onChange={(e) => setShowParalelos(e.target.checked)}
-                  />
-                  <span className="create-toggle-track" aria-hidden="true" />
+      <section className="card" aria-labelledby="ins-datos-academicos">
+        <h3 id="ins-datos-academicos">Datos académicos</h3>
+        <div className="inscripcion-fields">
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-carrera" label="Carrera a la que postula">
+              <select id="ins-carrera" value={form.id_carrera} onChange={(e) => handleCarreraChange(e.target.value)}>
+                <option value="">Selecciona…</option>
+                {carreraOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </RegistroCampo>
+            <RegistroCampo id="ins-credencial" label="Nº de credencial">
+              <input id="ins-credencial" type="number" value={form.nro_credencial}
+                onChange={(e) => set("nro_credencial", e.target.value)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <label className="inscripcion-check-field" htmlFor="ins-recalculo">
+              <input id="ins-recalculo" type="checkbox" checked={Boolean(form.recalculo)}
+                onChange={(e) => set("recalculo", e.target.checked)} />
+              <span>Recálculo</span>
+            </label>
+            <label className="inscripcion-check-field" htmlFor="ins-preparacion">
+              <input id="ins-preparacion" type="checkbox" checked={Boolean(form.preparacion_previa)}
+                onChange={(e) => set("preparacion_previa", e.target.checked)} />
+              <span>¿Tuviste preparación previa?</span>
+            </label>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-tiempo" label="Preparación (meses)">
+              <input id="ins-tiempo" type="number" min="0" value={form.tiempo_de_preparacion_meses}
+                onChange={(e) => set("tiempo_de_preparacion_meses", e.target.value)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-fecha-inscripcion" label="Fecha inscripción">
+              <input id="ins-fecha-inscripcion" type="date" value={form.fecha_inscripcion}
+                onChange={(e) => set("fecha_inscripcion", e.target.value)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-lugar-preparacion" label="¿Dónde realizó su preparación?" wide>
+              <input id="ins-lugar-preparacion" type="text" maxLength={255} value={form.lugar_de_preparacion}
+                onChange={(e) => set("lugar_de_preparacion", e.target.value)} />
+            </RegistroCampo>
+          </div>
+          <fieldset className="inscripcion-radio-field">
+            <legend>¿Cómo se enteró de nosotros?</legend>
+            <div className="radio-group">
+              {MEDIOS.map((medio) => (
+                <label key={medio} className="radio-option">
+                  <input type="radio" name="como-se-entero" value={medio}
+                    checked={form.como_se_entero_de_nosotros === medio}
+                    onChange={(e) => set("como_se_entero_de_nosotros", e.target.value)} />
+                  {medio}
                 </label>
-              </td>
-              <td colSpan={2} />
-            </tr>
-            <tr >
-              <td colSpan={4}>
-                {showParalelos && (
-                  <div className="curso-picker">
-                    {paralelosCarrera.length === 0 ? (
-                      <p className="muted curso-empty">No hay paralelos activos para esta carrera.</p>
-                    ) : (
-                      <div className="curso-grid">
-                        {paralelosCarrera.map((paralelo) => {
-                          const selected = String(paralelo.id_paralelo) === selectedParaleloId
-                          return (
-                            <button
-                              key={paralelo.id_paralelo}
-                              type="button"
-                              className={`curso-card${selected ? " selected" : ""}`}
-                              onClick={() => handleParaleloSelect(paralelo)}
-                              aria-pressed={selected}
-                            >
-                              <strong>{paralelo.nombre_paralelo ?? `Paralelo ${paralelo.id_paralelo}`}</strong>
-                              <span>{paralelo.nivel ? `Nivel: ${paralelo.nivel}` : "Sin nivel"}</span>
-                              <span>{paralelo.modalidad ?? "Sin modalidad"} · {horarioParalelo(paralelo) || "Sin horario"}</span>
-                              <span>{paralelo.dias ? `Días: ${paralelo.dias}` : "Días por definir"}</span>
-                              <span>Inicio: {formatDateDisplay(paralelo.capacitacion?.fecha_inicio) || "Por definir"}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              </td>
-            </tr>
-            <tr>
-              <td><label>Paralelo</label></td>
-              <td>{selectedParalelo?.nombre_paralelo ?? form.grupo ?? "—"}</td>
-              <td><label>Nivel</label></td>
-              <td>{selectedParalelo?.nivel ?? "—"}</td>
-            </tr>
-            <tr>
-              <td><label>Inicio de clases</label></td>
-              <td>{formatDateDisplay(form.inicio_clases) ?? "—"}</td>
-              <td><label>Modalidad</label></td>
-              <td>{form.modalidad ?? "—"}</td>
-            </tr>
-            <tr>
-              <td><label>Horario</label></td>
-              <td>{form.horario ?? "—"}</td>
-              <td><label>Días</label></td>
-              <td>{selectedParalelo?.dias ?? "—"}</td>
-            </tr>
-          </tbody>
-        </table>
-      )}       
-      <section className="card">
-        <h3>Datos personales</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-ci">CI</label></td>
-              <td>
-                <input
-                  id="ins-ci"
-                  type="text"
-                  value={form.ci}
-                  onChange={(e) => handleStudentCiChange(e.target.value)}
-                  maxLength={20}
-                />
-                {userLookupStatus && <small role="status">{userLookupStatus}</small>}
-              </td>
-              <td><label htmlFor="ins-apellido-paterno">Apellido paterno</label></td>
-              <td>
-                <input
-                  id="ins-apellido-paterno"
-                  type="text"
-                  value={form.apellido_paterno}
-                  onChange={(e) => set("apellido_paterno", e.target.value)}
-                  maxLength={100}
-                  required
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apellido-materno">Apellido materno</label></td>
-              <td>
-                <input
-                  id="ins-apellido-materno"
-                  type="text"
-                  value={form.apellido_materno}
-                  onChange={(e) => set("apellido_materno", e.target.value)}
-                  maxLength={100}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-              <td><label htmlFor="ins-nombre">Nombre</label></td>
-              <td>
-                <input
-                  id="ins-nombre"
-                  type="text"
-                  value={form.nombre}
-                  onChange={(e) => set("nombre", e.target.value)}
-                  maxLength={100}
-                  required
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-fecha-nacimiento">Fecha de nacimiento</label></td>
-              <td>
-                <input
-                  id="ins-fecha-nacimiento"
-                  type="date"
-                  value={form.fecha_nacimiento}
-                  onChange={(e) => set("fecha_nacimiento", e.target.value)}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-              <td><label htmlFor="ins-celular">Celular</label></td>
-              <td>
-                <input
-                  id="ins-celular"
-                  type="text"
-                  value={form.celular}
-                  onChange={(e) => set("celular", e.target.value)}
-                  maxLength={30}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-correo">Correo electrónico</label></td>
-              <td>
-                <input
-                  id="ins-correo"
-                  type="email"
-                  value={form.correo_electronico}
-                  onChange={(e) => set("correo_electronico", e.target.value)}
-                  maxLength={150}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-              <td><label htmlFor="ins-contraseña">Contraseña Grupo alfa</label></td>
-              <td>
-                <input
-                  id="ins-contraseña"
-                  type="password"
-                  value={form.contraseña}
-                  onChange={(e) => set("contraseña", e.target.value)}
-                  maxLength={255}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-colegio">Colegio de procedencia</label></td>
-              <td>
-                <input
-                  id="ins-colegio"
-                  type="text"
-                  value={form.colegio_de_procedencia}
-                  onChange={(e) => set("colegio_de_procedencia", e.target.value)}
-                  maxLength={150}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-              <td><label htmlFor="ins-direccion">Dirección de domicilio</label></td>
-              <td>
-                <input
-                  id="ins-direccion"
-                  type="text"
-                  value={form.direccion_de_domicilio}
-                  onChange={(e) => set("direccion_de_domicilio", e.target.value)}
-                  maxLength={255}
-                  disabled={Boolean(existingUser)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-foto">Foto (PNG)</label></td>
-              <td colSpan={3}>
-                <input
-                  id="ins-foto"
-                  type="file"
-                  accept="image/png"
-                  onChange={handleFotoChange}
-                  disabled={Boolean(existingUser)}
-                />
-                {fotoPreview && (
-                  <div style={{ marginTop: 8, maxWidth: 200, maxHeight: 200 }}>
-                    <img src={fotoPreview} alt="Vista previa" style={{ width: "100%", height: "auto", borderRadius: 4, border: "1px solid #ccc" }} />
-                  </div>
-                )}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              ))}
+            </div>
+          </fieldset>
+          {needsDetalle && (
+            <div className="inscripcion-form-row">
+              <RegistroCampo id="ins-como-detalle"
+                label={form.como_se_entero_de_nosotros === "Redes sociales" ? "¿Cuál?" : "Menciónalo"} wide>
+                <input id="ins-como-detalle" type="text" maxLength={255} value={form.como_se_entero_detalle}
+                  onChange={(e) => set("como_se_entero_detalle", e.target.value)} />
+              </RegistroCampo>
+            </div>
+          )}
+        </div>
       </section>
 
-      <section className="card">
-        <h3>Datos del apoderado</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-apoderado">Apoderado registrado</label></td>
-              <td>
-                <select
-                  id="ins-apoderado"
-                  value={selectedApoderadoId}
-                  onChange={(e) => handleApoderadoChange(e.target.value)}
-                  disabled={Boolean(existingGuardian)}
-                >
-                  <option value="">Sin apoderado</option>
-                  {apoderados.map((apoderado) => (
-                    <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
-                      {fullName(apoderado)}
-                      {apoderado.telefono ? ` · ${apoderado.telefono}` : ""}
-                    </option>
+      {form.id_carrera && (
+        <section className="card inscripcion-course-section" aria-label="Paralelos de la carrera">
+          <label className={"create-toggle inscripcion-course-toggle" + (showParalelos ? " is-active" : "")}
+            htmlFor="ins-mostrar-paralelos">
+            <span className="create-toggle-label">
+              Paralelos disponibles{paralelosCarrera.length > 0 ? " (" + paralelosCarrera.length + ")" : ""}
+            </span>
+            <input id="ins-mostrar-paralelos" type="checkbox" checked={showParalelos}
+              onChange={(e) => setShowParalelos(e.target.checked)} />
+            <span className="create-toggle-track" aria-hidden="true" />
+          </label>
+          {showParalelos && (
+            <div className="curso-picker">
+              {paralelosCarrera.length === 0 ? (
+                <p className="muted curso-empty">No hay paralelos activos para esta carrera.</p>
+              ) : (
+                <div className="curso-grid">
+                  {paralelosCarrera.map((paralelo) => {
+                    const selected = String(paralelo.id_paralelo) === selectedParaleloId
+                    return (
+                      <button key={paralelo.id_paralelo} type="button"
+                        className={"curso-card" + (selected ? " selected" : "")}
+                        onClick={() => handleParaleloSelect(paralelo)} aria-pressed={selected}>
+                        <strong>{paralelo.nombre_paralelo ?? "Paralelo " + paralelo.id_paralelo}</strong>
+                        <span>{paralelo.nivel ? "Nivel: " + paralelo.nivel : "Sin nivel"}</span>
+                        <span>{paralelo.modalidad ?? "Sin modalidad"} · {horarioParalelo(paralelo) || "Sin horario"}</span>
+                        <span>{paralelo.dias ? "Días: " + paralelo.dias : "Días por definir"}</span>
+                        <span>Inicio: {formatDateDisplay(paralelo.capacitacion?.fecha_inicio) || "Por definir"}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          <dl className="inscripcion-paralelo-resumen">
+            <div><dt>Paralelo</dt><dd>{selectedParalelo?.nombre_paralelo ?? form.grupo ?? "—"}</dd></div>
+            <div><dt>Nivel</dt><dd>{selectedParalelo?.nivel ?? "—"}</dd></div>
+            <div><dt>Inicio de clases</dt><dd>{formatDateDisplay(form.inicio_clases) || "—"}</dd></div>
+            <div><dt>Modalidad</dt><dd>{form.modalidad || "—"}</dd></div>
+            <div><dt>Horario</dt><dd>{form.horario || "—"}</dd></div>
+            <div><dt>Días</dt><dd>{selectedParalelo?.dias || "—"}</dd></div>
+          </dl>
+        </section>
+      )}
+
+      <section className="card" aria-labelledby="ins-datos-personales">
+        <h3 id="ins-datos-personales">Datos personales</h3>
+        <div className="inscripcion-fields">
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-ci" label="CI">
+              <>
+                <input id="ins-ci" type="text" maxLength={20} value={form.ci}
+                  onChange={(e) => handleStudentCiChange(e.target.value)} />
+                {userLookupStatus && <small role="status">{userLookupStatus}</small>}
+              </>
+            </RegistroCampo>
+            <RegistroCampo id="ins-apellido-paterno" label="Apellido paterno">
+              <input id="ins-apellido-paterno" type="text" maxLength={100} required value={form.apellido_paterno}
+                onChange={(e) => set("apellido_paterno", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apellido-materno" label="Apellido materno">
+              <input id="ins-apellido-materno" type="text" maxLength={100} value={form.apellido_materno}
+                onChange={(e) => set("apellido_materno", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-nombre" label="Nombre">
+              <input id="ins-nombre" type="text" maxLength={100} required value={form.nombre}
+                onChange={(e) => set("nombre", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-fecha-nacimiento" label="Fecha de nacimiento">
+              <input id="ins-fecha-nacimiento" type="date" value={form.fecha_nacimiento}
+                onChange={(e) => set("fecha_nacimiento", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-celular" label="Celular">
+              <input id="ins-celular" type="text" maxLength={30} value={form.celular}
+                onChange={(e) => set("celular", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-correo" label="Correo electrónico">
+              <input id="ins-correo" type="email" maxLength={150} value={form.correo_electronico}
+                onChange={(e) => set("correo_electronico", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-contraseña" label="Contraseña Grupo alfa">
+              <input id="ins-contraseña" type="password" maxLength={255} value={form.contraseña}
+                onChange={(e) => set("contraseña", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-colegio" label="Colegio de procedencia">
+              <input id="ins-colegio" type="text" maxLength={150} value={form.colegio_de_procedencia}
+                onChange={(e) => set("colegio_de_procedencia", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-direccion" label="Dirección de domicilio" wide>
+              <input id="ins-direccion" type="text" maxLength={255} value={form.direccion_de_domicilio}
+                onChange={(e) => set("direccion_de_domicilio", e.target.value)} disabled={Boolean(existingUser)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-foto" label="Foto (PNG)" wide>
+              <>
+                <input id="ins-foto" type="file" accept="image/png" onChange={handleFotoChange}
+                  disabled={Boolean(existingUser)} />
+                {fotoPreview && <img className="inscripcion-foto-preview" src={fotoPreview} alt="Vista previa de la foto" />}
+              </>
+            </RegistroCampo>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" aria-labelledby="ins-datos-apoderado">
+        <h3 id="ins-datos-apoderado">Datos del apoderado</h3>
+        <div className="inscripcion-fields">
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado" label="Apoderado registrado" wide>
+              <select id="ins-apoderado" value={selectedApoderadoId}
+                onChange={(e) => handleApoderadoChange(e.target.value)} disabled={Boolean(existingGuardian)}>
+                <option value="">Sin apoderado</option>
+                {apoderados.map((apoderado) => (
+                  <option key={apoderado.id_apoderado} value={apoderado.id_apoderado}>
+                    {fullName(apoderado)}{apoderado.telefono ? " · " + apoderado.telefono : ""}
+                  </option>
+                ))}
+              </select>
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado-ci" label="CI Apoderado">
+              <>
+                <input id="ins-apoderado-ci" type="text" maxLength={20} value={form.apoderado_ci}
+                  onChange={(e) => handleGuardianCiChange(e.target.value)} />
+                {guardianLookupStatus && <small role="status">{guardianLookupStatus}</small>}
+              </>
+            </RegistroCampo>
+            <RegistroCampo id="ins-apoderado-parentesco" label="Parentesco">
+              <input id="ins-apoderado-parentesco" type="text" maxLength={100} value={form.apoderado_parentesco}
+                onChange={(e) => set("apoderado_parentesco", e.target.value)} disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado-apellido-paterno" label="Apellido paterno">
+              <input id="ins-apoderado-apellido-paterno" type="text" maxLength={100}
+                value={form.apoderado_apellido_paterno} onChange={(e) => set("apoderado_apellido_paterno", e.target.value)}
+                disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-apoderado-apellido-materno" label="Apellido materno">
+              <input id="ins-apoderado-apellido-materno" type="text" maxLength={100}
+                value={form.apoderado_apellido_materno} onChange={(e) => set("apoderado_apellido_materno", e.target.value)}
+                disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado-nombre" label="Nombre">
+              <input id="ins-apoderado-nombre" type="text" maxLength={100} value={form.apoderado_nombre}
+                onChange={(e) => set("apoderado_nombre", e.target.value)} disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+            <RegistroCampo id="ins-apoderado-telefono" label="Teléfono">
+              <input id="ins-apoderado-telefono" type="text" maxLength={30} value={form.apoderado_telefono}
+                onChange={(e) => set("apoderado_telefono", e.target.value)} disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado-correo" label="Correo electrónico apoderado" wide>
+              <input id="ins-apoderado-correo" type="email" maxLength={150}
+                value={form.apoderado_correo_electronico} onChange={(e) => set("apoderado_correo_electronico", e.target.value)}
+                disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-apoderado-contraseña" label="Contraseña" wide>
+              <input id="ins-apoderado-contraseña" type="password" maxLength={255}
+                value={form.apoderado_contraseña} onChange={(e) => set("apoderado_contraseña", e.target.value)}
+                disabled={Boolean(existingGuardian)} />
+            </RegistroCampo>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" aria-labelledby="ins-datos-administrativos">
+        <h3 id="ins-datos-administrativos">Datos administrativos</h3>
+        <div className="inscripcion-fields">
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-elaborado-por" label="Elaborado por" wide>
+              {activeRole === "administrativo" ? (
+                <input id="ins-elaborado-por" type="text" value={loggedUser?.nombre ?? ""} readOnly />
+              ) : (
+                <select id="ins-elaborado-por" value={form.id_administrativo || ""}
+                  onChange={(e) => handleAdministrativoChange(e.target.value)}>
+                  <option value="">Selecciona…</option>
+                  {administrativos.map((admin) => (
+                    <option key={admin.id_administrativo} value={admin.id_administrativo}>{fullName(admin)}</option>
                   ))}
                 </select>
-              </td>
-              <td colSpan={2} />
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apoderado-ci">CI Apoderado</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-ci"
-                  type="text"
-                  value={form.apoderado_ci}
-                  onChange={(e) => handleGuardianCiChange(e.target.value)}
-                  maxLength={20}
-                />
-                {guardianLookupStatus && <small role="status">{guardianLookupStatus}</small>}
-              </td>
-              <td><label htmlFor="ins-apoderado-parentesco">Parentesco</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-parentesco"
-                  type="text"
-                  value={form.apoderado_parentesco}
-                  onChange={(e) => set("apoderado_parentesco", e.target.value)}
-                  maxLength={100}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apoderado-apellido-paterno">Apellido paterno</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-apellido-paterno"
-                  type="text"
-                  value={form.apoderado_apellido_paterno}
-                  onChange={(e) => set("apoderado_apellido_paterno", e.target.value)}
-                  maxLength={100}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-              <td><label htmlFor="ins-apoderado-apellido-materno">Apellido materno</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-apellido-materno"
-                  type="text"
-                  value={form.apoderado_apellido_materno}
-                  onChange={(e) => set("apoderado_apellido_materno", e.target.value)}
-                  maxLength={100}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apoderado-nombre">Nombre</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-nombre"
-                  type="text"
-                  value={form.apoderado_nombre}
-                  onChange={(e) => set("apoderado_nombre", e.target.value)}
-                  maxLength={100}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-              <td><label htmlFor="ins-apoderado-telefono">Teléfono</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-telefono"
-                  type="text"
-                  value={form.apoderado_telefono}
-                  onChange={(e) => set("apoderado_telefono", e.target.value)}
-                  maxLength={30}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apoderado-correo">Correo electrónico apoderado</label></td>
-              <td>
-                <input
-                  id="ins-apoderado-correo"
-                  type="email"
-                  value={form.apoderado_correo_electronico}
-                  onChange={(e) => set("apoderado_correo_electronico", e.target.value)}
-                  maxLength={150}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-              <td colSpan={2} />
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-apoderado-contraseña">Contraseña</label></td>
-              <td colSpan={3}>
-                <input
-                  id="ins-apoderado-contraseña"
-                  type="password"
-                  value={form.apoderado_contraseña}
-                  onChange={(e) => set("apoderado_contraseña", e.target.value)}
-                  maxLength={255}
-                  disabled={Boolean(existingGuardian)}
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              )}
+            </RegistroCampo>
+          </div>
+          <div className="inscripcion-form-row">
+            <RegistroCampo id="ins-sucursal" label="Sucursal">
+              <input id="ins-sucursal" type="text" maxLength={100} value={form.sucursal}
+                onChange={(e) => set("sucursal", e.target.value)} />
+            </RegistroCampo>
+          </div>
+        </div>
       </section>
-
-      <section className="card">
-        <h3>Datos administrativos</h3>
-        <table className="registro-table">
-          <tbody>
-            <tr>
-              <td><label htmlFor="ins-elaborado-por">Elaborado por</label></td>
-              <td colSpan={3}>
-                {activeRole === "administrativo" ? (
-                  <input
-                    id="ins-elaborado-por"
-                    type="text"
-                    value={loggedUser?.nombre ?? ""}
-                    readOnly
-                  />
-                ) : (
-                  <select
-                    id="ins-elaborado-por"
-                    value={form.id_administrativo || ""}
-                    onChange={(e) => handleAdministrativoChange(e.target.value)}
-                  >
-                    <option value="">Selecciona…</option>
-                    {administrativos.map((admin) => (
-                      <option key={admin.id_administrativo} value={admin.id_administrativo}>
-                        {fullName(admin)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </td>
-            </tr>
-            <tr>
-              <td><label htmlFor="ins-sucursal">Sucursal</label></td>
-              <td>
-                <input
-                  id="ins-sucursal"
-                  type="text"
-                  value={form.sucursal}
-                  onChange={(e) => set("sucursal", e.target.value)}
-                  maxLength={100}
-                />
-              </td>
-              <td colSpan={2} />
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      
 
       {formError && <p className="error-message" role="alert">{formError}</p>}
-
       <div className="inscripcion-form-actions">
         <Button type="submit" disabled={saving}>
           {saving ? "Guardando..." : inscripcionId ? "Guardar cambios" : "Registrar inscripción"}
