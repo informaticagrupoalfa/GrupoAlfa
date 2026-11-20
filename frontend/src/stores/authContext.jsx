@@ -95,7 +95,8 @@ export function AuthProvider({ children }) {
     }
   }, [token, signIn, signOut])
 
-  const effectiveRole = activeRole || (loggedUser?.roles?.[0] || null)
+  const userRoles = Array.isArray(loggedUser?.roles) ? loggedUser.roles : []
+  const effectiveRole = userRoles.includes(activeRole) ? activeRole : (userRoles[0] || null)
 
   const value = useMemo(
     () => ({ loggedUser, token, activeRole: effectiveRole, signIn, switchRole, signOut }),

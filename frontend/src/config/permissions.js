@@ -49,7 +49,8 @@ export function canAccessModule(user, moduleKey) {
 
 export function canAccessModuleWithRole(user, activeRole, moduleKey) {
   const group = MODULE_ACCESS[moduleKey]
-  if (!group) return false
+  const userRoles = Array.isArray(user?.roles) ? user.roles : []
+  if (!group || !activeRole || !userRoles.includes(activeRole)) return false
   const allowedRoles = ACCESS_ROLE_GROUPS[group]
   return allowedRoles.includes(activeRole)
 }

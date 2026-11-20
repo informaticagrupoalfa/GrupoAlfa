@@ -249,6 +249,17 @@ export default function EstudiantesPage() {
         </div>
 
         <div className="estudiante-detail-fields">
+          <div className="info-row" style={{ gridColumn: "1 / -1", display: "grid", justifyItems: "start", gap: 8 }}>
+            <span className="info-label">QR de asistencia</span>
+            <img
+              width="180"
+              height="180"
+              loading="lazy"
+              alt={`Código QR de ${nombre}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`GA-STUDENT-${detalle.id_estudiante}`)}`}
+            />
+            <small>El asesor puede escanearlo desde Llamar lista.</small>
+          </div>
           <div className="info-row">
             <span className="info-label">Correo</span>
             <span className="info-value">{detalle.correo_electronico ?? "—"}</span>

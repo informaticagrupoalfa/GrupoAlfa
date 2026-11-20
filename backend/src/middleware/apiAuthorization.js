@@ -14,6 +14,9 @@ const ADVISOR_ROUTES = new Set([
   "GET /aulas",
   "GET /materias-capacitacion",
   "GET /inscripciones",
+  "GET /llamar-lista/asignaciones",
+  "GET /llamar-lista/clases",
+  "GET /llamar-lista/paralelos/:id/estudiantes",
   "POST /temas",
   "POST /clases",
   "POST /asistencias",
@@ -75,15 +78,20 @@ export const authorizeApi = (req, res, next) => {
       return next();
     }
 
-    if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR]) && ADVISOR_ROUTES.has(routeKey)) {
+    const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/estudiantes$/.test(path);
+    if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR]) && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute)) {
       try {
         if (routeKey === "POST /clases") {
           const { rows } = await pool.query(
-            "SELECT 1 FROM asesores WHERE id_asesor = $1 AND id_usuario = $2",
-            [req.body.id_asesor, req.user.id_usuario],
+            `SELECT 1
+             FROM asesor_paralelo_materia apm
+             JOIN asesores a ON a.id_asesor = apm.id_asesor
+             WHERE apm.id_asesor_paralelo_materia = $1
+               AND a.id_usuario = $2`,
+            [req.body.id_asesor_paralelo_materia, req.user.id_usuario],
           );
           if (rows.length === 0) {
-            return res.status(403).json({ error: "Solo puedes registrar clases como tu propio perfil de asesor" });
+            return res.status(403).json({ error: "Solo puedes registrar clases en tus propias asignaciones" });
           }
         }
 
@@ -91,7 +99,9 @@ export const authorizeApi = (req, res, next) => {
           const { rows } = await pool.query(
             `SELECT 1
              FROM clases c
-             JOIN asesores a ON a.id_asesor = c.id_asesor
+             JOIN asesor_paralelo_materia apm
+               ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = apm.id_asesor
              WHERE c.id_clase = $1 AND a.id_usuario = $2`,
             [req.body.id_clase, req.user.id_usuario],
           );

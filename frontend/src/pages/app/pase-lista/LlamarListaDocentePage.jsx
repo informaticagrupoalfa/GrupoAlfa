@@ -1,53 +1,19 @@
-import { Suspense, lazy, useEffect, useState } from "react"
-import { useAuth } from "../../../hooks/useAuth"
-import Skeleton from "../../../components/ui/Skeleton"
-import ErrorFallback from "../../../components/ui/ErrorFallback"
-import { loadPaseListaCatalogs } from "../../../services/paseListaService"
+import { useEffect, useRef, useState } from "react"
+import { apiClient } from "../../../services/apiClient"
 
-const TomarClaseView = lazy(() => import("./TomarClaseView.jsx"))
-
+const name = s => [s.nombre, s.apellido_paterno, s.apellido_materno].filter(Boolean).join(" ") || `Estudiante ${s.id_estudiante}`
 export default function LlamarListaDocentePage() {
-  const { loggedUser } = useAuth()
-  const [catalogs, setCatalogs] = useState(null)
-  const [asesorId, setAsesorId] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  useEffect(() => {
-    let mounted = true
-    async function load() {
-      setLoading(true)
-      setError("")
-      try {
-        const data = await loadPaseListaCatalogs()
-        const asesor = (data.asesores ?? []).find(
-          (item) => String(item.id_usuario) === String(loggedUser?.id_usuario),
-        )
-        if (!asesor) {
-          throw new Error("Tu usuario no tiene un perfil de asesor asignado.")
-        }
-        if (mounted) {
-          setCatalogs({ ...data, asesores: [asesor] })
-          setAsesorId(asesor.id_asesor)
-        }
-      } catch (loadError) {
-        if (mounted) setError(loadError.message || "No se pudieron cargar los datos de la clase.")
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-    load()
-    return () => { mounted = false }
-  }, [loggedUser?.id_usuario])
-
-  if (loading) return <Skeleton lines={6} />
-  if (error) return <ErrorFallback message={error} onRetry={() => window.location.reload()} />
-
-  return (
-    <section>
-      <Suspense fallback={<Skeleton lines={6} />}>
-        <TomarClaseView catalogs={catalogs} initialAsesorId={asesorId} onSaved={() => {}} />
-      </Suspense>
-    </section>
-  )
+  const [assignments, setAssignments] = useState([]), [classes, setClasses] = useState([]), [students, setStudents] = useState([]), [checked, setChecked] = useState([])
+  const [selected, setSelected] = useState(null), [classId, setClassId] = useState(null), [date, setDate] = useState(new Date().toISOString().slice(0,10))
+  const [permit, setPermit] = useState(false), [reason, setReason] = useState(""), [message, setMessage] = useState(""), [camera, setCamera] = useState(false)
+  const video = useRef(null), stream = useRef(null)
+  const load = async () => { const [a,c]=await Promise.all([apiClient.get("/llamar-lista/asignaciones"),apiClient.get("/llamar-lista/clases")]); setAssignments(a.data);setClasses(c.data) }
+  useEffect(()=>{load().catch(()=>setMessage("No se pudieron cargar asignaciones."))},[])
+  useEffect(()=>{ if(selected) apiClient.get(`/llamar-lista/paralelos/${selected.id_paralelo}/estudiantes`).then(r=>setStudents(r.data)).catch(()=>setMessage("No se pudo cargar la lista.")); else setStudents([]) },[selected?.id_paralelo])
+  useEffect(()=>()=>stream.current?.getTracks().forEach(t=>t.stop()),[])
+  const createClass=async()=>{try{const {data}=await apiClient.post("/clases",{id_asesor_paralelo_materia:selected.id_asesor_paralelo_materia,inicioClase:date});setClassId(data.id_clase);setChecked([]);await load();setMessage("Clase creada.")}catch(e){setMessage(e.userMessage||"No se pudo crear la clase.")}}
+  const mark=async s=>{if(!classId){setMessage("Crea una clase primero.");return}if(checked.some(x=>x.id_estudiante===s.id_estudiante))return;if(permit&&!reason.trim()){setMessage("Indica el motivo del permiso.");return}try{await apiClient.post("/asistencias",{id_clase:classId,id_estudiante:s.id_estudiante,hora_entrada:new Date().toISOString(),permiso:permit,...(permit?{razon_permiso:reason.trim()}:{})});setChecked(x=>[{...s,permiso:permit,razon_permiso:reason},...x]);setStudents(x=>x.filter(e=>e.id_estudiante!==s.id_estudiante));setMessage(`${name(s)} registrado.`)}catch(e){setMessage(e.userMessage||"No se pudo registrar.")}}
+  const scanValue=raw=>{const m=String(raw).match(/^(?:GA-STUDENT-|estudiante:)(\d+)$/i);if(!m){setMessage("QR no reconocido.");return}const s=students.find(x=>String(x.id_estudiante)===m[1]);if(s)mark(s);else setMessage("No pertenece a este paralelo o ya fue escaneado.")}
+  const toggleCamera=async()=>{if(camera){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCamera(false);return}if(!window.BarcodeDetector){setMessage("Escaneo QR no compatible con este navegador.");return}try{stream.current=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});video.current.srcObject=stream.current;await video.current.play();setCamera(true);const d=new BarcodeDetector({formats:["qr_code"]});const loop=async()=>{if(!stream.current)return;const c=await d.detect(video.current).catch(()=>[]);if(c[0])scanValue(c[0].rawValue);if(stream.current)requestAnimationFrame(loop)};requestAnimationFrame(loop)}catch{setMessage("No se pudo abrir la cámara.")}}
+  return <main className="ll"><h1>Llamar lista</h1><div className="cols"><section><h2>Crear clase · asignaciones</h2><label>Fecha<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><button disabled={!selected} onClick={createClass}>Crear clase</button>{assignments.map(a=><button className="card" key={a.id_asesor_paralelo_materia} onClick={()=>{setSelected(a);setClassId(null);setChecked([])}}><b>{a.nombre_paralelo}</b>{a.nombre_materia}<small>{a.nivel} {a.dias}</small></button>)}<h3>Mis clases</h3>{classes.map(c=><button className="card" key={c.id_clase} onClick={()=>{setClassId(c.id_clase);setSelected(assignments.find(a=>a.id_asesor_paralelo_materia===c.id_asesor_paralelo_materia)||null);setChecked([])}}>{String(c.fecha).slice(0,10)} · {c.nombre_paralelo} / {c.nombre_materia}</button>)}</section><section><h2>Estudiantes ({students.length})</h2>{students.map(s=><button className="card" key={s.id_estudiante} onClick={()=>mark(s)}><b>{name(s)}</b>CI {s.nro_carnet||"—"} · registrar manual</button>)}</section><section><h2>Escanear y asistencia</h2><button onClick={toggleCamera}>{camera?"Cerrar cámara":"Abrir cámara"}</button>{camera&&<video ref={video} playsInline muted/>}<form onSubmit={e=>{e.preventDefault();scanValue(e.currentTarget.qr.value);e.currentTarget.reset()}}><label>Código manual<input name="qr" placeholder="GA-STUDENT-123"/></label><button>Registrar</button></form><label><input type="checkbox" checked={permit} onChange={e=>setPermit(e.target.checked)}/> Registrar próximo escaneo con permiso</label>{permit&&<label>Motivo<input value={reason} maxLength={150} onChange={e=>setReason(e.target.value)}/></label>}<h3>Registrados ({checked.length})</h3>{checked.map(s=><article className="checked" key={s.id_estudiante}><b>{name(s)}</b>{s.permiso?`Permiso: ${s.razon_permiso}`:"Presente"}</article>)}<p role="status">{message}</p></section></div><style>{`.ll{padding:20px;color:#123}.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}.cols section{background:white;border:1px solid #d5dfeb;border-radius:14px;padding:14px;display:grid;gap:10px;max-height:78vh;overflow:auto}.cols h2{font-size:18px;margin:0}.cols label{display:grid;gap:5px}.cols input:not([type=checkbox]){padding:9px;border:1px solid #cbd5e1;border-radius:8px}.cols button{padding:10px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;cursor:pointer}.card{display:grid;gap:4px;text-align:left}.card small{color:#64748b}.checked{padding:10px;background:#f0fdf4;border-left:4px solid #16a34a;display:grid}video{width:100%}@media(max-width:900px){.cols{grid-template-columns:1fr}.cols section{max-height:none}}`}</style></main>
 }

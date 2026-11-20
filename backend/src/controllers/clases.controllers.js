@@ -4,33 +4,13 @@ const crud = createCrud({
   table: "clases",
   pk: "id_clase",
   label: "Clase no encontrada",
-  writable: ["id_paralelo", "id_asesor", "id_tema", "inicioClase"],
-  filters: ["id_paralelo", "id_asesor", "id_tema"],
+  writable: ["id_asesor_paralelo_materia", "inicioClase"],
+  filters: ["id_asesor_paralelo_materia"],
   filterAliases: { id_curso: "id_paralelo", curso: "id_paralelo" },
   dateRange: { column: "inicioClase", desdeParam: "desde", hastaParam: "hasta" },
-  customFilters: [
-    {
-      // La materia llega vía la puente materia_capacitacion (paralelo → capacitación ↔ materia).
-      param: "id_materia",
-      clause: (table, p) =>
-        `EXISTS (
-          SELECT 1
-          FROM paralelos p
-          JOIN materia_capacitacion mc ON mc.id_capacitacion = p.id_capacitacion
-          WHERE p.id_paralelo = ${table}.id_paralelo
-            AND mc.id_materia = ${p}
-        )`,
-    },
-  ],
+  customFilters: [],
   fks: [
-    {
-      column: "id_paralelo",
-      table: "paralelos",
-      pk: "id_paralelo",
-      message: "El paralelo no existe",
-    },
-    { column: "id_asesor", table: "asesores", pk: "id_asesor", message: "El asesor no existe" },
-    { column: "id_tema", table: "temas", pk: "id_tema", message: "El tema no existe" },
+    { column: "id_asesor_paralelo_materia", table: "asesor_paralelo_materia", pk: "id_asesor_paralelo_materia", message: "La asignación del asesor no existe" },
   ],
 });
 
