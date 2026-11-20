@@ -14,6 +14,7 @@ const PaseListaPage = lazy(() => import("../pages/app/pase-lista/PaseListaPage")
 const LlamarListaDocentePage = lazy(() => import("../pages/app/pase-lista/LlamarListaDocentePage"))
 const InscripcionesPage = lazy(() => import("../pages/app/inscripciones/InscripcionesPage"))
 const EstudiantesPage = lazy(() => import("../pages/app/estudiantes/EstudiantesPage"))
+const MiInformacionPage = lazy(() => import("../pages/app/mi-informacion/MiInformacionPage"))
 const ProfilePage = lazy(() => import("../pages/app/perfil/ProfilePage"))
 const DataExplorerPage = lazy(() => import("../pages/app/datos/DataExplorerPage"))
 const EntityPage = lazy(() => import("../pages/app/EntityPage"))
@@ -78,6 +79,14 @@ export default function AppRouter() {
           element={
             <RequireModuleAccess moduleKey="estudiantes">
               <EstudiantesPage />
+            </RequireModuleAccess>
+          }
+        />
+        <Route
+          path="mi-informacion"
+          element={
+            <RequireModuleAccess moduleKey="mi-informacion">
+              <MiInformacionPage />
             </RequireModuleAccess>
           }
         />

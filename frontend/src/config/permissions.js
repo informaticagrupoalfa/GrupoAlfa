@@ -4,11 +4,13 @@ export const ACCESS_ROLE_GROUPS = {
   enrollment: ["SysAdmin", "Administración"],
   sysadmin: ["SysAdmin"],
   advisor: ["SysAdmin", "Asesor", "Asesor Coordinador"],
+  student: ["Estudiante"],
 }
 
 // Módulos visibles en la aplicación. La autorización real también se valida en la API.
 export const MODULE_ACCESS = {
   dashboard: "management",
+  "mi-informacion": "student",
   usuarios: "management",
   capacitaciones: "academic",
   paralelos: "academic",
@@ -29,6 +31,7 @@ export const MODULE_ACCESS = {
 
 const DEFAULT_MODULE_ORDER = [
   "dashboard",
+  "mi-informacion",
   "usuarios",
   "capacitaciones",
   "matriculaciones",

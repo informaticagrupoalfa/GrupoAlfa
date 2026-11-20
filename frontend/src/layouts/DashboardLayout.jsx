@@ -21,6 +21,8 @@ export default function DashboardLayout() {
           ? "Llamar lista"
           : key === "perfil"
             ? "Mi perfil"
+            : key === "mi-informacion"
+              ? "Mi información"
             : key === "datos"
               ? "Explorador de datos"
               : key === "sin-acceso"

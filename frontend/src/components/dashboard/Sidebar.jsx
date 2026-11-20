@@ -16,12 +16,14 @@ const lazyLlamarLista = () => import("../../pages/app/pase-lista/LlamarListaDoce
 const lazyInscripciones = () => import("../../pages/app/inscripciones/InscripcionesPage.jsx")
 const lazyDataExplorer = () => import("../../pages/app/datos/DataExplorerPage.jsx")
 const lazyEstudiantes = () => import("../../pages/app/estudiantes/EstudiantesPage.jsx")
+const lazyMiInformacion = () => import("../../pages/app/mi-informacion/MiInformacionPage.jsx")
 
 const PAGE_PRELOADS = {
   usuarios: lazyUsuariosPage,
   capacitaciones: lazyCapacitacionesPage,
   matriculaciones: lazyMatriculacionesPage,
   inscripciones: lazyInscripciones,
+  "mi-informacion": lazyMiInformacion,
 }
 
 const STORAGE_KEY = "ga.sidebar.collapsed"
@@ -132,6 +134,16 @@ function NavIcon({ name }) {
           <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" />
         </svg>
       )
+    case "mi-informacion":
+      return (
+        <svg {...svgProps}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="9" cy="10" r="2.5" />
+          <path d="M5.5 17c.6-2 1.9-3 3.5-3s2.9 1 3.5 3" />
+          <path d="M15 9h3" />
+          <path d="M15 13h3" />
+        </svg>
+      )
     default:
       return (
         <svg {...svgProps}>
@@ -165,6 +177,14 @@ export default function Sidebar() {
       label: "Dashboard",
       to: "/app/dashboard",
       preload: lazyHome,
+    })
+  }
+  if (canAccessModuleWithRole(loggedUser, activeRole, "mi-informacion")) {
+    navItems.push({
+      key: "mi-informacion",
+      label: "Mi información",
+      to: "/app/mi-informacion",
+      preload: lazyMiInformacion,
     })
   }
   visibleEntities.forEach((key) => {

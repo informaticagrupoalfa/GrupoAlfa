@@ -58,7 +58,8 @@ const isInscripcionFichaRoute = (method, path) =>
   method === "GET" && (path === "/inscripciones/fichas" || /^\/inscripciones\/\d+\/ficha$/.test(path));
 
 const isAuthenticatedOnlyRoute = (method, path) =>
-  method === "GET" && (path === "/usuarios/me" || path === "/mis-paralelos");
+  method === "GET" &&
+  (path === "/usuarios/me" || path === "/mis-paralelos" || path === "/mi-informacion");
 
 const isInscripcionUserLookup = (method, path) =>
   method === "GET" && /^\/usuarios\/ci\/[^/]+$/.test(path);
