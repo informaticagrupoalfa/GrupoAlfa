@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import PropTypes from "prop-types"
 import { normalizeWeekday, parseWeekdays, WEEKDAYS, weekdayLabel } from "../../../utils/weekdays"
 import "./TeacherAssignmentMatrix.css"
@@ -58,34 +58,49 @@ function buildMatrix(data) {
   }
 }
 
-export default function TeacherAssignmentMatrix({ data, assignment, pickedAdvisor, busy, message, onSelectAdvisor, onAssign, onEdit, onUpdate, onDelete, onCancel }) {
+export default function TeacherAssignmentMatrix({ data, assignment, assignmentSlot, pickedAdvisor, pickedSubjectId, busy, message, onSelectAdvisor, onSelectSubject, onAssign, onEdit, onSave, onDelete, onCancel }) {
+  const controlsRef = useRef(null)
   const { courses, schedules, slots, assignments, legacyCount, withoutDays } = useMemo(() => buildMatrix(data), [data])
-  const assignedCount = [...assignments.keys()].length
+  const assignedCount = [...assignments.values()].reduce((count, group) => count + group.length, 0)
+  const parallel = assignmentSlot?.parallel
+  const assignedInSlot = assignments.get(assignmentKey(parallel?.id_paralelo, assignmentSlot?.day)) || []
+  const subjects = (parallel?.asignaciones || []).filter(item => item.id_materia != null)
+  const availableSubjects = subjects.filter(item => !assignedInSlot.some(existing =>
+    Number(existing.id_materia) === Number(item.id_materia) && existing.id_asesor_paralelo_materia !== assignment?.id_asesor_paralelo_materia))
+
+  useEffect(() => {
+    if (assignmentSlot) controlsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [assignmentSlot])
 
   return (
     <section className="teacher-matrix-section">
       <header className="teacher-matrix-heading">
         <div>
           <h2>Asignación docente por día</h2>
-          <p>Selecciona un asesor y haz clic en un paralelo del día correspondiente.</p>
+          <p>Haz clic en un paralelo, elige asesor y materia, y guarda la asignación.</p>
         </div>
-        <span>{assignedCount} días asignados</span>
+        <span>{assignedCount} asignaciones</span>
       </header>
 
-      <div className="teacher-matrix-controls">
+      <div className="teacher-matrix-controls" ref={controlsRef}>
+        <div className="teacher-matrix-editing">
+          {assignmentSlot ? <><strong>{assignment ? "Editar" : "Nueva asignación"}: {parallel?.nombre_paralelo} · {weekdayLabel(assignmentSlot.day)}</strong><span>Selecciona el asesor y la materia que dictará ese día.</span></> : <><strong>Selecciona un paralelo en la tabla</strong><span>El día y el paralelo aparecerán aquí.</span></>}
+        </div>
         <label htmlFor="teacher-advisor">Asesor
-          <select id="teacher-advisor" value={pickedAdvisor?.id_asesor ?? ""} onChange={event => onSelectAdvisor(data.asesores.find(item => String(item.id_asesor) === event.target.value) || null)}>
+          <select id="teacher-advisor" disabled={!assignmentSlot || busy} value={pickedAdvisor?.id_asesor ?? ""} onChange={event => onSelectAdvisor(data.asesores.find(item => String(item.id_asesor) === event.target.value) || null)}>
             <option value="">Selecciona un asesor</option>
             {data.asesores.map(item => <option key={item.id_asesor} value={item.id_asesor}>{advisorName(item)}</option>)}
           </select>
         </label>
-        {assignment ? <div className="teacher-matrix-editing">
-          <strong>Editando {assignment.nombre_paralelo} · {weekdayLabel(assignment.dias)}</strong>
-          <span>Elige otro asesor y guarda el cambio.</span>
-        </div> : <p className="teacher-matrix-hint">Cada casilla muestra los paralelos que se reúnen ese día y en ese horario.</p>}
-        {assignment && <div className="teacher-matrix-actions">
-          <button type="button" className="submit-button" disabled={!pickedAdvisor || busy} onClick={onUpdate}>{busy ? "Guardando…" : "Guardar cambio"}</button>
-          <button type="button" className="teacher-delete" disabled={busy} onClick={onDelete}>Eliminar</button>
+        <label htmlFor="teacher-subject">Materia
+          <select id="teacher-subject" disabled={!assignmentSlot || busy} value={pickedSubjectId} onChange={event => onSelectSubject(event.target.value)}>
+            <option value="">Selecciona una materia</option>
+            {availableSubjects.map(item => <option key={item.id_materia} value={item.id_materia}>{item.nombre_materia}</option>)}
+          </select>
+        </label>
+        {assignmentSlot && <div className="teacher-matrix-actions">
+          <button type="button" className="submit-button" disabled={!pickedAdvisor || !pickedSubjectId || busy} onClick={onSave}>{busy ? "Guardando…" : "Guardar asignación"}</button>
+          {assignment && <button type="button" className="teacher-delete" disabled={busy} onClick={onDelete}>Eliminar</button>}
           <button type="button" className="teacher-cancel" disabled={busy} onClick={onCancel}>Cancelar</button>
         </div>}
       </div>
@@ -109,21 +124,22 @@ export default function TeacherAssignmentMatrix({ data, assignment, pickedAdviso
                     {(slots.get(slotKey(day.key, schedule)) || []).map(parallel => {
                       const course = courses.get(String(parallel.id_capacitacion))
                       const assigned = assignments.get(assignmentKey(parallel.id_paralelo, day.key)) || []
+                      const hasAvailableSubject = (parallel.asignaciones || []).some(subject => subject.id_materia != null && !assigned.some(item => Number(item.id_materia) === Number(subject.id_materia)))
                       return assigned.length
                         ? <article className="teacher-parallel-card occupied" key={parallel.id_paralelo}>
                           <ParallelInfo parallel={parallel} course={course} />
                           <div className="teacher-parallel-assignments">
-                            {assigned.map(item => <button type="button" key={item.id_asesor} className="teacher-assigned" onClick={() => onEdit(item)}>
-                              {item.nombre_asesor} <span>Editar</span>
+                            {assigned.map(item => <button type="button" key={item.id_asesor_paralelo_materia} className="teacher-assigned" disabled={busy} onClick={() => onEdit(item)}>
+                              <strong>{item.nombre_materia}</strong> · {item.nombre_asesor} <span>Editar</span>
                             </button>)}
-                            {assigned.length > 1 && <small className="teacher-conflict">Revisa las asignaciones duplicadas de este día.</small>}
+                            {hasAvailableSubject && <button type="button" className="teacher-slot-select" disabled={busy} onClick={() => onAssign(parallel, day.key)}>Añadir materia y asesor</button>}
                           </div>
                         </article>
                         : <button type="button" className="teacher-parallel-card teacher-parallel-action" key={parallel.id_paralelo}
-                          disabled={busy || Boolean(assignment)} onClick={() => onAssign(parallel, day.key)}
-                          aria-label={`Asignar asesor a ${parallel.nombre_paralelo} el ${day.label}`}>
+                          disabled={busy || !hasAvailableSubject} onClick={() => onAssign(parallel, day.key)}
+                          aria-label={`Preparar asignación para ${parallel.nombre_paralelo} el ${day.label}`}>
                           <ParallelInfo parallel={parallel} course={course} />
-                          <span className="teacher-slot-select">Asignar asesor</span>
+                          <span className="teacher-slot-select">Seleccionar paralelo</span>
                         </button>
                     })}
                   </td>)}
@@ -140,13 +156,16 @@ export default function TeacherAssignmentMatrix({ data, assignment, pickedAdviso
 TeacherAssignmentMatrix.propTypes = {
   data: PropTypes.shape({ capacitaciones: PropTypes.array.isRequired, paralelos: PropTypes.array.isRequired, asignacionesDocentes: PropTypes.array.isRequired, asesores: PropTypes.array.isRequired }).isRequired,
   assignment: PropTypes.object,
+  assignmentSlot: PropTypes.shape({ parallel: PropTypes.object, day: PropTypes.string }),
   pickedAdvisor: PropTypes.object,
+  pickedSubjectId: PropTypes.string.isRequired,
   busy: PropTypes.bool.isRequired,
   message: PropTypes.string.isRequired,
   onSelectAdvisor: PropTypes.func.isRequired,
+  onSelectSubject: PropTypes.func.isRequired,
   onAssign: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
-  onUpdate: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
 }

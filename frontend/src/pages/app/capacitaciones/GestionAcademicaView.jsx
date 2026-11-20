@@ -3,7 +3,7 @@ import PropTypes from "prop-types"
 import { apiClient } from "../../../services/apiClient"
 import TeacherAssignmentMatrix from "../../../components/features/capacitaciones/TeacherAssignmentMatrix"
 import ParallelSetupFields from "../../../components/features/capacitaciones/ParallelSetupFields"
-import { normalizeWeekday, parseWeekdays } from "../../../utils/weekdays"
+import { parseWeekdays } from "../../../utils/weekdays"
 import "./GestionAcademicaView.css"
 
 const STEPS = [
@@ -39,7 +39,9 @@ export default function GestionAcademicaView() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
   const [assignment, setAssignment] = useState(null)
+  const [assignmentSlot, setAssignmentSlot] = useState(null)
   const [pickedAdvisor, setPickedAdvisor] = useState(null)
+  const [pickedSubjectId, setPickedSubjectId] = useState("")
   const [assignmentMessage, setAssignmentMessage] = useState("")
   const [assignmentBusy, setAssignmentBusy] = useState(false)
   const current = STEPS.find(item => item.key === step)
@@ -94,37 +96,31 @@ export default function GestionAcademicaView() {
   }
   const remove = async row => { if (!window.confirm("¿Eliminar este registro?")) return; try { await apiClient.delete(`/${current.endpoint}/${row[current.pk]}`); if (record?.[current.pk] === row[current.pk]) startNew(); await reload() } catch (e) { setMessage(e.userMessage || "No se pudo eliminar.") } }
   const chooseAdvisor = advisor => { setPickedAdvisor(advisor); setAssignmentMessage("") }
-  const assignDay = async (parallel, day) => {
-    if (!pickedAdvisor) return setAssignmentMessage("Selecciona primero un asesor.")
+  const prepareAssignment = (parallel, day) => {
     if (assignmentBusy) return
-    if (data.asignacionesDocentes.some(item =>
-      Number(item.id_paralelo) === Number(parallel.id_paralelo) && normalizeWeekday(item.dias) === day)) {
-      return setAssignmentMessage(`${day} ya tiene un asesor asignado a ${parallel.nombre_paralelo}.`)
-    }
-    setAssignmentBusy(true); setAssignmentMessage("")
-    try {
-      await apiClient.post("/asignaciones-docentes-paralelo", {
-        id_asesor: pickedAdvisor.id_asesor, id_paralelo: parallel.id_paralelo, dias: day,
-      })
-      await reload()
-      setAssignmentMessage("Asesor asignado al día seleccionado.")
-    } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo asignar el asesor.") }
-    finally { setAssignmentBusy(false) }
+    setAssignment(null)
+    setAssignmentSlot({ parallel, day })
+    setPickedAdvisor(null)
+    setPickedSubjectId("")
+    setAssignmentMessage("")
   }
-  const updateAssignment = async () => {
-    if (!assignment || !pickedAdvisor || assignmentBusy) return
+  const saveAssignment = async () => {
+    if (!assignmentSlot || !pickedAdvisor || !pickedSubjectId || assignmentBusy) return
     setAssignmentBusy(true); setAssignmentMessage("")
     try {
-      await apiClient.put("/asignaciones-docentes-paralelo", {
-        id_asesor_anterior: assignment.id_asesor,
-        id_paralelo_anterior: assignment.id_paralelo,
-        dias_anterior: assignment.dias,
+      const payload = {
+        ...(assignment && { id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia }),
         id_asesor: pickedAdvisor.id_asesor,
-        id_paralelo: assignment.id_paralelo,
-        dias: assignment.dias,
-      })
-      await reload(); setAssignment(null); setAssignmentMessage("Asesor actualizado.")
-    } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo actualizar la asignación.") }
+        id_paralelo: assignmentSlot.parallel.id_paralelo,
+        id_materia: Number(pickedSubjectId),
+        dias: assignmentSlot.day,
+      }
+      if (assignment) await apiClient.put("/asignaciones-docentes-paralelo", payload)
+      else await apiClient.post("/asignaciones-docentes-paralelo", payload)
+      await reload()
+      setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId("")
+      setAssignmentMessage(assignment ? "Asignación actualizada." : "Asignación guardada.")
+    } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo guardar la asignación.") }
     finally { setAssignmentBusy(false) }
   }
   const deleteAssignment = async () => {
@@ -132,15 +128,17 @@ export default function GestionAcademicaView() {
     setAssignmentBusy(true); setAssignmentMessage("")
     try {
       await apiClient.delete("/asignaciones-docentes-paralelo", { data: {
-        id_asesor: assignment.id_asesor, id_paralelo: assignment.id_paralelo, dias: assignment.dias,
+        id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia,
       } })
-      await reload(); setAssignment(null); setAssignmentMessage("Asignación eliminada.")
+      await reload(); setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId(""); setAssignmentMessage("Asignación eliminada.")
     } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo eliminar la asignación.") }
     finally { setAssignmentBusy(false) }
   }
   const editAssignment = row => {
     setAssignment(row)
+    setAssignmentSlot({ parallel: data.paralelos.find(item => Number(item.id_paralelo) === Number(row.id_paralelo)), day: row.dias })
     setPickedAdvisor(data.asesores.find(item => Number(item.id_asesor) === Number(row.id_asesor)) || null)
+    setPickedSubjectId(String(row.id_materia))
     setAssignmentMessage("")
   }
 
@@ -166,15 +164,18 @@ export default function GestionAcademicaView() {
     <TeacherAssignmentMatrix
       data={data}
       assignment={assignment}
+      assignmentSlot={assignmentSlot}
       pickedAdvisor={pickedAdvisor}
+      pickedSubjectId={pickedSubjectId}
       busy={assignmentBusy}
       message={assignmentMessage}
       onSelectAdvisor={chooseAdvisor}
+      onSelectSubject={setPickedSubjectId}
       onEdit={editAssignment}
-      onAssign={assignDay}
-      onUpdate={updateAssignment}
+      onAssign={prepareAssignment}
+      onSave={saveAssignment}
       onDelete={deleteAssignment}
-      onCancel={() => { setAssignment(null); setAssignmentMessage("") }}
+      onCancel={() => { setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId(""); setAssignmentMessage("") }}
     />
   </main>
 }

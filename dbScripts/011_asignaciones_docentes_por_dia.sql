@@ -1,7 +1,10 @@
--- Permite asignar un asesor distinto a cada día de un paralelo.
+-- Permite asignar un asesor y una materia por día de un paralelo.
 -- Los registros previos quedan con dias NULL y se pueden migrar manualmente.
 ALTER TABLE public.asesor_paralelo_materia
-  ADD COLUMN IF NOT EXISTS dias character varying(20);
+  ADD COLUMN IF NOT EXISTS dias character varying(100);
+
+ALTER TABLE public.asesor_paralelo_materia
+  ALTER COLUMN dias TYPE character varying(100);
 
 ALTER TABLE public.asesor_paralelo_materia
   DROP CONSTRAINT IF EXISTS uq_apm_asesor_paralelo_materia_id;
