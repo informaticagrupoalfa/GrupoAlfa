@@ -32,7 +32,7 @@ export const MODULE_TABS = {
   inscripciones: {
     path: "/app/inscripciones",
     defaultTab: "registro",
-    items: [{ key: "registro", label: "Inscripciones" }, { key: "listado", label: "Listado" }],
+    items: [{ key: "registro", label: "Inscripciones" }, { key: "listado", label: "Listado" }, { key: "reportes", label: "Reportes" }],
   },
   "pase-lista": {
     path: "/app/pase-lista",

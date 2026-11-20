@@ -1,116 +1,150 @@
 import PropTypes from "prop-types"
 
-const show = (value) => value === null || value === undefined || value === "" ? "No registrado" : String(value)
-const yesNo = (value) => value ? "Sí" : "No"
+const visible = (value) => value === null || value === undefined || value === "" ? "—" : String(value)
+const name = (...parts) => parts.filter(Boolean).join(" ")
 const date = (value) => {
-  if (!value) return "No registrado"
-  const text = String(value).slice(0, 10)
-  return `${text.slice(8, 10)}/${text.slice(5, 7)}/${text.slice(0, 4)}`
+  const iso = String(value ?? "").slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso)
+    ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4)
+    : "—"
 }
-const fullName = (...parts) => parts.filter(Boolean).join(" ")
 
-function ReportSection({ title, fields }) {
+function Section({ title, fields }) {
   return (
-    <section className="reporte-seccion">
-      <h3>{title}</h3>
-      <dl className="reporte-campos">
+    <section className="constancia-seccion">
+      <h2>{title}</h2>
+      <dl className="constancia-campos">
         {fields.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{show(value)}</dd></div>
+          <div className="constancia-campo" key={label}>
+            <dt>{label}</dt>
+            <dd>{visible(value)}</dd>
+          </div>
         ))}
       </dl>
     </section>
   )
 }
 
-ReportSection.propTypes = {
+Section.propTypes = {
   title: PropTypes.string.isRequired,
   fields: PropTypes.arrayOf(PropTypes.array).isRequired,
 }
 
-export default function InscripcionReport({ record, codigoConducta, visible }) {
-  const nombre = fullName(record.nombre, record.apellido_paterno, record.apellido_materno)
-  const apoderado = fullName(record.apoderado_nombre, record.apoderado_apellido_paterno, record.apoderado_apellido_materno)
-  const administrativo = fullName(record.administrativo_nombre, record.administrativo_apellido_paterno, record.administrativo_apellido_materno)
-  const horario = [record.hora_inicio?.slice(0, 5), record.hora_fin?.slice(0, 5)].filter(Boolean).join(" a ")
-  const foto = record.foto_base64
-    ? `data:image/${record.foto_base64.startsWith("UklG") ? "webp" : record.foto_base64.startsWith("iVBOR") ? "png" : "jpeg"};base64,${record.foto_base64}`
-    : null
+function Header({ logoUrl }) {
+  return (
+    <header className="constancia-encabezado">
+      <img src={logoUrl} alt="Logotipo de Grupo Alfa" />
+      <div className="constancia-institucion">
+        <strong>CCTP Grupo Alfa Malaver S.R.L.</strong>
+      </div>
+      <div className="constancia-encabezado-espacio" aria-hidden="true" />
+    </header>
+  )
+}
+
+Header.propTypes = { logoUrl: PropTypes.string.isRequired }
+
+function Footer({ issuedAt, page, totalPages, signatures = false }) {
+  return (
+    <footer className="constancia-pie">
+      {signatures && (
+        <div className="constancia-firmas">
+          <div><span>Firma del responsable</span></div>
+          <div><span>Sello institucional</span></div>
+        </div>
+      )}
+      <div className="constancia-pie-linea">
+        <span>Fecha de emisión: {issuedAt}</span>
+        <span>Página {page} de {totalPages}</span>
+      </div>
+    </footer>
+  )
+}
+
+Footer.propTypes = {
+  issuedAt: PropTypes.string.isRequired,
+  page: PropTypes.number.isRequired,
+  totalPages: PropTypes.number.isRequired,
+  signatures: PropTypes.bool,
+}
+
+export default function InscripcionReport({ record, codigoConducta, logoUrl, issuedAt }) {
+  const student = record.estudiante_nombre
+    || name(record.nombre, record.apellido_paterno, record.apellido_materno)
+  const guardian = name(record.apoderado_nombre, record.apoderado_apellido_paterno, record.apoderado_apellido_materno)
+  const admin = name(record.administrativo_nombre, record.administrativo_apellido_paterno, record.administrativo_apellido_materno)
+  const start = record.paralelo_hora_inicio ?? record.hora_inicio
+  const end = record.paralelo_hora_fin ?? record.hora_fin
+  const schedule = start || end ? [start, end].filter(Boolean).map((time) => String(time).slice(0, 5)).join(" a ") : null
+  const conduct = codigoConducta.trim()
+  const totalPages = conduct ? 2 : 1
 
   return (
-    <article className={`registro-reporte${visible ? "" : " is-hidden"}`} aria-label="Reporte de inscripción">
-      <header className="reporte-encabezado">
-        <div><strong>CCTP Grupo Alfa Malaver S.R.L.</strong><h2>Reporte de inscripción</h2></div>
-        <div className="reporte-referencia"><span>Inscripción #{record.id_inscripcion}</span><span>Emitido el {new Date().toLocaleDateString("es-BO")}</span></div>
-      </header>
+    <main className="constancia-documento">
+      <article className="constancia-pagina">
+        <Header logoUrl={logoUrl} />
+        <h1>CONSTANCIA DE INSCRIPCIÓN</h1>
+        <p className="constancia-referencia">
+          Registro Nº {visible(record.id_inscripcion)} · Credencial Nº {visible(record.num_credencial)}
+        </p>
+        <p className="constancia-introduccion">
+          Por medio de la presente se deja constancia de que <strong>{student || "el/la estudiante"}</strong>,
+          con C.I. <strong>{visible(record.estudiante_ci ?? record.ci)}</strong>, se encuentra inscrito/a
+          en el programa académico que se detalla a continuación.
+        </p>
 
-      <ReportSection title="Datos académicos" fields={[
-        ["Carrera a la que postula", record.carrera_nombre],
-        ["Facultad", record.facultad],
-        ["Paralelo / grupo", record.grupo || record.nombre_paralelo],
-        ["ID de paralelo", record.id_paralelo],
-        ["Nivel", record.nivel],
-        ["Inicio de clases", date(record.inicio_clases)],
-        ["Modalidad", record.modalidad],
-        ["Horario", horario],
-        ["Días", record.dias],
-        ["Nº de credencial", record.num_credencial],
-        ["Recálculo", yesNo(record.recalculo)],
-        ["Preparación previa", yesNo(record.preparacion_previa)],
-        ["Tiempo de preparación (meses)", record.tiempo_de_preparacion_meses],
-        ["Lugar de preparación", record.lugar_de_preparacion],
-        ["Fecha de inscripción", date(record.fecha_insc)],
-        ["Cómo se enteró de nosotros", record.como_se_entero_de_nosotros],
-        ["Detalle del medio", record.como_se_entero_detalle],
-      ]} />
+        <Section title="Datos de la inscripción" fields={[
+          ["Número de inscripción", record.id_inscripcion],
+          ["Fecha de inscripción", date(record.fecha_insc)],
+          ["Facultad", record.facultad_nombre ?? record.facultad],
+          ["Carrera", record.carrera_nombre],
+        ]} />
+        <Section title="Capacitación y paralelo" fields={[
+          ["Inicio de capacitación", date(record.capacitacion_inicio ?? record.inicio_clases)],
+          ["Fin de capacitación", date(record.capacitacion_fin)],
+          ["Paralelo", record.nombre_paralelo ?? record.grupo],
+          ["Nivel", record.paralelo_nivel ?? record.nivel],
+          ["Modalidad", record.paralelo_modalidad ?? record.modalidad],
+          ["Días", record.paralelo_dias ?? record.dias],
+          ["Horario", schedule],
+          ["Aula", record.aula_codigo],
+        ]} />
+        <Section title="Estudiante" fields={[
+          ["Nombre completo", student],
+          ["Cédula de identidad", record.estudiante_ci ?? record.ci],
+          ["Fecha de nacimiento", date(record.estudiante_fecha_nacimiento ?? record.fecha_nacimiento)],
+          ["Correo electrónico", record.estudiante_correo ?? record.correo_electronico],
+          ["Teléfono", record.estudiante_telefono ?? record.celular],
+        ]} />
+        <Section title="Apoderado y registro" fields={[
+          ["Nombre del apoderado", guardian],
+          ["Parentesco", record.apoderado_parentesco],
+          ["Teléfono del apoderado", record.apoderado_telefono],
+          ["Responsable de inscripción", admin],
+        ]} />
+        <Footer issuedAt={issuedAt} page={1} totalPages={totalPages} signatures />
+      </article>
 
-      <section className="reporte-seccion">
-        <h3>Datos personales del estudiante</h3>
-        <div className="reporte-estudiante">
-          <ReportSection title="Identificación y contacto" fields={[
-            ["ID del estudiante", record.id_estudiante],
-            ["CI", record.ci],
-            ["Apellido paterno", record.apellido_paterno],
-            ["Apellido materno", record.apellido_materno],
-            ["Nombre", record.nombre],
-            ["Fecha de nacimiento", date(record.fecha_nacimiento)],
-            ["Celular", record.celular],
-            ["Correo electrónico", record.correo_electronico],
-            ["Colegio de procedencia", record.colegio_de_procedencia],
-            ["Dirección de domicilio", record.direccion_de_domicilio],
-          ]} />
-          {foto && <img className="reporte-foto" src={foto} alt={`Foto de ${nombre || "estudiante"}`} />}
-        </div>
-      </section>
-
-      <ReportSection title="Datos del apoderado" fields={[
-        ["Apoderado registrado", apoderado],
-        ["CI", record.apoderado_ci],
-        ["Parentesco", record.apoderado_parentesco],
-        ["Apellido paterno", record.apoderado_apellido_paterno],
-        ["Apellido materno", record.apoderado_apellido_materno],
-        ["Nombre", record.apoderado_nombre],
-        ["Teléfono", record.apoderado_telefono],
-        ["Correo electrónico", record.apoderado_correo_electronico],
-      ]} />
-
-      <ReportSection title="Datos administrativos" fields={[
-        ["Elaborado por", record.elaborado_por || administrativo],
-        ["ID administrativo", record.id_administrativo],
-        ["Sucursal", record.sucursal],
-        ["Fecha de registro", date(record.fecha_registro)],
-      ]} />
-
-      <p className="reporte-seguridad">Las contraseñas no se incluyen en el reporte.</p>
-      <section className="reporte-conducta">
-        <h3>Código de conducta</h3>
-        <p>{codigoConducta.trim() || "Sin código de conducta."}</p>
-      </section>
-    </article>
+      {conduct && (
+        <article className="constancia-pagina">
+          <Header logoUrl={logoUrl} />
+          <h1>CÓDIGO DE CONDUCTA</h1>
+          <p className="constancia-referencia">
+            Anexo a la constancia de inscripción Nº {visible(record.id_inscripcion)}
+          </p>
+          <div className="constancia-conducta">
+            {conduct.split(/\r?\n/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+          </div>
+          <Footer issuedAt={issuedAt} page={2} totalPages={totalPages} signatures />
+        </article>
+      )}
+    </main>
   )
 }
 
 InscripcionReport.propTypes = {
   record: PropTypes.object.isRequired,
   codigoConducta: PropTypes.string.isRequired,
-  visible: PropTypes.bool.isRequired,
+  logoUrl: PropTypes.string.isRequired,
+  issuedAt: PropTypes.string.isRequired,
 }

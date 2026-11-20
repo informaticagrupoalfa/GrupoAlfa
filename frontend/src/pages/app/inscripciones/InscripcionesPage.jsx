@@ -6,12 +6,13 @@ import { useAuth } from "../../../hooks/useAuth"
 
 const RegistroView = lazy(() => import("./RegistroView"))
 const ListadoView = lazy(() => import("./ListadoView"))
+const ReportesView = lazy(() => import("./ReportesView"))
 
 export default function InscripcionesPage() {
   const { activeRole } = useAuth()
   const [searchParams] = useSearchParams()
   const tab = resolveModuleTab(getModuleTabConfig("inscripciones", activeRole), searchParams.toString())
-  const ActiveView = tab === "listado" ? ListadoView : RegistroView
+  const ActiveView = tab === "listado" ? ListadoView : tab === "reportes" ? ReportesView : RegistroView
   return (
     <Suspense fallback={<Skeleton lines={6} />}>
       <ActiveView />
