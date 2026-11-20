@@ -178,7 +178,7 @@ export default function Sidebar() {
   if (canAccessModuleWithRole(loggedUser, activeRole, "pase-lista")) {
     navItems.push({
       key: "pase-lista",
-      label: "Llamar lista",
+      label: "Pase de lista",
       to: "/app/pase-lista",
       preload: lazyPaseLista,
     })

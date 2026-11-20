@@ -3,7 +3,7 @@ export const ACCESS_ROLE_GROUPS = {
   academic: ["SysAdmin", "Rooter", "Gerencia", "Cajero", "Administración"],
   enrollment: ["SysAdmin", "Administración"],
   sysadmin: ["SysAdmin"],
-  advisor: ["Asesor", "Asesor Coordinador"],
+  advisor: ["SysAdmin", "Asesor", "Asesor Coordinador"],
 }
 
 // Módulos visibles en la aplicación. La autorización real también se valida en la API.

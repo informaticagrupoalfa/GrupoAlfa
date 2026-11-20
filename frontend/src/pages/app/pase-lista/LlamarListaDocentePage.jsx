@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { apiClient } from "../../../services/apiClient"
+import { useAuth } from "../../../hooks/useAuth"
 import "./LlamarListaDocentePage.css"
 
 const studentName = (student) =>
@@ -11,16 +12,19 @@ const localDate = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 }
 
-async function loadData(setAssignments, setClasses) {
+async function loadData(setAssignments, setClasses, scope) {
   const [assignments, classes] = await Promise.all([
-    apiClient.get("/llamar-lista/asignaciones"),
-    apiClient.get("/llamar-lista/clases"),
+    apiClient.get("/llamar-lista/asignaciones", { params: { scope } }),
+    apiClient.get("/llamar-lista/clases", { params: { scope } }),
   ])
   setAssignments(assignments.data)
   setClasses(classes.data)
 }
 
 export default function LlamarListaDocentePage() {
+  const { activeRole } = useAuth()
+  const isSysAdmin = activeRole === "SysAdmin"
+  const scope = isSysAdmin ? "all" : "mine"
   const [assignments, setAssignments] = useState([])
   const [classes, setClasses] = useState([])
   const [students, setStudents] = useState([])
@@ -39,8 +43,19 @@ export default function LlamarListaDocentePage() {
   const parallelId = selected?.id_paralelo
 
   useEffect(() => {
-    loadData(setAssignments, setClasses).catch(() => setMessage("No se pudieron cargar las asignaciones."))
-  }, [])
+    let active = true
+    setSelected(null)
+    setClassId(null)
+    setChecked([])
+    setAssignments([])
+    setClasses([])
+    loadData(
+      (data) => { if (active) setAssignments(data) },
+      (data) => { if (active) setClasses(data) },
+      scope,
+    ).catch(() => { if (active) setMessage("No se pudieron cargar las asignaciones.") })
+    return () => { active = false }
+  }, [scope])
 
   useEffect(() => {
     let cancelled = false
@@ -65,7 +80,7 @@ export default function LlamarListaDocentePage() {
       })
       setClassId(data.id_clase)
       setChecked([])
-      await loadData(setAssignments, setClasses)
+      await loadData(setAssignments, setClasses, scope)
       setMessage("Clase creada.")
     } catch (error) {
       setMessage(error.userMessage || "No se pudo crear la clase.")
@@ -156,11 +171,11 @@ export default function LlamarListaDocentePage() {
                 aria-pressed={selected?.id_asesor_paralelo_materia === item.id_asesor_paralelo_materia}
                 onClick={() => { setSelected(item); setClassId(null); setChecked([]) }}>
                 <strong>{item.nombre_paralelo}</strong><span>{item.nombre_materia}</span>
-                <small>{item.nivel} · {item.dias || "Día sin definir"}</small>
+                <small>{isSysAdmin && item.nombre_asesor ? `${item.nombre_asesor} · ` : ""}{item.nivel} · {item.dias || "Día sin definir"}</small>
               </button>
             ))}
           </div>
-          <h3>Mis clases</h3>
+          <h3>{isSysAdmin ? "Clases" : "Mis clases"}</h3>
           <div className="llamar-list">
             {classes.map(item => (
               <button className="llamar-choice" key={item.id_clase} type="button"
@@ -171,6 +186,7 @@ export default function LlamarListaDocentePage() {
                   setChecked([])
                 }}>
                 {String(item.fecha).slice(0, 10)} · {item.nombre_paralelo} / {item.nombre_materia}
+                {isSysAdmin && item.nombre_asesor ? ` · ${item.nombre_asesor}` : ""}
               </button>
             ))}
           </div>
