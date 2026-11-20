@@ -1,7 +1,6 @@
 import { Suspense, lazy, useCallback, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { useCrud } from "../../hooks/useCrud"
-import DataTable from "./DataTable"
 import Button from "../ui/Button"
 import Pagination from "../ui/Pagination"
 import Skeleton from "../ui/Skeleton"
@@ -194,21 +193,31 @@ export default function CrudPanel({ entity, defaultParams }) {
       <p className="muted">
         {filtered.length} registro(s)
       </p>
-      <DataTable rows={visible} columns={entity.columns} pk={entity.pk} onEdit={openEdit} onDelete={handleDelete} />
-      <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
-      {modalOpen && (
-        <Suspense fallback={<Skeleton lines={4} />}>
-          <EntityFormModal
-            entity={entity}
-            initial={selected}
-            saving={saving}
-            formError={formError}
-            onClose={() => setModalOpen(false)}
-            onSubmit={handleSubmit}
-            extra={extraComponent}
-          />
-        </Suspense>
-      )}
+      <div className="crud-card-workspace">
+        <div className="crud-form-column">
+          {modalOpen ? (
+            <Suspense fallback={<Skeleton lines={4} />}>
+              <EntityFormModal entity={entity} initial={selected} saving={saving} formError={formError}
+                onClose={() => { setModalOpen(false); setSelected(null) }} onSubmit={handleSubmit} extra={extraComponent} inline />
+            </Suspense>
+          ) : <div className="crud-form-prompt"><span>✦</span><h2>Selecciona un registro</h2><p>Elige una tarjeta para modificarla o crea un nuevo registro desde aquí.</p><Button onClick={openCreate}>＋ Nuevo {entity.label.slice(0, -1).toLowerCase()}</Button></div>}
+        </div>
+        <div className="crud-cards-column">
+          <div className="crud-cards-heading"><div><h2>{entity.label}</h2><p className="muted">{filtered.length} registro(s)</p></div><Button size="sm" onClick={openCreate}>＋ Nuevo</Button></div>
+          {visible.length ? <div className="crud-record-cards">{visible.map(row => {
+            const id = row[entity.pk]
+            const titleCol = entity.columns.find(c => ![entity.pk].includes(c.key))
+            const title = row[titleCol?.key] ?? `${entity.label.slice(0, -1)} ${id}`
+            return <article key={id} className={`crud-record-card ${selected?.[entity.pk] === id ? "is-selected" : ""}`}>
+              <button type="button" className="crud-record-select" onClick={() => openEdit(row)}><span className="crud-record-title">{title}</span><span className="crud-record-id">#{id}</span>
+                <span className="crud-record-details">{entity.columns.filter(c => c.key !== entity.pk && c.key !== titleCol?.key).slice(0, 4).map(c => <span key={c.key}><small>{c.label}</small>{String(row[c.key] ?? "—")}</span>)}</span>
+              </button><div className="crud-record-actions"><Button size="sm" variant="secondary" onClick={() => openEdit(row)}>Editar</Button><Button size="sm" variant="secondary" onClick={() => handleDelete(id)}>Eliminar</Button></div>
+            </article>
+          })}</div> : <div className="crud-form-prompt"><p>No hay registros que coincidan con la búsqueda.</p></div>}
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      </div>
+      <style>{`.crud-card-workspace{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:18px;align-items:start}.crud-form-column{position:sticky;top:16px}.crud-inline-form,.crud-form-prompt,.crud-cards-column{background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:18px}.crud-inline-form h2,.crud-cards-heading h2{margin:0 0 8px;font-size:20px}.crud-inline-form form{display:grid;gap:12px}.crud-form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}.crud-form-prompt{min-height:250px;display:grid;align-content:center;justify-items:start;gap:10px;color:#24415f}.crud-form-prompt>span{font-size:30px;color:#4f7cac}.crud-cards-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.crud-cards-heading p{margin:0}.crud-record-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.crud-record-card{border:1px solid #dbe3ed;border-radius:13px;padding:12px;background:#fbfdff;transition:border-color .15s,box-shadow .15s}.crud-record-card.is-selected{border-color:#3478c6;box-shadow:0 0 0 2px #d8eaff}.crud-record-select{display:grid;width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:0;gap:8px}.crud-record-title{font-weight:700;font-size:16px;color:#173956}.crud-record-id{color:#718096;font-size:12px}.crud-record-details{display:grid;gap:5px;color:#334e68}.crud-record-details>span{display:grid;font-size:13px}.crud-record-details small{color:#8292a6}.crud-record-actions{display:flex;gap:7px;justify-content:flex-end;margin-top:12px}@media(max-width:900px){.crud-card-workspace{grid-template-columns:1fr}.crud-form-column{position:static;grid-row:1}}`}</style>
     </section>
   )
 }

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import Skeleton from "../../../components/ui/Skeleton"
 
 const VIEWS = {
+  gestion: lazy(() => import("./GestionAcademicaView")),
   capacitaciones: lazy(() => import("./CapacitacionesView")),
   paralelos: lazy(() => import("./ParalelosView")),
   convocatorias: lazy(() => import("./ConvocatoriasView")),
@@ -17,7 +18,7 @@ const TABS = Object.keys(VIEWS)
 export default function CapacitacionesPage() {
   const [searchParams] = useSearchParams()
   const requestedTab = searchParams.get("tab")
-  const active = TABS.includes(requestedTab) ? requestedTab : "capacitaciones"
+  const active = TABS.includes(requestedTab) ? requestedTab : "gestion"
   const ActiveView = VIEWS[active]
 
   return (

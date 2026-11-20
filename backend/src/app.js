@@ -33,6 +33,8 @@ import datosRoutes from "./routes/datos.routes.js";
 import materiasCapacitacionRoutes from "./routes/materiasCapacitacion.routes.js";
 import misParalelosRoutes from "./routes/misParalelos.routes.js";
 import llamarListaRoutes from "./routes/llamarLista.routes.js";
+import configuracionParalelosRoutes from "./routes/configuracionParalelos.routes.js";
+import asignacionesDocentesParaleloRoutes from "./routes/asignacionesDocentesParalelo.routes.js";
 import morgan from "morgan";
 import { config } from "dotenv";
 import cors from "cors";
@@ -100,6 +102,8 @@ app.use("/api", datosRoutes);
 app.use("/api", materiasCapacitacionRoutes);
 app.use("/api", misParalelosRoutes);
 app.use("/api", llamarListaRoutes);
+app.use("/api", configuracionParalelosRoutes);
+app.use("/api", asignacionesDocentesParaleloRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

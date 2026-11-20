@@ -17,7 +17,7 @@ function normalizeInitialValues(entity, initial) {
   return values
 }
 
-export default function EntityFormModal({ entity, initial, saving, formError, onClose, onSubmit, extra }) {
+export default function EntityFormModal({ entity, initial, saving, formError, onClose, onSubmit, extra, inline = false }) {
   const [values, setValues] = useState(() => normalizeInitialValues(entity, initial))
   const [localError, setLocalError] = useState("")
   const [selectOptions, setSelectOptions] = useState({})
@@ -94,6 +94,23 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
     onSubmit(values)
   }
 
+  const formContent = (
+    <form onSubmit={handleSubmit}>
+      {inlineFields.length > 0 && (
+        <div className="inline-row">
+          {inlineFields.map((field) => field.type === "checkbox" ? (
+            <div key={field.name} className="inline-field checkbox-field"><input id={`f-${field.name}`} type="checkbox" checked={values[field.name] === true || values[field.name] === "true"} onChange={(event) => set(field.name, event.target.checked)} /><label htmlFor={`f-${field.name}`}>{field.label}</label></div>
+          ) : <TextField key={field.name} id={`f-${field.name}`} label={field.label} type={field.type} value={values[field.name] ?? ""} onChange={(event) => set(field.name, event.target.value)} maxLength={field.maxLength} required={field.required} inline />)}
+        </div>
+      )}
+      {normalFields.map((field) => field.type === "select" ? <SearchableSelect key={field.name} name={field.name} label={field.label} value={values[field.name] ?? ""} onChange={(val) => set(field.name, val)} options={selectOptions[field.name] ?? []} optionsValue={field.optionsValue} required={field.required} /> : <TextField key={field.name} id={`f-${field.name}`} label={field.label} type={field.type} value={values[field.name] ?? ""} onChange={(event) => set(field.name, event.target.value)} maxLength={field.maxLength} required={field.required} />)}
+      {extra}{(localError || formError) && <p className="error-message" role="alert">{localError || formError}</p>}
+      <div className="crud-form-actions"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar"}</Button></div>
+    </form>
+  )
+
+  if (inline) return <div className="crud-inline-form"><h2>{initial?.[entity.pk] != null ? `Editar ${entity.label}` : `Nuevo ${entity.label}`}</h2>{entity.hint && <p className="muted">{entity.hint}</p>}{formContent}</div>
+
   return (
     <Modal
       title={initial?.[entity.pk] != null ? `Editar ${entity.label}` : `Nuevo ${entity.label}`}
@@ -101,81 +118,7 @@ export default function EntityFormModal({ entity, initial, saving, formError, on
       onClose={onClose}
     >
       <Modal.Body>
-        <form onSubmit={handleSubmit}>
-          {inlineFields.length > 0 && (
-            <div className="inline-row">
-              {inlineFields.map((field) => {
-                if (field.type === "checkbox") {
-                  return (
-                    <div key={field.name} className="inline-field checkbox-field">
-                      <input
-                        id={`f-${field.name}`}
-                        type="checkbox"
-                        checked={values[field.name] === true || values[field.name] === "true"}
-                        onChange={(event) => set(field.name, event.target.checked)}
-                      />
-                      <label htmlFor={`f-${field.name}`}>{field.label}</label>
-                    </div>
-                  )
-                }
-                return (
-                  <TextField
-                    key={field.name}
-                    id={`f-${field.name}`}
-                    label={field.label}
-                    type={field.type}
-                    value={values[field.name] ?? ""}
-                    onChange={(event) => set(field.name, event.target.value)}
-                    maxLength={field.maxLength}
-                    required={field.required}
-                    inline
-                  />
-                )
-              })}
-            </div>
-          )}
-          {normalFields.map((field) => {
-            if (field.type === "select") {
-              const options = selectOptions[field.name] ?? []
-              return (
-                <SearchableSelect
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  value={values[field.name] ?? ""}
-                  onChange={(val) => set(field.name, val)}
-                  options={options}
-                  optionsValue={field.optionsValue}
-                  required={field.required}
-                />
-              )
-            }
-            return (
-              <TextField
-                key={field.name}
-                id={`f-${field.name}`}
-                label={field.label}
-                type={field.type}
-                value={values[field.name] ?? ""}
-                onChange={(event) => set(field.name, event.target.value)}
-                maxLength={field.maxLength}
-                required={field.required}
-              />
-            )
-          })}
-          {extra}
-          {(localError || formError) && (
-            <p className="error-message" role="alert">{localError || formError}</p>
-          )}
-          <Modal.Footer>
-            <Button variant="secondary" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar"}
-            </Button>
-          </Modal.Footer>
-        </form>
+        {formContent}
       </Modal.Body>
     </Modal>
   )
@@ -189,4 +132,5 @@ EntityFormModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
   extra: PropTypes.element,
+  inline: PropTypes.bool,
 }
