@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import PropTypes from "prop-types"
 import { normalizeWeekday, parseWeekdays, WEEKDAYS, weekdayLabel } from "../../../utils/weekdays"
 import "./TeacherAssignmentMatrix.css"
@@ -11,30 +11,34 @@ const advisorName = advisor =>
   [advisor?.nombre, advisor?.apellido_paterno, advisor?.apellido_materno].filter(Boolean).join(" ") ||
   (advisor ? `Asesor ${advisor.id_asesor}` : "")
 
-function formatDate(value) {
+function formatDate(value, fallback = "sin fecha de inicio") {
   const iso = String(value ?? "").slice(0, 10)
   return /^\d{4}-\d{2}-\d{2}$/.test(iso)
     ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
-    : "Fecha pendiente"
+    : fallback
 }
+
+const facultyKey = course => course?.id_facultad == null ? "sin-facultad" : String(course.id_facultad)
+const facultyName = course => course?.nombre_facultad || "Facultad sin definir"
+const courseDates = course => `${formatDate(course?.fecha_inicio)} – ${formatDate(course?.fecha_fin, "sin fecha de fin")}`
+const courseLabel = course => `${facultyName(course)} · ${courseDates(course)} · #${course.id_capacitacion}`
 
 function ParallelInfo({ parallel, course }) {
   return <div className="teacher-parallel-info">
     <strong>{parallel.nombre_paralelo}</strong>
-    <span>Capacitación #{parallel.id_capacitacion}</span>
+    <span>Capacitación #{parallel.id_capacitacion} · {courseDates(course)}</span>
     <span>{parallel.aula_codigo || "Sin aula"} · {parallel.modalidad || "Modalidad sin definir"}</span>
-    <small>{course?.nombre_facultad || "Facultad sin definir"}</small>
-    <small>Inicio: {formatDate(course?.fecha_inicio)}</small>
+    <small>{facultyName(course)}</small>
   </div>
 }
 
 ParallelInfo.propTypes = { parallel: PropTypes.object.isRequired, course: PropTypes.object }
 
-function buildMatrix(data) {
+function buildMatrix(data, parallels) {
   const courses = new Map(data.capacitaciones.map(item => [String(item.id_capacitacion), item]))
-  const schedules = [...new Set(data.paralelos.map(scheduleKey))].sort((a, b) => a.localeCompare(b))
+  const schedules = [...new Set(parallels.map(scheduleKey))].sort((a, b) => a.localeCompare(b))
   const slots = new Map()
-  for (const parallel of data.paralelos) {
+  for (const parallel of parallels) {
     for (const day of parseWeekdays(parallel.dias)) {
       const key = slotKey(day, scheduleKey(parallel))
       slots.set(key, [...(slots.get(key) || []), parallel])
@@ -42,7 +46,9 @@ function buildMatrix(data) {
   }
   for (const group of slots.values()) group.sort((a, b) => a.nombre_paralelo.localeCompare(b.nombre_paralelo, "es"))
   const assignments = new Map()
+  const parallelIds = new Set(parallels.map(item => String(item.id_paralelo)))
   for (const item of data.asignacionesDocentes) {
+    if (!parallelIds.has(String(item.id_paralelo))) continue
     const day = normalizeWeekday(item.dias)
     if (!day) continue
     const key = assignmentKey(item.id_paralelo, day)
@@ -53,14 +59,26 @@ function buildMatrix(data) {
     schedules,
     slots,
     assignments,
-    legacyCount: data.asignacionesDocentes.filter(item => !normalizeWeekday(item.dias)).length,
-    withoutDays: data.paralelos.filter(item => !parseWeekdays(item.dias).length).length,
+    legacyCount: data.asignacionesDocentes.filter(item => parallelIds.has(String(item.id_paralelo)) && !normalizeWeekday(item.dias)).length,
+    withoutDays: parallels.filter(item => !parseWeekdays(item.dias).length).length,
   }
 }
 
 export default function TeacherAssignmentMatrix({ data, assignment, assignmentSlot, pickedAdvisor, pickedSubjectId, busy, message, onSelectAdvisor, onSelectSubject, onAssign, onEdit, onSave, onDelete, onCancel }) {
   const controlsRef = useRef(null)
-  const { courses, schedules, slots, assignments, legacyCount, withoutDays } = useMemo(() => buildMatrix(data), [data])
+  const [facultyFilter, setFacultyFilter] = useState("")
+  const [courseFilter, setCourseFilter] = useState("")
+  const courseIdsWithParallels = useMemo(() => new Set(data.paralelos.map(item => String(item.id_capacitacion))), [data.paralelos])
+  const availableCourses = useMemo(() => data.capacitaciones.filter(item => courseIdsWithParallels.has(String(item.id_capacitacion))), [data.capacitaciones, courseIdsWithParallels])
+  const faculties = useMemo(() => [...new Map(availableCourses.map(course => [facultyKey(course), facultyName(course)])).entries()], [availableCourses])
+  const courseOptions = useMemo(() => availableCourses.filter(course => !facultyFilter || facultyKey(course) === facultyFilter), [availableCourses, facultyFilter])
+  const filteredParallels = useMemo(() => data.paralelos.filter(item => {
+    if (courseFilter) return String(item.id_capacitacion) === courseFilter
+    if (!facultyFilter) return true
+    const course = availableCourses.find(entry => String(entry.id_capacitacion) === String(item.id_capacitacion))
+    return facultyKey(course) === facultyFilter
+  }), [data.paralelos, courseFilter, facultyFilter, availableCourses])
+  const { courses, schedules, slots, assignments, legacyCount, withoutDays } = useMemo(() => buildMatrix(data, filteredParallels), [data, filteredParallels])
   const assignedCount = [...assignments.values()].reduce((count, group) => count + group.length, 0)
   const parallel = assignmentSlot?.parallel
   const assignedInSlot = assignments.get(assignmentKey(parallel?.id_paralelo, assignmentSlot?.day)) || []
@@ -72,6 +90,16 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
     if (assignmentSlot) controlsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
   }, [assignmentSlot])
 
+  const changeFaculty = value => {
+    setFacultyFilter(value)
+    setCourseFilter("")
+    onCancel()
+  }
+  const changeCourse = value => {
+    setCourseFilter(value)
+    onCancel()
+  }
+
   return (
     <section className="teacher-matrix-section">
       <header className="teacher-matrix-heading">
@@ -81,6 +109,22 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
         </div>
         <span>{assignedCount} asignaciones</span>
       </header>
+
+      <div className="teacher-matrix-filters" aria-label="Filtros de la tabla de asignación docente">
+        <label htmlFor="teacher-faculty-filter">Facultad
+          <select id="teacher-faculty-filter" value={facultyFilter} disabled={busy} onChange={event => changeFaculty(event.target.value)}>
+            <option value="">Todas las facultades</option>
+            {faculties.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+          </select>
+        </label>
+        <label htmlFor="teacher-course-filter">Capacitación
+          <select id="teacher-course-filter" value={courseFilter} disabled={busy} onChange={event => changeCourse(event.target.value)}>
+            <option value="">Todas las capacitaciones</option>
+            {courseOptions.map(course => <option key={course.id_capacitacion} value={course.id_capacitacion}>{courseLabel(course)}</option>)}
+          </select>
+        </label>
+        <span className="teacher-matrix-filter-count">{filteredParallels.length} paralelo(s) · {assignedCount} asignación(es)</span>
+      </div>
 
       <div className="teacher-matrix-controls" ref={controlsRef}>
         <div className="teacher-matrix-editing">
@@ -108,7 +152,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
       {legacyCount > 0 && <p className="teacher-matrix-warning">{legacyCount} asignación(es) anterior(es) no tienen día y no aparecen en esta cuadrícula.</p>}
       {withoutDays > 0 && <p className="teacher-matrix-warning">{withoutDays} paralelo(s) no tienen días reconocibles. Edítalos en la etapa 6 para mostrarlos aquí.</p>}
 
-      {data.paralelos.length ? (
+      {schedules.length ? (
         <div className="teacher-matrix-scroll" role="region" aria-label="Horarios por día de la semana" tabIndex={0}>
           <table className="teacher-matrix">
             <thead><tr>
@@ -148,7 +192,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
             </tbody>
           </table>
         </div>
-      ) : <p className="teacher-matrix-empty-state">Crea un paralelo con materias y días para comenzar a asignar asesores.</p>}
+      ) : <p className="teacher-matrix-empty-state">{data.paralelos.length ? "No hay paralelos con días reconocibles para los filtros seleccionados." : "Crea un paralelo con materias y días para comenzar a asignar asesores."}</p>}
     </section>
   )
 }

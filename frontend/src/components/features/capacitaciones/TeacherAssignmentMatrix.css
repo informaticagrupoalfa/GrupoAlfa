@@ -26,6 +26,21 @@
   white-space: nowrap;
 }
 
+.teacher-matrix-filters {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(300px, 2fr) auto;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  background: #f0f6f8;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.teacher-matrix-filters label { display: grid; gap: 6px; min-width: 0; margin: 0; color: var(--ink); }
+.teacher-matrix-filters select { width: 100%; min-width: 0; min-height: 43px; }
+.teacher-matrix-filter-count { padding-bottom: 11px; color: var(--ink-soft); font-size: .82rem; white-space: nowrap; }
+
 .teacher-matrix-controls {
   display: flex;
   align-items: end;
@@ -106,5 +121,7 @@
 @media (max-width: 650px) {
   .teacher-matrix-section { padding: 16px; }
   .teacher-matrix-heading { flex-direction: column; }
+  .teacher-matrix-filters { grid-template-columns: 1fr; }
+  .teacher-matrix-filter-count { padding-bottom: 0; }
   .teacher-matrix-controls label, .teacher-matrix-hint, .teacher-matrix-editing { width: 100%; }
 }
