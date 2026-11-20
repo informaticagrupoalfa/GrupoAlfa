@@ -3,12 +3,27 @@ import PropTypes from "prop-types"
 import { useSearchParams } from "react-router-dom"
 import { deleteResource, getResourceById, listResource, updateResource } from "../../../services/academicService"
 import InscripcionRegistroForm from "../../../components/features/inscripciones/InscripcionRegistroForm"
+import InscripcionReport from "./InscripcionReport"
 import Pagination from "../../../components/ui/Pagination"
 import Skeleton from "../../../components/ui/Skeleton"
 import "./RegistroView.css"
 
 const CATALOGOS = ["carreras", "capacitaciones", "convocatorias", "paralelos", "administrativos", "apoderados"]
 const PAGE_SIZE = 15
+const CONDUCTA_STORAGE_KEY = "grupoalfa.codigoConductaInscripciones.v1"
+const CODIGO_CONDUCTA_INICIAL = `1. Asistir puntualmente a las clases y cumplir las indicaciones académicas del paralelo.
+2. Tratar con respeto a estudiantes, asesores y personal de la institución; evitar toda forma de discriminación, acoso o violencia.
+3. Presentar trabajos y evaluaciones con honestidad, sin suplantación ni copia.
+4. Cuidar aulas, equipos, materiales y espacios comunes; informar cualquier daño o situación de riesgo.
+5. Usar dispositivos electrónicos de manera que no interrumpan la clase ni vulneren la privacidad de otras personas.
+6. Seguir las normas de seguridad y las instrucciones del personal durante las actividades presenciales y virtuales.
+7. Comunicar oportunamente ausencias, dificultades o incidentes al asesor o a la administración.
+8. Ante un incumplimiento, la institución escuchará a las personas involucradas y aplicará las medidas previstas en su normativa vigente.`
+
+function readCodigoConducta() {
+  try { return window.localStorage.getItem(CONDUCTA_STORAGE_KEY) ?? CODIGO_CONDUCTA_INICIAL }
+  catch { return CODIGO_CONDUCTA_INICIAL }
+}
 
 const nombreCompleto = (persona) =>
   [persona?.nombre, persona?.apellido_paterno, persona?.apellido_materno].filter(Boolean).join(" ")
@@ -118,7 +133,7 @@ function buildParalelosPorCarrera(carreras, convocatorias, capacitaciones, paral
   return result
 }
 
-function FichaInscripcion({ id, paralelos, administrativos, onChanged, onDeleted }) {
+function FichaInscripcion({ id, paralelos, administrativos, onChanged, onDeleted, onLoaded }) {
   const [ficha, setFicha] = useState(null)
   const [form, setForm] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -133,6 +148,7 @@ function FichaInscripcion({ id, paralelos, administrativos, onChanged, onDeleted
       .then((record) => {
         if (!mounted) return
         setFicha(record)
+        onLoaded(record)
         setForm({
           id_paralelo: String(record.id_paralelo ?? ""),
           id_administrativo: String(record.id_administrativo ?? ""),
@@ -148,7 +164,7 @@ function FichaInscripcion({ id, paralelos, administrativos, onChanged, onDeleted
       .catch((err) => { if (mounted) setError(err.userMessage ?? "No se pudo cargar la inscripción.") })
       .finally(() => { if (mounted) setLoading(false) })
     return () => { mounted = false }
-  }, [id])
+  }, [id, onLoaded])
 
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
@@ -169,8 +185,12 @@ function FichaInscripcion({ id, paralelos, administrativos, onChanged, onDeleted
         lugar_de_preparacion: form.lugar_de_preparacion.trim(),
       }
       const updated = await updateResource("inscripciones", id, payload)
-      setFicha((current) => ({ ...current, ...updated }))
+      const refreshed = await getResourceById("inscripciones", `${id}/ficha`).catch(() => null)
+      const updatedFicha = refreshed ?? { ...ficha, ...updated }
+      setFicha(updatedFicha)
+      onLoaded(updatedFicha)
       onChanged()
+      if (!refreshed) setError("Cambios guardados, pero no se pudo actualizar la ficha. Vuelve a abrirla antes de imprimir.")
     } catch (err) {
       setError(err.userMessage ?? "No se pudieron guardar los cambios.")
     } finally {
@@ -279,6 +299,7 @@ FichaInscripcion.propTypes = {
   administrativos: PropTypes.arrayOf(PropTypes.object).isRequired,
   onChanged: PropTypes.func.isRequired,
   onDeleted: PropTypes.func.isRequired,
+  onLoaded: PropTypes.func.isRequired,
 }
 
 export default function RegistroView() {
@@ -292,8 +313,12 @@ export default function RegistroView() {
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState("")
   const [message, setMessage] = useState("")
+  const [codigoConducta, setCodigoConducta] = useState(readCodigoConducta)
+  const [reportRecord, setReportRecord] = useState(null)
+  const [showReport, setShowReport] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const panelRef = useRef(null)
+  const reportRef = useRef(null)
   const { carreras, capacitaciones, convocatorias, paralelos, administrativos, apoderados, isLoading } = useInscripcionCatalogos()
 
   useEffect(() => {
@@ -321,7 +346,17 @@ export default function RegistroView() {
     }
   }, [selectedId, creating])
 
+  useEffect(() => {
+    try { window.localStorage.setItem(CONDUCTA_STORAGE_KEY, codigoConducta) } catch { /* El texto sigue editable en esta sesión. */ }
+  }, [codigoConducta])
+
+  useEffect(() => { setReportRecord(null); setShowReport(false) }, [selectedId])
+  useEffect(() => {
+    if (showReport) reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [showReport])
+
   const reload = useCallback(() => setReloadKey((value) => value + 1), [])
+  const onReportLoaded = useCallback((record) => setReportRecord(record), [])
   const openNew = () => { setMessage(""); setSearchParams({ tab: "registro", nuevo: "1" }) }
   const openRecord = (id) => { setMessage(""); setSearchParams({ tab: "registro", id: String(id) }) }
   const onSaved = (saved) => {
@@ -377,7 +412,7 @@ export default function RegistroView() {
         {message && <p className="registro-mensaje" role="status">{message}</p>}
         {selectedId ? (
           <FichaInscripcion key={selectedId} id={selectedId} paralelos={paralelos} administrativos={administrativos}
-            onChanged={() => { reload(); setMessage("Cambios guardados.") }} onDeleted={onDeleted} />
+            onChanged={() => { reload(); setMessage("Cambios guardados.") }} onDeleted={onDeleted} onLoaded={onReportLoaded} />
         ) : creating ? (
           isLoading ? <Skeleton lines={8} /> : <InscripcionRegistroForm key="nueva" carreraOptions={carreraOptions}
             paralelosPorCarrera={paralelosPorCarrera} administrativos={administrativos} apoderados={apoderados}
@@ -386,6 +421,23 @@ export default function RegistroView() {
           <div className="registro-panel-vacio"><h2>Selecciona una inscripción</h2><p>Consulta sus datos, actualiza el registro o crea uno nuevo.</p></div>
         )}
       </section>
+      <section className="registro-conducta" aria-labelledby="registro-conducta-titulo">
+        <div className="registro-conducta-head">
+          <div><h2 id="registro-conducta-titulo">Código de conducta</h2><p>Este texto se añade al final del reporte. Puedes editarlo antes de generar o imprimir.</p></div>
+          <button className="secondary-button" type="button" onClick={() => setCodigoConducta(CODIGO_CONDUCTA_INICIAL)}>Restablecer texto</button>
+        </div>
+        <textarea value={codigoConducta} onChange={(event) => setCodigoConducta(event.target.value)} rows={12} aria-label="Texto del código de conducta" />
+        <p className="registro-conducta-nota">El texto editado se conserva en este navegador.</p>
+        <div className="registro-report-actions">
+          <button className="secondary-button" type="button" disabled={!reportRecord} onClick={() => setShowReport(true)}>Generar reporte</button>
+          <button className="submit-button" type="button" disabled={!reportRecord} onClick={() => window.print()}>Imprimir reporte</button>
+          {!reportRecord && <span>Selecciona una inscripción para generar su reporte.</span>}
+        </div>
+      </section>
+      {reportRecord && <div ref={reportRef} className="registro-reporte-contenedor"><InscripcionReport
+        record={{ ...reportRecord, carrera_nombre: carreras.find((item) => String(item.id_carrera) === String(reportRecord.id_carrera))?.nombre
+          ?? (reportRecord.id_carrera ? `Carrera #${reportRecord.id_carrera}` : undefined) }}
+        codigoConducta={codigoConducta} visible={showReport} /></div>}
     </div>
   )
 }

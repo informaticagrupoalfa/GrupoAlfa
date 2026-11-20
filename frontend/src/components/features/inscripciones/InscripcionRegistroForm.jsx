@@ -639,13 +639,22 @@ export default function InscripcionRegistroForm({
         ? defaultAdministrativo?.id_administrativo
         : toNumberOrUndefined(form.id_administrativo),
       id_paralelo: toNumberOrUndefined(form.id_paralelo),
+      id_carrera: toNumberOrUndefined(form.id_carrera),
       como_se_entero_de_nosotros: textOrUndefined(form.como_se_entero_de_nosotros),
+      como_se_entero_detalle: textOrUndefined(form.como_se_entero_detalle),
       recalculo: Boolean(form.recalculo),
       preparacion_previa: Boolean(form.preparacion_previa),
       tiempo_de_preparacion_meses: toNumberOrUndefined(form.tiempo_de_preparacion_meses),
       lugar_de_preparacion: textOrUndefined(form.lugar_de_preparacion),
       nro_credencial: toNumberOrUndefined(form.nro_credencial),
       fecha_inscripcion: textOrUndefined(form.fecha_inscripcion),
+      fecha_registro: textOrUndefined(form.fecha_registro),
+      inicio_clases: textOrUndefined(form.inicio_clases),
+      modalidad: textOrUndefined(form.modalidad),
+      horario: textOrUndefined(form.horario),
+      grupo: textOrUndefined(form.grupo),
+      elaborado_por: textOrUndefined(form.elaborado_por),
+      sucursal: textOrUndefined(form.sucursal),
       foto: form.fotoBase64,
     }
 

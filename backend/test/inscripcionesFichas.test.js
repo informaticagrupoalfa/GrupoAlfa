@@ -39,6 +39,20 @@ test("la ficha individual responde 404 si no existe", async () => {
   assert.equal(res.statusCode, 404);
 });
 
+test("la ficha para el reporte incluye foto y datos vinculados sin contraseña", async () => {
+  let query = "";
+  pool.query = async (sql) => {
+    query = sql;
+    return { rows: [{ id_inscripcion: 9, nombre: "Ana", foto_base64: "abc" }] };
+  };
+  const res = response();
+  await getInscripcionFichaById({ params: { id: "9" } }, res, (error) => { throw error; });
+  assert.equal(res.body.foto_base64, "abc");
+  assert.match(query, /encode\(e\.foto, 'base64'\)/);
+  assert.match(query, /LEFT JOIN administrativos ad/);
+  assert.doesNotMatch(query, /contraseña/);
+});
+
 test("solo los roles de inscripciones acceden a las fichas con datos personales", async () => {
   const authorize = (role) => new Promise((resolve) => {
     const req = { method: "GET", path: "/inscripciones/9/ficha", user: { id_usuario: 1, roles: [role] } };
