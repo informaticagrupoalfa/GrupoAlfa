@@ -51,6 +51,89 @@ export const createInscripcion = crud.create;
 export const updateInscripcion = crud.update;
 export const deleteInscripcion = crud.remove;
 
+const listadoRelations = `FROM inscripciones i
+  LEFT JOIN estudiantes e ON e.id_estudiante = i.id_estudiante
+  LEFT JOIN usuarios eu ON eu.id_usuario = e.id_usuario
+  LEFT JOIN paralelos p ON p.id_paralelo = i.id_paralelo
+  LEFT JOIN aulas a ON a.id_aula = p.id_aula
+  LEFT JOIN capacitaciones c ON c.id_capacitacion = p.id_capacitacion
+  LEFT JOIN convocatorias_preuniversitario cv ON cv.id_convocatoria = c.id_convocatoria
+  LEFT JOIN LATERAL (
+    SELECT MIN(po.id_carrera) AS id_carrera
+    FROM postulaciones po
+    WHERE po.id_estudiante = i.id_estudiante
+    HAVING COUNT(DISTINCT po.id_carrera) = 1
+  ) postulacion ON true
+  LEFT JOIN carreras cr ON cr.id_carrera = COALESCE(NULLIF(to_jsonb(i)->>'id_carrera', '')::integer, postulacion.id_carrera)
+  LEFT JOIN facultades f ON f.id_facultad = COALESCE(cr.id_facultad, cv.id_facultad)`;
+
+const detalleRelations = `${listadoRelations}
+  LEFT JOIN administrativos ad ON ad.id_administrativo = i.id_administrativo
+  LEFT JOIN usuarios au ON au.id_usuario = ad.id_usuario`;
+
+export const getInscripcionesListado = async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 50);
+    const offset = Math.max(Number.parseInt(req.query.offset, 10) || 0, 0);
+    const search = String(req.query.q ?? "").trim().slice(0, 100);
+    const values = search ? [`%${search}%`] : [];
+    const where = search ? `WHERE i.id_inscripcion::text ILIKE $1
+      OR eu.nro_carnet::text ILIKE $1
+      OR concat_ws(' ', eu.nombre, eu.apellido_paterno, eu.apellido_materno) ILIKE $1
+      OR p.nombre_paralelo ILIKE $1 OR cr.nombre ILIKE $1 OR f.nombre ILIKE $1` : "";
+    const [list, count] = await Promise.all([
+      pool.query(`SELECT i.id_inscripcion, i.fecha_insc, i.num_credencial,
+          i.id_estudiante, i.id_paralelo, p.nombre_paralelo,
+          concat_ws(' ', eu.nombre, eu.apellido_paterno, eu.apellido_materno) AS estudiante_nombre,
+          eu.nro_carnet AS estudiante_ci, cr.nombre AS carrera_nombre,
+          f.nombre AS facultad_nombre
+        ${listadoRelations} ${where}
+        ORDER BY i.id_inscripcion DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+      [...values, limit, offset]),
+      pool.query(search
+        ? `SELECT COUNT(*)::integer AS total ${listadoRelations} ${where}`
+        : "SELECT COUNT(*)::integer AS total FROM inscripciones", values),
+    ]);
+    res.json({ items: list.rows, total: count.rows[0].total });
+  } catch (error) { next(error); }
+};
+
+export const getInscripcionDetalle = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "ID inválido" });
+    const { rows } = await pool.query(`SELECT
+        i.id_inscripcion, i.id_administrativo, i.id_estudiante, i.id_paralelo,
+        cr.id_carrera,
+        i.fecha_insc, i.num_credencial, i.como_se_entero_de_nosotros,
+        i.recalculo, i.preparacion_previa, i.tiempo_de_preparacion_meses,
+        i.lugar_de_preparacion,
+        f.id_facultad, f.nombre AS facultad_nombre,
+        cr.nombre AS carrera_nombre,
+        cv.id_convocatoria, c.id_capacitacion, c.fecha_inicio AS capacitacion_inicio,
+        c.fecha_fin AS capacitacion_fin, c.activo AS capacitacion_activa,
+        p.nombre_paralelo, p.nivel AS paralelo_nivel, p.modalidad AS paralelo_modalidad,
+        p.dias AS paralelo_dias, p.hora_inicio AS paralelo_hora_inicio,
+        p.hora_fin AS paralelo_hora_fin,
+        a.id_aula, a.codigo AS aula_codigo, a.capacidad AS aula_capacidad,
+        ad.id_usuario AS administrativo_usuario_id,
+        au.nombre AS administrativo_nombre, au.apellido_paterno AS administrativo_apellido_paterno,
+        au.apellido_materno AS administrativo_apellido_materno,
+        au.nro_carnet AS administrativo_ci, au.correo_electronico AS administrativo_correo,
+        au.nro_telefono AS administrativo_telefono, au.usuario_vigente AS administrativo_usuario_vigente,
+        e.id_usuario AS estudiante_usuario_id, e.colegio_de_procedencia,
+        e.direccion_de_domicilio,
+        eu.nombre AS estudiante_nombre, eu.apellido_paterno AS estudiante_apellido_paterno,
+        eu.apellido_materno AS estudiante_apellido_materno,
+        eu.nro_carnet AS estudiante_ci, eu.fecha_nacimiento AS estudiante_fecha_nacimiento,
+        eu.correo_electronico AS estudiante_correo, eu.nro_telefono AS estudiante_telefono,
+        eu.usuario_vigente AS estudiante_usuario_vigente
+      ${detalleRelations} WHERE i.id_inscripcion = $1`, [id]);
+    if (!rows.length) return res.status(404).json({ message: "Inscripción no encontrada" });
+    res.json(rows[0]);
+  } catch (error) { next(error); }
+};
+
 export const getInscripcionFichas = async (req, res, next) => {
   try {
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 15, 1), 50);

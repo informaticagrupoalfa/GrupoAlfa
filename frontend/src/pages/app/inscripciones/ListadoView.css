@@ -1,0 +1,202 @@
+.ins-listado-layout {
+  display: grid;
+  grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.ins-listado-rail,
+.ins-listado-panel {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--row-border);
+  border-radius: 12px;
+}
+
+.ins-listado-rail {
+  padding: 18px;
+}
+
+.ins-listado-rail-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--row-border);
+}
+
+.ins-listado-rail-head h2,
+.ins-listado-placeholder h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.15rem;
+}
+
+.ins-listado-rail-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.ins-listado-search {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: .83rem;
+}
+
+.ins-listado-search input {
+  width: 100%;
+  min-width: 0;
+}
+
+.ins-listado-items {
+  display: grid;
+  gap: 8px;
+  max-height: min(65vh, 760px);
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.ins-listado-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--row-border);
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ins-listado-item:hover,
+.ins-listado-item:focus-visible {
+  border-color: var(--blue);
+}
+
+.ins-listado-item:focus-visible {
+  outline: 2px solid var(--blue-dark);
+  outline-offset: 2px;
+}
+
+.ins-listado-item.selected {
+  border-color: var(--blue-dark);
+  border-left-color: var(--blue-dark);
+  background: var(--content-bg);
+}
+
+.ins-listado-item > span {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--blue-dark);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.ins-listado-item time {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ins-listado-item strong { line-height: 1.3; }
+.ins-listado-item small { color: var(--muted); line-height: 1.35; }
+.ins-listado-empty { margin: 10px 0; color: var(--muted); }
+.ins-listado-rail .pagination { margin-top: 16px; }
+
+.ins-listado-panel {
+  min-height: 440px;
+  padding: clamp(18px, 2.4vw, 30px);
+}
+
+.ins-listado-placeholder {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 370px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.ins-listado-placeholder p { max-width: 38ch; }
+
+.ins-listado-detail { display: grid; gap: 22px; }
+
+.ins-listado-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--blue-dark);
+}
+
+.ins-listado-detail-head p {
+  margin: 0 0 5px;
+  color: var(--blue-dark);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.ins-listado-detail-head h2 {
+  margin: 0 0 7px;
+  color: var(--text);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.ins-listado-detail-head span { color: var(--muted); }
+
+.ins-listado-detail-head > strong {
+  flex: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--content-bg);
+  color: var(--blue-dark);
+  font-size: .85rem;
+}
+
+.ins-listado-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 26px;
+}
+
+.ins-listado-section { min-width: 0; }
+
+.ins-listado-section h3 {
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--row-border);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.ins-listado-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px 18px;
+  margin: 0;
+}
+
+.ins-listado-field { min-width: 0; }
+.ins-listado-field dt { color: var(--muted); font-size: .79rem; }
+.ins-listado-field dd { margin: 3px 0 0; overflow-wrap: anywhere; line-height: 1.35; }
+
+@media (max-width: 1150px) {
+  .ins-listado-detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .ins-listado-layout { grid-template-columns: 1fr; }
+  .ins-listado-items { max-height: 340px; }
+}
+
+@media (max-width: 560px) {
+  .ins-listado-detail-head { display: block; }
+  .ins-listado-detail-head > strong { display: inline-block; margin-top: 12px; }
+  .ins-listado-fields { grid-template-columns: 1fr; }
+}

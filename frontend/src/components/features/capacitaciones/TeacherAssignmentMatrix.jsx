@@ -28,6 +28,7 @@ function ParallelInfo({ parallel, course }) {
     <strong>{parallel.nombre_paralelo}</strong>
     <span>Capacitación #{parallel.id_capacitacion} · {courseDates(course)}</span>
     <span>{parallel.aula_codigo || "Sin aula"} · {parallel.modalidad || "Modalidad sin definir"}</span>
+    <span className="teacher-parallel-capacity">Estudiantes: {parallel.total_estudiantes ?? 0} · Capacidad del aula: {parallel.aula_capacidad ?? "sin definir"}</span>
     <small>{facultyName(course)}</small>
   </div>
 }

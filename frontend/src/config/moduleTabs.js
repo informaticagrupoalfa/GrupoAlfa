@@ -1,4 +1,5 @@
 import { ENTITIES } from "./entities"
+import { ACCESS_ROLE_GROUPS } from "./permissions"
 
 function buildTabs(keys) {
   return keys.map((key) => ({
@@ -31,7 +32,7 @@ export const MODULE_TABS = {
   inscripciones: {
     path: "/app/inscripciones",
     defaultTab: "registro",
-    items: [{ key: "registro", label: "Inscripciones" }],
+    items: [{ key: "registro", label: "Inscripciones" }, { key: "listado", label: "Listado" }],
   },
   "pase-lista": {
     path: "/app/pase-lista",
@@ -50,6 +51,9 @@ export const MODULE_TABS = {
 
 export function getModuleTabConfig(moduleKey, activeRole) {
   const config = MODULE_TABS[moduleKey] ?? null
+  if (config && moduleKey === "inscripciones" && !ACCESS_ROLE_GROUPS.enrollment.includes(activeRole)) {
+    return { ...config, defaultTab: "listado", items: config.items.filter((item) => item.key === "listado") }
+  }
   if (!config || moduleKey !== "capacitaciones" || activeRole === "SysAdmin") return config
   return { ...config, items: config.items.filter((item) => item.key === "gestion") }
 }

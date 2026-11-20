@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { apiClient } from "../../../services/apiClient"
 import { useAuth } from "../../../hooks/useAuth"
+import { parseStudentQr, partitionRoster } from "./llamarListaUtils"
 import "./LlamarListaDocentePage.css"
 
 const studentName = (student) =>
@@ -36,10 +37,18 @@ export default function LlamarListaDocentePage() {
   const [reason, setReason] = useState("")
   const [message, setMessage] = useState("")
   const [camera, setCamera] = useState(false)
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const [rosterReady, setRosterReady] = useState(false)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const scanRef = useRef(null)
   const scanBusyRef = useRef(false)
+  const cameraRequestRef = useRef(0)
+  const lastQrRef = useRef("")
+  const registeredIdsRef = useRef(new Set())
+  const registeringIdsRef = useRef(new Set())
+  const classIdRef = useRef(classId)
+  classIdRef.current = classId
   const parallelId = selected?.id_paralelo
 
   useEffect(() => {
@@ -59,17 +68,46 @@ export default function LlamarListaDocentePage() {
 
   useEffect(() => {
     let cancelled = false
+    registeredIdsRef.current = new Set()
+    registeringIdsRef.current = new Set()
+    setChecked([])
+    setStudents([])
+    setRosterReady(false)
     if (!parallelId) {
-      setStudents([])
+      setRosterLoading(false)
       return undefined
     }
-    apiClient.get(`/llamar-lista/paralelos/${parallelId}/estudiantes`)
-      .then(({ data }) => { if (!cancelled) setStudents(data) })
-      .catch(() => { if (!cancelled) setMessage("No se pudo cargar la lista.") })
+    setRosterLoading(true)
+    Promise.all([
+      apiClient.get(`/llamar-lista/paralelos/${parallelId}/estudiantes`),
+      classId ? apiClient.get("/asistencias", { params: { id_clase: classId } }) : Promise.resolve({ data: [] }),
+    ])
+      .then(([{ data: roster }, { data: attendances }]) => {
+        if (cancelled) return
+        const { pending, registered, registeredIds } = partitionRoster(roster, attendances)
+        registeredIdsRef.current = registeredIds
+        setStudents(pending)
+        setChecked(registered)
+        setRosterReady(true)
+      })
+      .catch(() => { if (!cancelled) setMessage("No se pudo cargar la lista de estudiantes y registrados.") })
+      .finally(() => { if (!cancelled) setRosterLoading(false) })
     return () => { cancelled = true }
-  }, [parallelId])
+  }, [parallelId, classId])
 
-  useEffect(() => () => streamRef.current?.getTracks().forEach(track => track.stop()), [])
+  useEffect(() => {
+    cameraRequestRef.current += 1
+    if (!streamRef.current) return
+    streamRef.current.getTracks().forEach(track => track.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    setCamera(false)
+  }, [parallelId, classId])
+
+  useEffect(() => () => {
+    cameraRequestRef.current += 1
+    streamRef.current?.getTracks().forEach(track => track.stop())
+  }, [])
 
   const createClass = async () => {
     if (!selected) return
@@ -89,69 +127,106 @@ export default function LlamarListaDocentePage() {
 
   const mark = async (student) => {
     if (!classId) return setMessage("Crea o selecciona una clase primero.")
-    if (checked.some(item => item.id_estudiante === student.id_estudiante)) return
+    const studentId = String(student.id_estudiante)
+    if (!rosterReady || rosterLoading || registeredIdsRef.current.has(studentId) || registeringIdsRef.current.has(studentId)) return
     if (permit && !reason.trim()) return setMessage("Indica el motivo del permiso.")
+    registeringIdsRef.current.add(studentId)
+    const targetClassId = classId
     try {
       await apiClient.post("/asistencias", {
-        id_clase: classId,
+        id_clase: targetClassId,
         id_estudiante: student.id_estudiante,
         hora_entrada: new Date().toISOString(),
-        permiso: permit,
+        ...(permit ? { permiso: true } : {}),
         ...(permit ? { razon_permiso: reason.trim() } : {}),
       })
+      if (classIdRef.current !== targetClassId) return
+      registeredIdsRef.current.add(studentId)
       setChecked(current => [{ ...student, permiso: permit, razon_permiso: reason.trim() }, ...current])
-      setStudents(current => current.filter(item => item.id_estudiante !== student.id_estudiante))
+      setStudents(current => current.filter(item => String(item.id_estudiante) !== studentId))
       setMessage(`${studentName(student)} registrado.`)
     } catch (error) {
       setMessage(error.userMessage || "No se pudo registrar la asistencia.")
+    } finally {
+      registeringIdsRef.current.delete(studentId)
     }
   }
 
   scanRef.current = async (raw) => {
-    const match = String(raw).trim().match(/^[1-9]\d*$/)
-    if (!match) return setMessage("QR no reconocido.")
-    const student = students.find(item => String(item.id_estudiante) === match[0])
+    const studentId = parseStudentQr(raw)
+    if (!studentId) return setMessage("QR no reconocido.")
+    if (registeredIdsRef.current.has(studentId)) return
+    const student = students.find(item => String(item.id_estudiante) === studentId)
     if (student) await mark(student)
     else setMessage("No pertenece a este paralelo o ya fue escaneado.")
   }
 
   const toggleCamera = async () => {
     if (streamRef.current) {
+      cameraRequestRef.current += 1
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
+      if (videoRef.current) videoRef.current.srcObject = null
+      lastQrRef.current = ""
       setCamera(false)
+      return
+    }
+    if (!classId || !rosterReady || rosterLoading) {
+      setMessage("Crea o selecciona una clase para escanear asistencias.")
       return
     }
     if (!window.BarcodeDetector || !navigator.mediaDevices?.getUserMedia) {
       setMessage("Escaneo QR no compatible con este navegador.")
       return
     }
+    let detector
+    try {
+      detector = new window.BarcodeDetector({ formats: ["qr_code"] })
+    } catch {
+      setMessage("El lector QR no está disponible en este navegador.")
+      return
+    }
+    const requestId = ++cameraRequestRef.current
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      if (requestId !== cameraRequestRef.current) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
       streamRef.current = stream
       videoRef.current.srcObject = stream
+      videoRef.current.hidden = false
       await videoRef.current.play()
+      if (requestId !== cameraRequestRef.current) return
       setCamera(true)
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] })
+      setMessage("Cámara activa. Apunta al QR del estudiante.")
       const scanFrame = async () => {
-        if (!streamRef.current) return
+        if (streamRef.current !== stream) return
         if (!scanBusyRef.current) {
           scanBusyRef.current = true
           try {
             const codes = await detector.detect(videoRef.current)
-            if (codes[0]) await scanRef.current(codes[0].rawValue)
+            if (streamRef.current !== stream) return
+            const raw = codes[0]?.rawValue ?? ""
+            if (!raw) lastQrRef.current = ""
+            else if (raw !== lastQrRef.current) {
+              lastQrRef.current = raw
+              await scanRef.current(raw)
+            }
           } catch {
             // A transient detection failure should not stop the camera.
           } finally {
             scanBusyRef.current = false
           }
         }
-        if (streamRef.current) requestAnimationFrame(scanFrame)
+        if (streamRef.current === stream) requestAnimationFrame(scanFrame)
       }
       requestAnimationFrame(scanFrame)
     } catch {
+      if (requestId !== cameraRequestRef.current) return
       streamRef.current?.getTracks().forEach(track => track.stop())
       streamRef.current = null
+      if (videoRef.current) videoRef.current.srcObject = null
       setCamera(false)
       setMessage("No se pudo abrir la cámara.")
     }
@@ -196,7 +271,7 @@ export default function LlamarListaDocentePage() {
           <h2>Estudiantes <span>{students.length}</span></h2>
           <div className="llamar-list">
             {students.map(student => (
-              <button className="llamar-choice" key={student.id_estudiante} type="button" onClick={() => mark(student)}>
+              <button className="llamar-choice" key={student.id_estudiante} type="button" disabled={!classId || !rosterReady || rosterLoading} onClick={() => mark(student)}>
                 <strong>{studentName(student)}</strong><small>CI {student.nro_carnet || "—"} · Registrar manual</small>
               </button>
             ))}
@@ -205,12 +280,15 @@ export default function LlamarListaDocentePage() {
 
         <section className="llamar-panel">
           <h2>Escanear y registrar</h2>
-          <button className="secondary-button" type="button" onClick={toggleCamera}>{camera ? "Cerrar cámara" : "Abrir cámara"}</button>
+          {!classId && <p className="llamar-scan-hint">Selecciona o crea una clase para activar el escáner.</p>}
+          <button className="secondary-button" type="button" disabled={!camera && (!classId || !rosterReady || rosterLoading)} onClick={toggleCamera}>{camera ? "Cerrar cámara" : "Abrir cámara"}</button>
           <video ref={videoRef} className="llamar-video" hidden={!camera} playsInline muted />
-          <form onSubmit={event => { event.preventDefault(); scanRef.current(event.currentTarget.qr.value); event.currentTarget.reset() }}>
+          {camera && <p className="llamar-scan-hint">Apunta la cámara al QR del estudiante. Se registrará automáticamente.</p>}
+          <p className="llamar-message" role="status">{message}</p>
+          <form onSubmit={event => { event.preventDefault(); scanRef.current(event.currentTarget.elements.namedItem("qr")?.value ?? ""); event.currentTarget.reset() }}>
             <label htmlFor="llamar-qr">Código manual</label>
-            <input id="llamar-qr" name="qr" placeholder="ID del estudiante" inputMode="numeric" />
-            <button className="submit-button">Registrar</button>
+            <input id="llamar-qr" name="qr" placeholder="ID del estudiante" inputMode="numeric" disabled={!classId || !rosterReady || rosterLoading} />
+            <button className="submit-button" disabled={!classId || !rosterReady || rosterLoading}>Registrar</button>
           </form>
           <label className="llamar-permit">
             <input type="checkbox" checked={permit} onChange={event => setPermit(event.target.checked)} />
@@ -222,11 +300,10 @@ export default function LlamarListaDocentePage() {
             {checked.map(student => (
               <article className="llamar-checked" key={student.id_estudiante}>
                 <strong>{studentName(student)}</strong>
-                <span>{student.permiso ? `Permiso: ${student.razon_permiso}` : "Presente"}</span>
+                <span>{student.permiso === false ? "Ausente" : student.razon_permiso ? `Permiso: ${student.razon_permiso}` : "Presente"}</span>
               </article>
             ))}
           </div>
-          <p className="llamar-message" role="status">{message}</p>
         </section>
       </div>
     </div>

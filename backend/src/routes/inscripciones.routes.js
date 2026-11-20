@@ -1,6 +1,8 @@
 import { Router } from "express";
 import {
   getInscripciones,
+  getInscripcionesListado,
+  getInscripcionDetalle,
   getInscripcionById,
   getInscripcionFichas,
   getInscripcionFichaById,
@@ -19,6 +21,8 @@ import {
 const router = Router();
 
 router.get("/inscripciones", authMiddleware, getInscripciones);
+router.get("/inscripciones/listado", authMiddleware, getInscripcionesListado);
+router.get("/inscripciones/:id/detalle", authMiddleware, getInscripcionDetalle);
 router.get("/inscripciones/fichas", authMiddleware, getInscripcionFichas);
 router.get("/inscripciones/:id/ficha", authMiddleware, getInscripcionFichaById);
 router.get("/inscripciones/:id", authMiddleware, getInscripcionById);

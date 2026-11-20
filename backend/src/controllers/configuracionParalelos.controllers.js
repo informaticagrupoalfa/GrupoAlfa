@@ -4,16 +4,24 @@ import { parseWeekdays } from "../utils/weekdays.js";
 export async function getConfiguracionParalelos(req, res, next) {
   try {
     const { rows } = await pool.query(`
-      SELECT p.*, a.codigo AS aula_codigo, c.fecha_inicio AS capacitacion_inicio,
+      SELECT p.*, a.codigo AS aula_codigo, a.capacidad AS aula_capacidad,
+             COALESCE(inscritos.total_estudiantes, 0) AS total_estudiantes,
+             c.fecha_inicio AS capacitacion_inicio,
              json_agg(DISTINCT jsonb_build_object(
                'id_materia', m.id_materia, 'nombre_materia', m.nombre_materia
              )) FILTER (WHERE m.id_materia IS NOT NULL) AS asignaciones
       FROM paralelos p
       LEFT JOIN aulas a ON a.id_aula = p.id_aula
       LEFT JOIN capacitaciones c ON c.id_capacitacion = p.id_capacitacion
+      LEFT JOIN (
+        SELECT id_paralelo, COUNT(DISTINCT id_estudiante)::integer AS total_estudiantes
+        FROM inscripciones
+        WHERE id_estudiante IS NOT NULL
+        GROUP BY id_paralelo
+      ) inscritos ON inscritos.id_paralelo = p.id_paralelo
       LEFT JOIN paralelo_materia pm ON pm.id_paralelo = p.id_paralelo
       LEFT JOIN materias m ON m.id_materia = pm.id_materia
-      GROUP BY p.id_paralelo, a.codigo, c.fecha_inicio
+      GROUP BY p.id_paralelo, a.codigo, a.capacidad, inscritos.total_estudiantes, c.fecha_inicio
       ORDER BY p.id_paralelo DESC`);
     res.json(rows);
   } catch (error) { next(error); }

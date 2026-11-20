@@ -21,7 +21,7 @@ export const MODULE_ACCESS = {
   estudiantes: "academic",
   matriculaciones: "academic",
   mensualidades: "academic",
-  inscripciones: "enrollment",
+  inscripciones: "academic",
   "pase-lista": "academic",
   "llamar-lista": "advisor",
   datos: "sysadmin",

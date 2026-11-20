@@ -110,6 +110,7 @@
 .teacher-parallel-info { display: grid; gap: 3px; min-width: 0; }
 .teacher-parallel-info strong { color: var(--ink); font-size: .83rem; }
 .teacher-parallel-info span { color: var(--ink-soft); font-size: .72rem; }
+.teacher-parallel-info .teacher-parallel-capacity { color: var(--academy-dark); font-weight: 700; }
 .teacher-parallel-info small { color: var(--ink-soft); font-size: .71rem; overflow-wrap: anywhere; }
 .teacher-slot-select { display: block; width: 100%; padding: 8px; background: var(--academy-pale); color: var(--academy-dark); border: 1px solid #a5c9d1; border-radius: 7px; text-align: center; font-size: .77rem; }
 .teacher-parallel-assignments { display: grid; gap: 5px; }
