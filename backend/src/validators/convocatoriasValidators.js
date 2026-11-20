@@ -11,6 +11,7 @@ const convocatoriaSchema = z.object({
     .refine((v) => !Number.isNaN(new Date(v).getTime()), {
       message: "La fecha de inicio debe ser una fecha válida",
     }),
+  modalidad: z.string().trim().max(100, "La modalidad debe tener máximo 100 caracteres").optional(),
 });
 
 export const createConvocatoriaSchema = convocatoriaSchema;

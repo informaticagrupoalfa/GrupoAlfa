@@ -105,7 +105,7 @@ export default function CrudPanel({ entity, defaultParams }) {
                 : Number(payload[field.name])
             if (payload[field.name] === undefined) delete payload[field.name]
           }
-          if (payload[field.name] === "") delete payload[field.name]
+          if (payload[field.name] === "" && !field.allowEmpty) delete payload[field.name]
         }
         const saved = await save(payload)
         if (entity.key === "capacitaciones") {

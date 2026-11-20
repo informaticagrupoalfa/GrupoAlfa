@@ -83,9 +83,10 @@ export const authorizeApi = (req, res, next) => {
     }
 
     const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/estudiantes$/.test(path);
+    const advisorFichaRoute = req.method === "GET" && /^\/llamar-lista\/clases\/\d+\/estudiantes\/\d+\/ficha$/.test(path);
     if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR])
       && !hasAnyRole(req.user, ACADEMIC_ROLES)
-      && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute)) {
+      && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute || advisorFichaRoute)) {
       try {
         if (advisorListRoute) {
           const parallelId = Number(path.match(/\/paralelos\/(\d+)\/estudiantes$/)[1]);

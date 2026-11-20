@@ -8,6 +8,12 @@ const studentName = (student) =>
   [student.nombre, student.apellido_paterno, student.apellido_materno].filter(Boolean).join(" ") ||
   `Estudiante ${student.id_estudiante}`
 
+const photoSrc = (base64) => {
+  if (!base64) return null
+  const type = base64.startsWith("/9j/") ? "jpeg" : base64.startsWith("R0lGOD") ? "gif" : base64.startsWith("UklGR") ? "webp" : "png"
+  return `data:image/${type};base64,${base64}`
+}
+
 const localDate = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
@@ -39,6 +45,7 @@ export default function LlamarListaDocentePage() {
   const [camera, setCamera] = useState(false)
   const [rosterLoading, setRosterLoading] = useState(false)
   const [rosterReady, setRosterReady] = useState(false)
+  const [studentPopup, setStudentPopup] = useState(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const scanRef = useRef(null)
@@ -48,6 +55,7 @@ export default function LlamarListaDocentePage() {
   const registeredIdsRef = useRef(new Set())
   const registeringIdsRef = useRef(new Set())
   const classIdRef = useRef(classId)
+  const popupRequestRef = useRef(0)
   classIdRef.current = classId
   const parallelId = selected?.id_paralelo
 
@@ -97,6 +105,8 @@ export default function LlamarListaDocentePage() {
 
   useEffect(() => {
     cameraRequestRef.current += 1
+    popupRequestRef.current += 1
+    setStudentPopup(null)
     if (!streamRef.current) return
     streamRef.current.getTracks().forEach(track => track.stop())
     streamRef.current = null
@@ -145,6 +155,19 @@ export default function LlamarListaDocentePage() {
       setChecked(current => [{ ...student, permiso: permit, razon_permiso: reason.trim() }, ...current])
       setStudents(current => current.filter(item => String(item.id_estudiante) !== studentId))
       setMessage(`${studentName(student)} registrado.`)
+      const popupRequest = ++popupRequestRef.current
+      setStudentPopup({ student, paralelo: selected?.nombre_paralelo, loading: true })
+      apiClient.get(`/llamar-lista/clases/${targetClassId}/estudiantes/${studentId}/ficha`, { params: { scope } })
+        .then(({ data }) => {
+          if (popupRequest === popupRequestRef.current && classIdRef.current === targetClassId) {
+            setStudentPopup({ student, data, loading: false })
+          }
+        })
+        .catch(() => {
+          if (popupRequest === popupRequestRef.current && classIdRef.current === targetClassId) {
+            setStudentPopup({ student, paralelo: selected?.nombre_paralelo, loading: false, error: true })
+          }
+        })
     } catch (error) {
       setMessage(error.userMessage || "No se pudo registrar la asistencia.")
     } finally {
@@ -234,6 +257,35 @@ export default function LlamarListaDocentePage() {
 
   return (
     <div className="llamar-lista">
+      {studentPopup && (() => {
+        const detail = studentPopup.data || studentPopup.student
+        const guardian = [detail.apoderado_nombre, detail.apoderado_apellido_paterno, detail.apoderado_apellido_materno].filter(Boolean).join(" ")
+        const image = photoSrc(detail.foto_base64)
+        return (
+          <aside className="llamar-student-popup" role="dialog" aria-label="Estudiante registrado">
+            <div className="llamar-student-popup-top">
+              <span className="llamar-student-popup-badge">✓ Asistencia registrada</span>
+              <button type="button" className="llamar-student-popup-close" aria-label="Cerrar ficha" onClick={() => { popupRequestRef.current += 1; setStudentPopup(null) }}>×</button>
+            </div>
+            <div className="llamar-student-popup-identity">
+              {image ? <img src={image} alt={`Foto de ${studentName(detail)}`} /> : <div className="llamar-student-popup-avatar" aria-hidden="true">{String(detail.nombre || "E").charAt(0).toUpperCase()}</div>}
+              <div><strong>{studentName(detail)}</strong><small>CI {detail.nro_carnet || "—"}</small></div>
+            </div>
+            {studentPopup.loading ? <p className="llamar-student-popup-note">Cargando datos del estudiante…</p> : (
+              <div className="llamar-student-popup-fields">
+                {studentPopup.error && <p className="llamar-student-popup-note">No se pudieron cargar los datos adicionales.</p>}
+                <div><span>Carrera</span><strong>{detail.carrera_nombre || "No registrada"}</strong></div>
+                <div><span>Paralelo</span><strong>{detail.nombre_paralelo || studentPopup.paralelo || "—"}</strong></div>
+                <div><span>Apoderado</span><strong>{guardian || "No registrado"}</strong></div>
+                {detail.apoderado_parentesco && <div><span>Parentesco</span><strong>{detail.apoderado_parentesco}</strong></div>}
+                {detail.apoderado_ci && <div><span>CI apoderado</span><strong>{detail.apoderado_ci}</strong></div>}
+                {detail.apoderado_telefono && <div><span>Teléfono</span><strong>{detail.apoderado_telefono}</strong></div>}
+                {detail.apoderado_correo && <div><span>Correo</span><strong>{detail.apoderado_correo}</strong></div>}
+              </div>
+            )}
+          </aside>
+        )
+      })()}
       <div className="llamar-lista-grid">
         <section className="llamar-panel">
           <h2>Clase y asignaciones</h2>

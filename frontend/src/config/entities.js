@@ -171,10 +171,12 @@ export const ENTITIES = {
       { key: "id_convocatoria", label: "ID" },
       { key: "nombre_facultad", label: "Facultad", isForeign: true },
       { key: "fecha_inicio", label: "Inicio", type: "date" },
+      { key: "modalidad", label: "Modalidad" },
     ],
     fields: [
       { name: "id_facultad", label: "Facultad", type: "select", required: true, optionsEndpoint: "facultades", optionsValue: "id_facultad" },
       { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
+      { name: "modalidad", label: "Modalidad", type: "text", maxLength: 100, allowEmpty: true },
     ],
     hint: "El id_facultad debe existir. Créalo en la pestaña Facultades.",
   },
