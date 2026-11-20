@@ -6,11 +6,11 @@ import { authorizeApi } from "../src/middleware/apiAuthorization.js";
 const originalQuery = pool.query;
 afterEach(() => { pool.query = originalQuery; });
 
-function authorize(method, path, { body = {}, query = {} } = {}) {
+function authorize(method, path, { body = {}, query = {}, roles = ["Asesor"] } = {}) {
   return new Promise((resolve) => {
     const req = {
       method, path, body, query,
-      user: { id_usuario: 42, roles: ["Asesor"] },
+      user: { id_usuario: 42, roles },
     };
     const res = {
       status(code) { this.code = code; return this; },
@@ -44,4 +44,17 @@ test("asesor registra asistencia solo de estudiante inscrito en su clase", async
   assert.equal((await authorize("POST", "/asistencias", {
     body: { id_clase: 3, id_estudiante: 11 },
   })).status, 403);
+});
+
+test("Administración con rol de Asesor puede crear clases y registrar asistencias sin la restricción de asignación propia", async () => {
+  pool.query = async () => { throw new Error("No debe consultar asignaciones propias"); };
+  const roles = ["Asesor", "Administración"];
+  assert.equal((await authorize("POST", "/clases", {
+    roles,
+    body: { id_paralelo: 3, inicioclase: "2026-11-20" },
+  })).status, 200);
+  assert.equal((await authorize("POST", "/asistencias", {
+    roles,
+    body: { id_clase: 7, id_estudiante: 11 },
+  })).status, 200);
 });

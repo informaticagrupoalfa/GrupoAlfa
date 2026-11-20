@@ -23,4 +23,8 @@ export const createClaseSchema = claseSchema.refine(
   (value) => value.id_asesor_paralelo_materia || (value.id_paralelo && value.id_asesor),
   { message: "Indica una asignación o un paralelo y asesor." },
 );
+export const createClaseAdministracionSchema = claseSchema.refine(
+  (value) => value.id_asesor_paralelo_materia || value.id_paralelo,
+  { message: "Indica una asignación o un paralelo." },
+);
 export const updateClaseSchema = claseSchema.partial();

@@ -1,4 +1,4 @@
-import { createResource, deleteResource, listResource } from "./academicService"
+import { createResource, deleteResource, listResource, updateResource } from "./academicService"
 
 /**
  * Catálogos necesarios para el pase de lista.
@@ -15,6 +15,7 @@ export async function loadPaseListaCatalogs() {
     usuarios,
     aulas,
     materiasCapacitacion,
+    asignacionesDocentes,
   ] = await Promise.all([
     listResource("materias").catch(() => []),
     listResource("asesores").catch(() => []),
@@ -24,6 +25,7 @@ export async function loadPaseListaCatalogs() {
     listResource("usuarios/catalogo").catch(() => []),
     listResource("aulas").catch(() => []),
     listResource("materias-capacitacion").catch(() => []),
+    listResource("asignaciones-docentes-paralelo").catch(() => []),
   ])
   return {
     materias,
@@ -34,6 +36,7 @@ export async function loadPaseListaCatalogs() {
     usuarios,
     aulas,
     materiasCapacitacion,
+    asignacionesDocentes,
   }
 }
 
@@ -75,7 +78,7 @@ export async function guardarListaEnBD({ idParalelo, idAsesor, tema, fecha, marc
   const hora = new Date().toTimeString().slice(0, 8)
   const clase = await createResource("clases", {
     id_paralelo: Number(idParalelo),
-    id_asesor: Number(idAsesor),
+    ...(idAsesor ? { id_asesor: Number(idAsesor) } : {}),
     tema: String(tema).trim(),
     inicioclase: fecha,
   }).catch((error) => {
@@ -125,4 +128,12 @@ export async function fetchAsistenciasPorClase(idClase) {
 
 export async function deleteClase(idClase) {
   await deleteResource("clases", idClase)
+}
+
+export async function updateClase(idClase, changes) {
+  return updateResource("clases", idClase, changes)
+}
+
+export async function updateAsistencia(idAsistencia, changes) {
+  return updateResource("asistencias", idAsistencia, changes)
 }

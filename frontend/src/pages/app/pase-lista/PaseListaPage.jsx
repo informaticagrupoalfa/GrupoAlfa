@@ -24,6 +24,7 @@ export default function PaseListaPage() {
     usuarios: [],
     aulas: [],
     materiasCapacitacion: [],
+    asignacionesDocentes: [],
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -60,7 +61,7 @@ export default function PaseListaPage() {
 
       {active === "asistencias" && (
         <Suspense fallback={<Skeleton lines={5} />}>
-          <AsistenciasView catalogs={catalogs} version={listVersion} />
+          <AsistenciasView catalogs={catalogs} version={listVersion} onSaved={() => setListVersion((v) => v + 1)} />
         </Suspense>
       )}
     </section>

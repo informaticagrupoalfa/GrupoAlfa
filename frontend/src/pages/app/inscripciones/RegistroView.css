@@ -109,6 +109,13 @@
 
 .registro-panel {
   padding: clamp(16px, 2.5vw, 28px);
+  overflow-x: auto;
+}
+
+.registro-panel > .inscripcion-form {
+  width: 960px;
+  min-width: 960px;
+  max-width: none;
 }
 
 .registro-panel-vacio {
@@ -222,10 +229,6 @@
 
 .registro-ficha-actions button {
   margin: 0;
-}
-
-.registro-panel .inscripcion-form .card {
-  overflow-x: auto;
 }
 
 .registro-conducta,

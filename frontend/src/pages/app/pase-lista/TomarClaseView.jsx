@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import Skeleton from "../../../components/ui/Skeleton"
 import Button from "../../../components/ui/Button"
 import TextField from "../../../components/ui/TextField"
+import { useAuth } from "../../../hooks/useAuth"
 import { listResource } from "../../../services/academicService"
 import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
 import "../../../components/pase-lista/TomarClase.css"
@@ -29,6 +30,8 @@ function userName(u) {
 }
 
 export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = null }) {
+  const { activeRole } = useAuth()
+  const isAdministracion = activeRole === "Administración"
   const [form, setForm] = useState(initialForm)
   const [alumnos, setAlumnos] = useState([])
   const [loadingAlumnos, setLoadingAlumnos] = useState(false)
@@ -188,15 +191,19 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
 
   const handleGuardar = async () => {
     if (saving) return
-    if (!form.idMateria || !form.idAsesor || !form.idParalelo || !form.idAula || !form.tema.trim()) {
+    if (!form.idParalelo || !form.fecha) {
+      setGuardado("Elige un paralelo y una fecha antes de guardar.")
+      return
+    }
+    if (!isAdministracion && (!form.idMateria || !form.idAsesor || !form.idAula || !form.tema.trim())) {
       setGuardado("Elige materia, asesor, paralelo y aula, e indica el tema antes de guardar.")
       return
     }
-    if (!form.horaInicio || !form.horaFin) {
+    if (!isAdministracion && (!form.horaInicio || !form.horaFin)) {
       setGuardado("Completa la hora de inicio y fin.")
       return
     }
-    if (form.horaFin <= form.horaInicio) {
+    if (form.horaInicio && form.horaFin && form.horaFin <= form.horaInicio) {
       setGuardado("La hora de fin debe ser mayor que la de inicio.")
       return
     }
@@ -207,7 +214,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         presente: asistencia[a.id_estudiante ?? a.id] ?? null,
       }))
       .filter((m) => m.presente !== null)
-    if (marcados.length === 0) {
+    if (!isAdministracion && marcados.length === 0) {
       setGuardado("Marca al menos un estudiante como presente o ausente antes de guardar.")
       return
     }
@@ -243,7 +250,9 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
       } catch {
         // storage no disponible: la BD ya quedó guardada
       }
-      setGuardado(`Lista guardada en BD (${marcados.length} asistencia(s), ${resumen.presentes} presente(s)). Ver pestaña Asistencias.`)
+      setGuardado(marcados.length === 0
+        ? "Clase guardada en BD sin asistencias."
+        : `Lista guardada en BD (${marcados.length} asistencia(s), ${resumen.presentes} presente(s)). Ver pestaña Asistencias.`)
       onSaved?.()
     } catch (error) {
       setGuardado(error.message ?? "No se pudo guardar la lista.")
@@ -267,7 +276,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
           <p className="tc-sub">
             {paraleloSeleccionado
               ? `${paraleloSeleccionado.nombre_paralelo ?? ""}${paraleloSeleccionado.nivel ? ` · ${paraleloSeleccionado.nivel}` : ""}${paraleloSeleccionado.dias ? ` · ${paraleloSeleccionado.dias}` : ""} · ${alumnos.length} en lista`
-              : "Completa los tres bloques y marca la asistencia abajo."}
+              : isAdministracion ? "Elige un paralelo y una fecha. Los demás datos y las asistencias son opcionales." : "Completa los tres bloques y marca la asistencia abajo."}
           </p>
         </div>
         <div className="tc-meter" role="status" aria-live="polite" aria-label="Avance de marcado">
@@ -299,22 +308,22 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                 <PersonCombobox
                   key={`materia-${form.idMateria}`}
                   id="pl-materia"
-                  label="Materia"
+                  label={isAdministracion ? "Materia (opcional)" : "Materia"}
                   options={materiaOptions}
                   value={form.idMateria || null}
                   onSelect={(v) => setField("idMateria", v)}
                   placeholder="Escribe para buscar materia..."
-                  hint="Escribe y elige una sugerencia de la lista."
+                  hint={isAdministracion ? "Opcional para Administración." : "Escribe y elige una sugerencia de la lista."}
                 />
               </Suspense>
               <TextField
                 id="pl-tema"
-                label="Tema avanzado"
+                label={isAdministracion ? "Tema avanzado (opcional)" : "Tema avanzado"}
                 type="text"
                 value={form.tema}
                 onChange={(event) => setField("tema", event.target.value)}
                 maxLength={100}
-                required
+                required={!isAdministracion}
               />
             </div>
 
@@ -336,24 +345,24 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                 <PersonCombobox
                   key={`asesor-${form.idAsesor}`}
                   id="pl-asesor"
-                  label="Asesor"
+                  label={isAdministracion ? "Asesor (opcional)" : "Asesor"}
                   options={asesorOptions}
                   value={form.idAsesor || null}
                   onSelect={(v) => setField("idAsesor", v)}
                   placeholder="Escribe para buscar asesor..."
-                  hint="Escribe y elige una sugerencia de la lista."
+                  hint={isAdministracion ? "Opcional para Administración." : "Escribe y elige una sugerencia de la lista."}
                 />
               </Suspense>
               <Suspense fallback={<Skeleton lines={1} />}>
                 <PersonCombobox
                   key={`aula-${form.idAula}`}
                   id="pl-aula"
-                  label="Aula"
+                  label={isAdministracion ? "Aula (opcional)" : "Aula"}
                   options={aulaOptions}
                   value={form.idAula || null}
                   onSelect={(v) => setField("idAula", v)}
                   placeholder="Escribe para buscar aula..."
-                  hint="Escribe y elige una sugerencia de la lista."
+                  hint={isAdministracion ? "Opcional para Administración." : "Escribe y elige una sugerencia de la lista."}
                 />
               </Suspense>
             </div>
@@ -366,12 +375,12 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
               </div>
               <div className="tc-pair">
                 <div className="form-row">
-                  <label htmlFor="pl-hora-inicio">Hora inicio</label>
-                  <input id="pl-hora-inicio" type="time" value={form.horaInicio} onChange={(e) => setField("horaInicio", e.target.value)} required />
+                  <label htmlFor="pl-hora-inicio">Hora inicio{isAdministracion ? " (opcional)" : ""}</label>
+                  <input id="pl-hora-inicio" type="time" value={form.horaInicio} onChange={(e) => setField("horaInicio", e.target.value)} required={!isAdministracion} />
                 </div>
                 <div className="form-row">
-                  <label htmlFor="pl-hora-fin">Hora fin</label>
-                  <input id="pl-hora-fin" type="time" value={form.horaFin} onChange={(e) => setField("horaFin", e.target.value)} required />
+                  <label htmlFor="pl-hora-fin">Hora fin{isAdministracion ? " (opcional)" : ""}</label>
+                  <input id="pl-hora-fin" type="time" value={form.horaFin} onChange={(e) => setField("horaFin", e.target.value)} required={!isAdministracion} />
                 </div>
               </div>
             </div>
@@ -387,7 +396,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
           ) : loadingAlumnos ? (
             <Skeleton lines={5} />
           ) : alumnos.length === 0 ? (
-            <div className="tc-empty">No hay estudiantes registrados en este paralelo.</div>
+            <div className="tc-empty">{isAdministracion ? "No hay estudiantes registrados en este paralelo. Puedes crear la clase sin asistencias." : "No hay estudiantes registrados en este paralelo."}</div>
           ) : (
             <Suspense fallback={<Skeleton lines={5} />}>
               <PaseListaTable
@@ -404,9 +413,9 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         </div>
       </div>
 
-      {form.idParalelo && alumnos.length > 0 && (
+      {form.idParalelo && (isAdministracion || alumnos.length > 0) && (
         <div className="tc-foot">
-          <Button type="button" onClick={handleGuardar} disabled={saving}>{saving ? "Guardando..." : `Guardar lista · ${marcados}/${total}`}</Button>
+          <Button type="button" onClick={handleGuardar} disabled={saving}>{saving ? "Guardando..." : isAdministracion ? "Guardar clase" : `Guardar lista · ${marcados}/${total}`}</Button>
           {guardado && <span className="tc-status" role="status">{guardado}</span>}
         </div>
       )}
