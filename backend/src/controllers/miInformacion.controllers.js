@@ -45,17 +45,16 @@ const INSCRIPCIONES_QUERY = `
 `;
 
 const MATERIAS_QUERY = `
-  SELECT pm.id_paralelo_materia, m.id_materia, m.nombre_materia,
-         apm.id_asesor_paralelo_materia, apm.dias,
+  SELECT pma.id_paralelo_materia, m.id_materia, m.nombre_materia,
+         pma.id_paralelo_materia AS id_asesor_paralelo_materia, pma.dia AS dias,
          a.id_asesor, ua.nombre, ua.apellido_paterno, ua.apellido_materno,
          ua.correo_electronico, ua.nro_telefono
-  FROM paralelo_materia pm
-  JOIN materias m ON m.id_materia = pm.id_materia
-  LEFT JOIN asesor_paralelo_materia apm ON apm.id_paralelo_materia = pm.id_paralelo_materia
-  LEFT JOIN asesores a ON a.id_asesor = apm.id_asesor
+  FROM paralelo_materia_asesor pma
+  JOIN materias m ON m.id_materia = pma.id_materia
+  LEFT JOIN asesores a ON a.id_asesor = pma.id_asesor
   LEFT JOIN usuarios ua ON ua.id_usuario = a.id_usuario
-  WHERE pm.id_paralelo = $1
-  ORDER BY m.nombre_materia, apm.dias
+  WHERE pma.id_paralelo = $1
+  ORDER BY m.nombre_materia, pma.dia
 `;
 
 const RESUMEN_ASISTENCIA_QUERY = `
@@ -64,13 +63,15 @@ const RESUMEN_ASISTENCIA_QUERY = `
          MAX(a.hora_entrada) AS ultima_asistencia
   FROM asistencias a
   JOIN clases c ON c.id_clase = a.id_clase
-  WHERE a.id_estudiante = $1 AND c.id_paralelo = $2
+  JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+  WHERE a.id_estudiante = $1 AND pma.id_paralelo = $2
 `;
 
 const TOTAL_CLASES_QUERY = `
   SELECT COUNT(*)::int AS total_clases
-  FROM clases
-  WHERE id_paralelo = $1
+  FROM clases c
+  JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+  WHERE pma.id_paralelo = $1
 `;
 
 const MENSUALIDAD_QUERY = `

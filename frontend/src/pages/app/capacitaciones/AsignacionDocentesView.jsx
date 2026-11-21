@@ -54,7 +54,7 @@ export default function AsignacionDocentesView() {
     setAssignment(row)
     setAssignmentSlot({
       parallel: data.paralelos.find(item => Number(item.id_paralelo) === Number(row.id_paralelo)),
-      day: row.dias,
+      day: row.dia ?? row.dias,
     })
     setPickedAdvisor(data.asesores.find(item => Number(item.id_asesor) === Number(row.id_asesor)) || null)
     setPickedSubjectId(String(row.id_materia))
@@ -68,11 +68,11 @@ export default function AsignacionDocentesView() {
     const wasEditing = Boolean(assignment)
     try {
       const payload = {
-        ...(assignment && { id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia }),
+        ...(assignment && { id_paralelo_materia: assignment.id_paralelo_materia ?? assignment.id_asesor_paralelo_materia }),
         id_asesor: pickedAdvisor.id_asesor,
         id_paralelo: assignmentSlot.parallel.id_paralelo,
         id_materia: Number(pickedSubjectId),
-        dias: assignmentSlot.day,
+        dia: assignmentSlot.day,
       }
       if (assignment) await apiClient.put("/asignaciones-docentes-paralelo", payload)
       else await apiClient.post("/asignaciones-docentes-paralelo", payload)
@@ -92,7 +92,7 @@ export default function AsignacionDocentesView() {
     setMessage("")
     try {
       await apiClient.delete("/asignaciones-docentes-paralelo", {
-        data: { id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia },
+        data: { id_paralelo_materia: assignment.id_paralelo_materia ?? assignment.id_asesor_paralelo_materia },
       })
       await reload()
       clearSelection()

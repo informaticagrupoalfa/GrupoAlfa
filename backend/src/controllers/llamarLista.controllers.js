@@ -9,20 +9,20 @@ export async function getAsignacionesAsesor(req, res, next) {
   try {
     const allAssignments = canSeeAllAssignments(req);
     const { rows } = await pool.query(
-      `SELECT apm.id_asesor_paralelo_materia, apm.dias, pm.id_paralelo_materia,
+      `SELECT pma.id_paralelo_materia AS id_asesor_paralelo_materia,
+              pma.dia AS dias, pma.id_paralelo_materia,
               p.id_paralelo, p.nombre_paralelo, p.nivel, p.dias AS dias_paralelo,
               p.hora_inicio, p.hora_fin, aul.codigo AS aula_codigo,
               m.id_materia, m.nombre_materia,
               concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno) AS nombre_asesor
        FROM asesores a
        JOIN usuarios u ON u.id_usuario = a.id_usuario
-       JOIN asesor_paralelo_materia apm ON apm.id_asesor = a.id_asesor
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-       JOIN paralelos p ON p.id_paralelo = pm.id_paralelo
+       JOIN paralelo_materia_asesor pma ON pma.id_asesor = a.id_asesor
+       JOIN paralelos p ON p.id_paralelo = pma.id_paralelo
        LEFT JOIN aulas aul ON aul.id_aula = p.id_aula
-       JOIN materias m ON m.id_materia = pm.id_materia
-       ${allAssignments ? "" : "WHERE a.id_usuario = $1"}
-       ORDER BY p.nombre_paralelo, apm.dias, m.nombre_materia, nombre_asesor`,
+       JOIN materias m ON m.id_materia = pma.id_materia
+       ${allAssignments ? "WHERE pma.id_asesor IS NOT NULL" : "WHERE a.id_usuario = $1 AND pma.id_asesor IS NOT NULL"}
+       ORDER BY p.nombre_paralelo, pma.dia, m.nombre_materia, nombre_asesor`,
       allAssignments ? [] : [req.user.id_usuario],
     );
     res.json(rows);
@@ -51,20 +51,22 @@ export async function getClasesAsesor(req, res, next) {
   try {
     const allAssignments = canSeeAllAssignments(req);
     const { rows } = await pool.query(
-      `SELECT c.id_clase, c.inicioclase AS fecha, apm.id_asesor_paralelo_materia,
-              p.nombre_paralelo, m.nombre_materia,
-              concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno) AS nombre_asesor,
+      `SELECT c.id_clase, c.inicioclase AS fecha,
+              c.id_asesor_paralelo_materia,
+              p.nombre_paralelo,
+              COALESCE(c.materia, m.nombre_materia) AS nombre_materia,
+              COALESCE(c.asesor, concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno)) AS nombre_asesor,
               COUNT(DISTINCT a.id_asistencia) FILTER (WHERE a.id_estudiante IS NOT NULL) AS total_asistencias
        FROM clases c
-       JOIN asesor_paralelo_materia apm ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
-       JOIN asesores asesor ON asesor.id_asesor = apm.id_asesor
-       JOIN usuarios u ON u.id_usuario = asesor.id_usuario
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-       JOIN paralelos p ON p.id_paralelo = pm.id_paralelo
-       JOIN materias m ON m.id_materia = pm.id_materia
+       LEFT JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+       LEFT JOIN asesores asesor ON asesor.id_asesor = pma.id_asesor
+       LEFT JOIN usuarios u ON u.id_usuario = asesor.id_usuario
+       LEFT JOIN paralelos p ON p.id_paralelo = pma.id_paralelo
+       LEFT JOIN materias m ON m.id_materia = pma.id_materia
        LEFT JOIN asistencias a ON a.id_clase = c.id_clase
        ${allAssignments ? "" : "WHERE asesor.id_usuario = $1"}
-       GROUP BY c.id_clase, apm.id_asesor_paralelo_materia, p.nombre_paralelo, m.nombre_materia, u.id_usuario
+       GROUP BY c.id_clase, c.id_asesor_paralelo_materia, c.materia, c.asesor,
+                p.nombre_paralelo, m.nombre_materia, u.id_usuario
        ORDER BY c.inicioclase DESC, c.id_clase DESC`,
       allAssignments ? [] : [req.user.id_usuario],
     );
@@ -96,10 +98,9 @@ export async function getFichaEstudianteRegistrado(req, res, next) {
               au.nro_carnet AS apoderado_ci, au.nro_telefono AS apoderado_telefono,
               au.correo_electronico AS apoderado_correo
        FROM clases c
-       JOIN asesor_paralelo_materia apm ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
-       JOIN asesores asesor ON asesor.id_asesor = apm.id_asesor
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-       JOIN paralelos p ON p.id_paralelo = pm.id_paralelo
+       JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+       JOIN asesores asesor ON asesor.id_asesor = pma.id_asesor
+       JOIN paralelos p ON p.id_paralelo = pma.id_paralelo
        JOIN inscripciones i ON i.id_paralelo = p.id_paralelo AND i.id_estudiante = $2
        JOIN estudiantes e ON e.id_estudiante = i.id_estudiante
        JOIN usuarios u ON u.id_usuario = e.id_usuario

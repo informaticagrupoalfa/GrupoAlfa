@@ -4,8 +4,19 @@ import QRCode from "qrcode"
 import { apiClient } from "../../../services/apiClient"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
 import Pagination from "../../../components/ui/Pagination"
+import EstudianteFormModal from "../../../components/features/estudiantes/EstudianteFormModal"
+import "./EstudiantesPage.css"
 
 const LIMIT = 15
+
+function mensajeError(error, fallback) {
+  return (
+    error?.userMessage ??
+    error?.response?.data?.message ??
+    error?.response?.data?.error ??
+    fallback
+  )
+}
 
 function StudentQr({ id, nombre }) {
   const [image, setImage] = useState("")
@@ -56,6 +67,7 @@ function formatFecha(value) {
 
 function fotoSrc(fotoBase64) {
   if (!fotoBase64) return null
+  if (fotoBase64.startsWith("data:")) return fotoBase64
   if (fotoBase64.startsWith("/9j/")) return `data:image/jpeg;base64,${fotoBase64}`
   if (fotoBase64.startsWith("R0lGOD")) return `data:image/gif;base64,${fotoBase64}`
   if (fotoBase64.startsWith("UklGR")) return `data:image/webp;base64,${fotoBase64}`
@@ -76,6 +88,13 @@ export default function EstudiantesPage() {
   const [detalleLoading, setDetalleLoading] = useState(false)
   const [detalleError, setDetalleError] = useState(null)
   const [detalleReloadKey, setDetalleReloadKey] = useState(0)
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState("edit")
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState("")
+  const [actionError, setActionError] = useState("")
+  const [deleting, setDeleting] = useState(false)
 
   const loadCapacitaciones = useCallback(async () => {
     try {
@@ -175,11 +194,15 @@ export default function EstudiantesPage() {
 
   const seleccionarEstudiante = (id) => {
     setSelectedId((prev) => (prev === id ? null : id))
+    setFormOpen(false)
+    setFormError("")
+    setActionError("")
   }
 
   const cambiarPagina = (nuevaPagina) => {
     setPage(nuevaPagina)
     setSelectedId(null)
+    setFormOpen(false)
   }
 
   const handleChange = (key, value) => {
@@ -187,12 +210,81 @@ export default function EstudiantesPage() {
     if (key === "id_capacitacion") setFiltros((prev) => ({ ...prev, id_paralelo: "" }))
     setPage(1)
     setSelectedId(null)
+    setFormOpen(false)
   }
 
   const limpiarFiltros = () => {
     setFiltros({ q: "", id_capacitacion: "", id_paralelo: "" })
     setPage(1)
     setSelectedId(null)
+    setFormOpen(false)
+  }
+
+  const abrirEdicion = () => {
+    if (!detalle) return
+    setActionError("")
+    setFormError("")
+    setFormMode("edit")
+    setFormOpen(true)
+  }
+
+  const abrirCreacion = () => {
+    setActionError("")
+    setFormError("")
+    setFormMode("create")
+    setFormOpen(true)
+  }
+
+  const cerrarFormulario = () => {
+    setFormOpen(false)
+    setFormError("")
+  }
+
+  const guardarEstudiante = async (payload) => {
+    setSaving(true)
+    setFormError("")
+    try {
+      if (formMode === "edit") {
+        if (!detalle) return
+        await apiClient.put(`/estudiantes/${detalle.id_estudiante}`, payload)
+        cerrarFormulario()
+        setDetalleReloadKey((key) => key + 1)
+      } else {
+        const { data: creado } = await apiClient.post("/estudiantes", payload)
+        cerrarFormulario()
+        setFiltros({ q: "", id_capacitacion: "", id_paralelo: "" })
+        setPage(1)
+        setSelectedId(creado?.id_estudiante ?? null)
+        if (creado?.id_estudiante == null) setDetalleReloadKey((key) => key + 1)
+      }
+      await loadResumen()
+    } catch (error) {
+      setFormError(mensajeError(error, "No se pudo guardar el estudiante."))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const eliminarEstudiante = async () => {
+    if (!detalle || deleting) return
+    const nombre = nombreCompleto(detalle) || `Estudiante ${detalle.id_estudiante}`
+    const confirmado = window.confirm(
+      `¿Eliminar a ${nombre}? Se eliminará su ficha de estudiante. La cuenta de usuario se conservará.`,
+    )
+    if (!confirmado) return
+
+    setDeleting(true)
+    setActionError("")
+    try {
+      await apiClient.delete(`/estudiantes/${detalle.id_estudiante}`)
+      setSelectedId(null)
+      setDetalle(null)
+      await loadResumen()
+    } catch (error) {
+      setActionError(mensajeError(error, "No se pudo eliminar el estudiante."))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const filas = data?.filas ?? []
@@ -273,6 +365,26 @@ export default function EstudiantesPage() {
           <p className="muted">Carnet: {detalle.nro_carnet ?? "—"}</p>
         </div>
 
+        <div className="estudiante-detail-actions">
+          <button type="button" className="secondary-button" onClick={abrirEdicion}>
+            Editar estudiante
+          </button>
+          <button
+            type="button"
+            className="estudiante-delete-button"
+            onClick={eliminarEstudiante}
+            disabled={deleting}
+          >
+            {deleting ? "Eliminando..." : "Eliminar estudiante"}
+          </button>
+        </div>
+
+        {actionError && (
+          <p className="error-message" role="alert">
+            {actionError}
+          </p>
+        )}
+
         <div className="estudiante-detail-fields">
           <div className="info-row" style={{ gridColumn: "1 / -1", display: "grid", justifyItems: "start", gap: 8 }}>
             <span className="info-label">QR de asistencia</span>
@@ -336,7 +448,12 @@ export default function EstudiantesPage() {
 
   return (
     <section className="estudiantes-page">
-      <h1>Estudiantes</h1>
+      <div className="estudiantes-page-heading">
+        <h1>Estudiantes</h1>
+        <button type="button" className="submit-button" onClick={abrirCreacion}>
+          Nuevo estudiante
+        </button>
+      </div>
 
       <div className="estudiantes-toolbar">
         <div>
@@ -434,6 +551,17 @@ export default function EstudiantesPage() {
 
         <div className="estudiantes-detail-panel">{renderDetalle()}</div>
       </div>
+      {formOpen && (
+        <EstudianteFormModal
+          key={formMode === "edit" ? `edit-${detalle?.id_estudiante}` : "create"}
+          mode={formMode}
+          initial={formMode === "edit" ? detalle : null}
+          saving={saving}
+          formError={formError}
+          onClose={cerrarFormulario}
+          onSubmit={guardarEstudiante}
+        />
+      )}
     </section>
   )
 }

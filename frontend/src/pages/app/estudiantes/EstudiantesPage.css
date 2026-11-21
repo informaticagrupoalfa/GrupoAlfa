@@ -1,0 +1,139 @@
+.estudiantes-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.estudiantes-page-heading h1 {
+  margin: 0;
+}
+
+.estudiantes-page-heading button {
+  margin: 0;
+}
+
+.estudiante-detail-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.estudiante-detail-actions button {
+  margin: 0;
+}
+
+.estudiante-delete-button {
+  background: #fff;
+  border: 1px solid #c62828;
+  color: #b71c1c;
+}
+
+.estudiante-delete-button:hover:not(:disabled) {
+  background: #ffebee;
+}
+
+.estudiante-form-section {
+  margin: 20px 0;
+}
+
+.estudiante-form-section h4 {
+  margin: 0 0 12px;
+}
+
+.estudiante-foto-editor {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.estudiante-foto-preview {
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #e0f7fe;
+  color: #1976d2;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.estudiante-foto-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.estudiante-foto-actions,
+.estudiante-camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.estudiante-foto-actions {
+  flex: 1;
+}
+
+.estudiante-foto-actions button,
+.estudiante-camera-actions button {
+  margin: 0;
+}
+
+.estudiante-foto-upload {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid #1976d2;
+  border-radius: 8px;
+  color: #1976d2;
+  background: #fff;
+  cursor: pointer;
+}
+
+.estudiante-foto-upload:focus-within {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+.estudiante-foto-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.estudiante-camera {
+  margin-top: 16px;
+}
+
+.estudiante-camera video {
+  display: block;
+  width: min(100%, 440px);
+  max-height: 360px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: #0a2540;
+  object-fit: cover;
+}
+
+.estudiantes-page .modal {
+  max-width: 760px;
+}
+
+@media (max-width: 600px) {
+  .estudiante-detail-actions button,
+  .estudiante-foto-actions button,
+  .estudiante-foto-upload {
+    width: 100%;
+  }
+}

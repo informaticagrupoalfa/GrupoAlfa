@@ -74,11 +74,17 @@ function toApiError(error, fallback) {
  * (presente → hora_entrada; ausente → hora_entrada + permiso false).
  * Devuelve `{ idClase, fallos }`.
  */
-export async function guardarListaEnBD({ idParalelo, idAsesor, tema, fecha, marcados }) {
+export async function guardarListaEnBD({ idParalelo, idMateria, idAsesor, aula, idAsesorParaleloMateria, tema, fecha, marcados }) {
   const hora = new Date().toTimeString().slice(0, 8)
   const clase = await createResource("clases", {
-    id_paralelo: Number(idParalelo),
-    ...(idAsesor ? { id_asesor: Number(idAsesor) } : {}),
+    ...(idAsesorParaleloMateria
+      ? { id_asesor_paralelo_materia: Number(idAsesorParaleloMateria) }
+      : {
+          id_paralelo: Number(idParalelo),
+          ...(idMateria ? { id_materia: Number(idMateria) } : {}),
+          ...(idAsesor ? { id_asesor: Number(idAsesor) } : {}),
+        }),
+    ...(aula ? { aula: String(aula) } : {}),
     tema: String(tema).trim(),
     inicioclase: fecha,
   }).catch((error) => {

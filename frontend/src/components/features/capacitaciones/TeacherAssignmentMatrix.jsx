@@ -6,6 +6,7 @@ import "./TeacherAssignmentMatrix.css"
 const scheduleKey = parallel => `${parallel.hora_inicio?.slice(0, 5) || "--:--"}|${parallel.hora_fin?.slice(0, 5) || "--:--"}`
 const slotKey = (day, schedule) => `${day}|${schedule}`
 const assignmentKey = (parallelId, day) => `${parallelId}|${day}`
+const assignmentId = item => item?.id_paralelo_materia ?? item?.id_asesor_paralelo_materia
 
 const advisorName = advisor =>
   [advisor?.nombre, advisor?.apellido_paterno, advisor?.apellido_materno].filter(Boolean).join(" ") ||
@@ -50,7 +51,7 @@ function buildMatrix(data, parallels) {
   const parallelIds = new Set(parallels.map(item => String(item.id_paralelo)))
   for (const item of data.asignacionesDocentes) {
     if (!parallelIds.has(String(item.id_paralelo))) continue
-    const day = normalizeWeekday(item.dias)
+    const day = normalizeWeekday(item.dia ?? item.dias)
     if (!day) continue
     const key = assignmentKey(item.id_paralelo, day)
     assignments.set(key, [...(assignments.get(key) || []), item])
@@ -60,7 +61,7 @@ function buildMatrix(data, parallels) {
     schedules,
     slots,
     assignments,
-    legacyCount: data.asignacionesDocentes.filter(item => parallelIds.has(String(item.id_paralelo)) && !normalizeWeekday(item.dias)).length,
+    legacyCount: data.asignacionesDocentes.filter(item => parallelIds.has(String(item.id_paralelo)) && !normalizeWeekday(item.dia ?? item.dias)).length,
     withoutDays: parallels.filter(item => !parseWeekdays(item.dias).length).length,
   }
 }
@@ -83,10 +84,13 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
   const { courses, schedules, slots, assignments, legacyCount, withoutDays } = useMemo(() => buildMatrix(data, filteredParallels), [data, filteredParallels])
   const assignedCount = [...assignments.values()].reduce((count, group) => count + group.length, 0)
   const parallel = assignmentSlot?.parallel
-  const assignedInSlot = assignments.get(assignmentKey(parallel?.id_paralelo, assignmentSlot?.day)) || []
+  const assignedInParallel = new Set(
+    data.asignacionesDocentes
+      .filter(item => String(item.id_paralelo) === String(parallel?.id_paralelo) && assignmentId(item) !== assignmentId(assignment))
+      .map(item => String(item.id_materia))
+  )
   const subjects = (parallel?.asignaciones || []).filter(item => item.id_materia != null)
-  const availableSubjects = subjects.filter(item => !assignedInSlot.some(existing =>
-    Number(existing.id_materia) === Number(item.id_materia) && existing.id_asesor_paralelo_materia !== assignment?.id_asesor_paralelo_materia))
+  const availableSubjects = subjects.filter(item => !assignedInParallel.has(String(item.id_materia)))
 
   useEffect(() => {
     if (assignmentSlot) controlsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -177,7 +181,12 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
                     {(slots.get(slotKey(day.key, schedule)) || []).map(parallel => {
                       const course = courses.get(String(parallel.id_capacitacion))
                       const assigned = assignments.get(assignmentKey(parallel.id_paralelo, day.key)) || []
-                      const hasAvailableSubject = (parallel.asignaciones || []).some(subject => subject.id_materia != null && !assigned.some(item => Number(item.id_materia) === Number(subject.id_materia)))
+                      const assignedElsewhere = new Set(
+                        data.asignacionesDocentes
+                          .filter(item => String(item.id_paralelo) === String(parallel.id_paralelo) && assignmentId(item) !== assignmentId(assignment))
+                          .map(item => String(item.id_materia))
+                      )
+                      const hasAvailableSubject = (parallel.asignaciones || []).some(subject => subject.id_materia != null && !assignedElsewhere.has(String(subject.id_materia)))
                       const slotId = assignmentKey(parallel.id_paralelo, day.key)
                       const isExpanded = expandedSlot === slotId
                       const status = assigned.length >= 3 ? "danger" : assigned.length === 2 ? "warning" : assigned.length === 1 ? "success" : "empty"
@@ -193,7 +202,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
                         {isExpanded && <div id={`teacher-slot-${parallel.id_paralelo}-${day.key}`} className="teacher-parallel-details">
                           <ParallelInfo parallel={parallel} course={course} />
                           <div className="teacher-parallel-assignments">
-                            {assigned.map(item => <button type="button" key={item.id_asesor_paralelo_materia} className="teacher-assigned" disabled={busy} onClick={() => onEdit(item)}>
+                            {assigned.map(item => <button type="button" key={assignmentId(item)} className="teacher-assigned" disabled={busy} onClick={() => onEdit(item)}>
                               <strong>{item.nombre_materia}</strong> · {item.nombre_asesor} <span>Editar</span>
                             </button>)}
                             {hasAvailableSubject && <button type="button" className="teacher-slot-select" disabled={busy} onClick={() => onAssign(parallel, day.key)}>Añadir materia y asesor</button>}

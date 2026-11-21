@@ -37,7 +37,7 @@ test("asesor consulta asistencia solo de su clase", async () => {
 
 test("asesor registra asistencia solo de estudiante inscrito en su clase", async () => {
   pool.query = async (sql, params) => {
-    assert.match(sql, /JOIN inscripciones i ON i\.id_paralelo = pm\.id_paralelo/);
+    assert.match(sql, /JOIN inscripciones i ON i\.id_paralelo = pma\.id_paralelo/);
     assert.deepEqual(params, [3, 42, 11]);
     return { rows: [] };
   };

@@ -27,6 +27,12 @@ const usuarioSchema = z.object({
     .string({ required_error: "El correo electrónico es obligatorio" })
     .trim()
     .email("Debe ingresar un correo electrónico válido"),
+  nro_telefono: z
+    .string()
+    .trim()
+    .max(20, "El teléfono debe tener máximo 20 caracteres")
+    .nullable()
+    .optional(),
   contraseña: z
     .string({ required_error: "La contraseña es obligatoria" })
     .min(8, "La contraseña debe tener al menos 8 caracteres"),

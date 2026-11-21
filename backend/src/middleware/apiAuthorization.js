@@ -92,10 +92,9 @@ export const authorizeApi = (req, res, next) => {
         if (advisorListRoute) {
           const parallelId = Number(path.match(/\/paralelos\/(\d+)\/estudiantes$/)[1]);
           const { rows } = await pool.query(
-            `SELECT 1 FROM asesor_paralelo_materia apm
-             JOIN asesores a ON a.id_asesor = apm.id_asesor
-             JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-             WHERE pm.id_paralelo = $1 AND a.id_usuario = $2 LIMIT 1`,
+            `SELECT 1 FROM paralelo_materia_asesor pma
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
+             WHERE pma.id_paralelo = $1 AND a.id_usuario = $2 AND pma.id_asesor IS NOT NULL LIMIT 1`,
             [parallelId, req.user.id_usuario],
           );
           if (!rows.length) return res.status(403).json({ error: "Solo puedes ver estudiantes de tus paralelos" });
@@ -108,8 +107,8 @@ export const authorizeApi = (req, res, next) => {
           }
           const { rows } = await pool.query(
             `SELECT 1 FROM clases c
-             JOIN asesor_paralelo_materia apm ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
-             JOIN asesores a ON a.id_asesor = apm.id_asesor
+             JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
              WHERE c.id_clase = $1 AND a.id_usuario = $2 LIMIT 1`,
             [classId, req.user.id_usuario],
           );
@@ -119,11 +118,19 @@ export const authorizeApi = (req, res, next) => {
         if (routeKey === "POST /clases") {
           const { rows } = await pool.query(
             `SELECT 1
-             FROM asesor_paralelo_materia apm
-             JOIN asesores a ON a.id_asesor = apm.id_asesor
-             WHERE apm.id_asesor_paralelo_materia = $1
-               AND a.id_usuario = $2`,
-            [req.body.id_asesor_paralelo_materia, req.user.id_usuario],
+             FROM paralelo_materia_asesor pma
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
+             WHERE a.id_usuario = $2
+               AND (
+                 pma.id_paralelo_materia = $1
+                 OR (pma.id_paralelo = $3 AND pma.id_materia = $4)
+               )`,
+            [
+              req.body.id_asesor_paralelo_materia ?? null,
+              req.user.id_usuario,
+              req.body.id_paralelo ?? null,
+              req.body.id_materia ?? null,
+            ],
           );
           if (rows.length === 0) {
             return res.status(403).json({ error: "Solo puedes registrar clases en tus propias asignaciones" });
@@ -134,11 +141,10 @@ export const authorizeApi = (req, res, next) => {
           const { rows } = await pool.query(
             `SELECT 1
              FROM clases c
-             JOIN asesor_paralelo_materia apm
-               ON apm.id_asesor_paralelo_materia = c.id_asesor_paralelo_materia
-             JOIN asesores a ON a.id_asesor = apm.id_asesor
-             JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-             JOIN inscripciones i ON i.id_paralelo = pm.id_paralelo
+             JOIN paralelo_materia_asesor pma
+               ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
+             JOIN inscripciones i ON i.id_paralelo = pma.id_paralelo
              WHERE c.id_clase = $1 AND a.id_usuario = $2
                AND i.id_estudiante = $3`,
             [req.body.id_clase, req.user.id_usuario, req.body.id_estudiante],

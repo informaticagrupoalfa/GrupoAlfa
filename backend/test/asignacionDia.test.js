@@ -24,26 +24,31 @@ function response() {
   };
 }
 
-function fakeDatabase({ duplicate = false, subjectLink = 11 } = {}) {
-  const inserted = [];
+function fakeDatabase({ duplicate = false, subjectLink = 11, subjectId = 5 } = {}) {
+  const updates = [];
   pool.connect = async () => ({
     release() {},
     async query(sql, params) {
       if (sql.includes("FROM paralelos WHERE")) return { rows: [{ id_paralelo: 7, dias: "Lunes, Miércoles y Viernes" }] };
-      if (sql.includes("SELECT id_paralelo_materia FROM paralelo_materia")) {
-        assert.deepEqual(params, [7, subjectLink === 11 ? 5 : 6]);
-        return { rows: [{ id_paralelo_materia: subjectLink }] };
+      if (sql.includes("WHERE id_paralelo = $1 AND id_materia = $2")) {
+        assert.deepEqual(params, [7, subjectId]);
+        return { rows: [{
+          id_paralelo_materia: subjectLink,
+          id_paralelo: 7,
+          id_materia: subjectId,
+          id_asesor: duplicate ? 3 : null,
+          dia: duplicate ? "lunes" : null,
+        }] };
       }
-      if (sql.includes("SELECT 1 FROM asesor_paralelo_materia")) return { rowCount: duplicate ? 1 : 0 };
-      if (sql.includes("INSERT INTO asesor_paralelo_materia")) {
-        inserted.push(params);
-        return { rows: [{ id_asesor_paralelo_materia: 51 }], rowCount: 1 };
+      if (sql.includes("UPDATE paralelo_materia_asesor")) {
+        updates.push(params);
+        return { rows: [{ id_paralelo_materia: subjectLink }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
     },
   });
-  pool.query = async () => ({ rows: [{ id_asesor_paralelo_materia: 51, id_asesor: 3, id_paralelo: 7, id_materia: 5, dias: "miercoles" }] });
-  return inserted;
+  pool.query = async () => ({ rows: [{ id_paralelo_materia: 51, id_asesor: 3, id_paralelo: 7, id_materia: 5, dia: "miercoles", dias: "miercoles" }] });
+  return updates;
 }
 
 test("frontend y backend expanden los mismos días del paralelo", () => {
@@ -53,28 +58,28 @@ test("frontend y backend expanden los mismos días del paralelo", () => {
   assert.deepEqual(parseBackend("lunes a viernes"), ["lunes", "martes", "miercoles", "jueves", "viernes"]);
 });
 
-test("guarda solo la materia y el día elegidos", async () => {
-  const inserted = fakeDatabase();
+test("asigna asesor y día sobre la materia existente del paralelo", async () => {
+  const updates = fakeDatabase();
   const res = response();
-  await createAsignacionDocente({ body: { id_asesor: 3, id_paralelo: 7, id_materia: 5, dias: "Miércoles" } }, res, error => { throw error; });
+  await createAsignacionDocente({ body: { id_asesor: 3, id_paralelo: 7, id_materia: 5, dia: "Miércoles" } }, res, error => { throw error; });
   assert.equal(res.statusCode, 201);
-  assert.deepEqual(inserted, [[3, 11, "miercoles"]]);
+  assert.deepEqual(updates, [[3, "miercoles", 11]]);
 });
 
-test("permite otra materia en el mismo día", async () => {
-  const inserted = fakeDatabase({ subjectLink: 12 });
+test("permite asignar otra materia del mismo paralelo", async () => {
+  const updates = fakeDatabase({ subjectLink: 12, subjectId: 6 });
   const res = response();
-  await createAsignacionDocente({ body: { id_asesor: 4, id_paralelo: 7, id_materia: 6, dias: "miercoles" } }, res, error => { throw error; });
+  await createAsignacionDocente({ body: { id_asesor: 4, id_paralelo: 7, id_materia: 6, dia: "miercoles" } }, res, error => { throw error; });
   assert.equal(res.statusCode, 201);
-  assert.deepEqual(inserted, [[4, 12, "miercoles"]]);
+  assert.deepEqual(updates, [[4, "miercoles", 12]]);
 });
 
-test("rechaza una materia duplicada para el mismo día", async () => {
-  const inserted = fakeDatabase({ duplicate: true });
+test("rechaza una materia que ya tiene asesor en el paralelo", async () => {
+  const updates = fakeDatabase({ duplicate: true });
   const res = response();
-  await createAsignacionDocente({ body: { id_asesor: 4, id_paralelo: 7, id_materia: 5, dias: "miercoles" } }, res, error => { throw error; });
+  await createAsignacionDocente({ body: { id_asesor: 4, id_paralelo: 7, id_materia: 5, dia: "miercoles" } }, res, error => { throw error; });
   assert.equal(res.statusCode, 409);
-  assert.equal(inserted.length, 0);
+  assert.equal(updates.length, 0);
 });
 
 test("actualiza solo la asignación seleccionada", async () => {
@@ -83,41 +88,47 @@ test("actualiza solo la asignación seleccionada", async () => {
     release() {},
     async query(sql, params) {
       if (sql.includes("FROM paralelos WHERE")) return { rows: [{ id_paralelo: 7, dias: "lunes, miercoles" }] };
-      if (sql.includes("FROM asesor_paralelo_materia apm")) return { rows: [{ id_asesor_paralelo_materia: 51, id_paralelo: 7 }] };
+      if (sql.includes("WHERE id_paralelo_materia = $1")) {
+        return { rows: [{ id_paralelo_materia: 51, id_paralelo: 7, id_materia: 5, id_asesor: 3, dia: "lunes" }] };
+      }
       if (sql.includes("SELECT 1 FROM clases")) return { rowCount: 0 };
-      if (sql.includes("SELECT id_paralelo_materia FROM paralelo_materia")) return { rows: [{ id_paralelo_materia: 12 }] };
-      if (sql.includes("UPDATE asesor_paralelo_materia")) updated = params;
+      if (sql.includes("WHERE id_paralelo = $1 AND id_materia = $2")) {
+        return { rows: [{ id_paralelo_materia: 12, id_paralelo: 7, id_materia: 6, id_asesor: null, dia: null }] };
+      }
+      if (sql.includes("UPDATE paralelo_materia_asesor")) updated = params;
       return { rows: [], rowCount: 0 };
     },
   });
-  pool.query = async () => ({ rows: [{ id_asesor_paralelo_materia: 51 }] });
+  pool.query = async () => ({ rows: [{ id_paralelo_materia: 51 }] });
   const res = response();
-  await updateAsignacionDocente({ body: { id_asesor_paralelo_materia: 51, id_asesor: 4, id_paralelo: 7, id_materia: 6, dias: "Miércoles" } }, res, error => { throw error; });
+  await updateAsignacionDocente({ body: { id_paralelo_materia: 51, id_asesor: 4, id_paralelo: 7, id_materia: 6, dia: "Miércoles" } }, res, error => { throw error; });
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(updated, [4, 12, "miercoles", 51]);
+  assert.deepEqual(updated, [4, "miercoles", 12]);
 });
 
-test("elimina únicamente la asignación seleccionada", async () => {
-  let deletedId;
+test("elimina la asignación liberando la materia del paralelo", async () => {
+  let freedId;
   pool.connect = async () => ({
     release() {},
     async query(sql, params) {
       if (sql.includes("FROM paralelos WHERE")) return { rows: [{ id_paralelo: 7, dias: "lunes, miercoles" }] };
-      if (sql.includes("FROM asesor_paralelo_materia apm")) return { rows: [{ id_asesor_paralelo_materia: 51, id_paralelo: 7 }] };
+      if (sql.includes("SET id_asesor = NULL")) { freedId = params[0]; return { rows: [], rowCount: 1 }; }
+      if (sql.includes("WHERE id_paralelo_materia = $1")) {
+        return { rows: [{ id_paralelo_materia: 51, id_paralelo: 7, id_materia: 5, id_asesor: 3, dia: "lunes" }] };
+      }
       if (sql.includes("SELECT 1 FROM clases")) return { rowCount: 0 };
-      if (sql.includes("DELETE FROM asesor_paralelo_materia")) deletedId = params[0];
       return { rows: [], rowCount: 0 };
     },
   });
   const res = response();
-  await deleteAsignacionDocente({ body: { id_asesor_paralelo_materia: 51 } }, res, error => { throw error; });
+  await deleteAsignacionDocente({ body: { id_paralelo_materia: 51 } }, res, error => { throw error; });
   assert.equal(res.statusCode, 204);
-  assert.equal(deletedId, 51);
+  assert.equal(freedId, 51);
 });
 
 test("crear un paralelo guarda materias y días sin asignar un asesor implícito", async () => {
   let storedDays;
-  let assignmentInserts = 0;
+  let matterInserts = 0;
   pool.connect = async () => ({
     release() {},
     async query(sql, params) {
@@ -126,7 +137,7 @@ test("crear un paralelo guarda materias y días sin asignar un asesor implícito
         return { rows: [{ id_paralelo: 7 }] };
       }
       if (sql.includes("SELECT 1 FROM materia_capacitacion")) return { rows: [{ "?column?": 1 }] };
-      if (sql.includes("INSERT INTO asesor_paralelo_materia")) assignmentInserts++;
+      if (sql.includes("INSERT INTO paralelo_materia_asesor")) matterInserts++;
       return { rows: [], rowCount: 1 };
     },
   });
@@ -137,7 +148,7 @@ test("crear un paralelo guarda materias y días sin asignar un asesor implícito
   } }, res, error => { throw error; });
   assert.equal(res.statusCode, 201);
   assert.equal(storedDays, "lunes, miercoles, viernes");
-  assert.equal(assignmentInserts, 0);
+  assert.equal(matterInserts, 1);
 });
 
 test("agregar una materia a un paralelo no le copia el asesor de otra materia", async () => {
@@ -146,10 +157,10 @@ test("agregar una materia a un paralelo no le copia el asesor de otra materia", 
     release() {},
     async query(sql) {
       if (sql.includes("UPDATE paralelos SET")) return { rowCount: 1 };
-      if (sql.includes("SELECT DISTINCT apm.dias")) return { rows: [{ dias: "lunes" }] };
-      if (sql.includes("SELECT pm.id_paralelo_materia")) return { rows: [{ id_paralelo_materia: 11, id_materia: 5 }] };
+      if (sql.includes("SELECT DISTINCT dia FROM paralelo_materia_asesor")) return { rows: [{ dia: "lunes" }] };
+      if (sql.includes("SELECT id_paralelo_materia, id_materia")) return { rows: [{ id_paralelo_materia: 11, id_materia: 5 }] };
       if (sql.includes("SELECT 1 FROM materia_capacitacion")) return { rows: [{ "?column?": 1 }] };
-      if (sql.includes("INSERT INTO asesor_paralelo_materia")) assignmentInserts++;
+      if (sql.includes("INSERT INTO paralelo_materia_asesor")) assignmentInserts++;
       return { rows: [], rowCount: 0 };
     },
   });
@@ -159,5 +170,6 @@ test("agregar una materia a un paralelo no le copia el asesor de otra materia", 
     materias: [{ id_materia: 5 }, { id_materia: 6 }],
   } }, res, error => { throw error; });
   assert.equal(res.statusCode, 200);
-  assert.equal(assignmentInserts, 0);
+  // Se intenta insertar cada materia, pero el INSERT no incluye id_asesor.
+  assert.equal(assignmentInserts, 2);
 });

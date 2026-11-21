@@ -1,6 +1,9 @@
 import { pool } from "../db.js";
 import { normalizeWeekday, parseWeekdays } from "../utils/weekdays.js";
 
+// Esquema actual: paralelo_materia_asesor (id_paralelo_materia, id_paralelo,
+// id_materia, id_asesor, dia). Una fila sin asesor representa una materia del
+// paralelo aún no asignada; asignar un docente completará id_asesor y dia.
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const validId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
@@ -28,21 +31,22 @@ async function lockParallel(db, parallelId) {
   return rows[0];
 }
 
-async function parallelSubject(db, parallelId, subjectId) {
+async function subjectRow(db, parallelId, subjectId, lock = false) {
   const { rows } = await db.query(
-    "SELECT id_paralelo_materia FROM paralelo_materia WHERE id_paralelo = $1 AND id_materia = $2",
+    `SELECT id_paralelo_materia, id_paralelo, id_materia, id_asesor, dia
+       FROM paralelo_materia_asesor
+      WHERE id_paralelo = $1 AND id_materia = $2${lock ? " FOR UPDATE" : ""}`,
     [parallelId, subjectId],
   );
   if (!rows.length) throw failure(400, "La materia no está vinculada al paralelo.");
-  return rows[0].id_paralelo_materia;
+  return rows[0];
 }
 
 async function assignmentRow(db, assignmentId, lock = false) {
   const { rows } = await db.query(
-    `SELECT apm.id_asesor_paralelo_materia, pm.id_paralelo
-       FROM asesor_paralelo_materia apm
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-      WHERE apm.id_asesor_paralelo_materia = $1${lock ? " FOR UPDATE OF apm" : ""}`,
+    `SELECT id_paralelo_materia, id_paralelo, id_materia, id_asesor, dia
+       FROM paralelo_materia_asesor
+      WHERE id_paralelo_materia = $1${lock ? " FOR UPDATE" : ""}`,
     [assignmentId],
   );
   if (!rows.length) throw failure(404, "Asignación no encontrada.");
@@ -57,41 +61,43 @@ async function hasClasses(db, assignmentId) {
   return rowCount > 0;
 }
 
-async function assertSubjectAvailable(db, subjectLinkId, day, assignmentId = 0) {
-  const { rowCount } = await db.query(
-    `SELECT 1 FROM asesor_paralelo_materia
-      WHERE id_paralelo_materia = $1 AND dias = $2
-        AND id_asesor_paralelo_materia <> $3 LIMIT 1`,
-    [subjectLinkId, day, assignmentId],
-  );
-  if (rowCount) throw failure(409, "La materia ya tiene un asesor asignado ese día en el paralelo.");
+async function assertSubjectAvailable(row) {
+  if (row.id_asesor != null) {
+    throw failure(409, "La materia ya tiene un asesor asignado en el paralelo.");
+  }
 }
 
 async function rowsFor(db, assignmentId = null) {
   const { rows } = await db.query(
-    `SELECT apm.id_asesor_paralelo_materia, apm.id_asesor, pm.id_paralelo,
-            pm.id_materia, m.nombre_materia, apm.dias, p.nombre_paralelo,
+    `SELECT pma.id_paralelo_materia,
+            pma.id_paralelo_materia AS id_asesor_paralelo_materia,
+            pma.id_asesor, pma.id_paralelo, pma.id_materia,
+            m.nombre_materia, pma.dia, pma.dia AS dias, p.nombre_paralelo,
             concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno) AS nombre_asesor,
             jsonb_build_array(jsonb_build_object('id_materia', m.id_materia, 'nombre_materia', m.nombre_materia)) AS materias,
-            ARRAY[apm.id_asesor_paralelo_materia] AS ids_asignacion
-       FROM asesor_paralelo_materia apm
-       JOIN asesores a ON a.id_asesor = apm.id_asesor
+            ARRAY[pma.id_paralelo_materia] AS ids_asignacion
+       FROM paralelo_materia_asesor pma
+       JOIN asesores a ON a.id_asesor = pma.id_asesor
        JOIN usuarios u ON u.id_usuario = a.id_usuario
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-       JOIN paralelos p ON p.id_paralelo = pm.id_paralelo
-       JOIN materias m ON m.id_materia = pm.id_materia
-      WHERE ($1::int IS NULL OR apm.id_asesor_paralelo_materia = $1)
-      ORDER BY p.nombre_paralelo, apm.dias, m.nombre_materia, nombre_asesor`,
+       JOIN paralelos p ON p.id_paralelo = pma.id_paralelo
+       JOIN materias m ON m.id_materia = pma.id_materia
+      WHERE pma.id_asesor IS NOT NULL
+        AND ($1::int IS NULL OR pma.id_paralelo_materia = $1)
+      ORDER BY p.nombre_paralelo, pma.dia, m.nombre_materia, nombre_asesor`,
     [assignmentId],
   );
   return rows;
+}
+
+function assignmentIdFrom(body) {
+  return body?.id_paralelo_materia ?? body?.id_asesor_paralelo_materia;
 }
 
 function readAssignment(body) {
   const advisorId = Number(body?.id_asesor);
   const parallelId = Number(body?.id_paralelo);
   const subjectId = Number(body?.id_materia);
-  const day = normalizeWeekday(body?.dias);
+  const day = normalizeWeekday(body?.dia ?? body?.dias);
   if (!validId(advisorId) || !validId(parallelId) || !validId(subjectId) || !day) {
     throw failure(400, "Indica un asesor, un paralelo, una materia y un día válido.");
   }
@@ -99,13 +105,13 @@ function readAssignment(body) {
 }
 
 function readAssignmentId(body) {
-  const assignmentId = Number(body?.id_asesor_paralelo_materia);
+  const assignmentId = Number(assignmentIdFrom(body));
   if (!validId(assignmentId)) throw failure(400, "Indica una asignación válida.");
   return assignmentId;
 }
 
 function handleError(error, res, next) {
-  if (error.code === "23505") return res.status(409).json({ message: "La materia ya tiene un asesor asignado ese día en el paralelo." });
+  if (error.code === "23505") return res.status(409).json({ message: "La materia ya tiene un asesor asignado en el paralelo." });
   if (error.code === "23503") return res.status(409).json({ message: "El asesor, paralelo o materia ya no existe." });
   if (error.status) return res.status(error.status).json({ message: error.message });
   return next(error);
@@ -121,13 +127,16 @@ export async function createAsignacionDocente(req, res, next) {
     const assignmentId = await transaction(async (db) => {
       const parallel = await lockParallel(db, parallelId);
       if (!parseWeekdays(parallel.dias).includes(day)) throw failure(400, "Ese día no está incluido en los días del paralelo.");
-      const subjectLinkId = await parallelSubject(db, parallelId, subjectId);
-      await assertSubjectAvailable(db, subjectLinkId, day);
+      const subject = await subjectRow(db, parallelId, subjectId, true);
+      await assertSubjectAvailable(subject);
       const { rows } = await db.query(
-        "INSERT INTO asesor_paralelo_materia (id_asesor, id_paralelo_materia, dias) VALUES ($1, $2, $3) RETURNING id_asesor_paralelo_materia",
-        [advisorId, subjectLinkId, day],
+        `UPDATE paralelo_materia_asesor
+            SET id_asesor = $1, dia = $2
+          WHERE id_paralelo_materia = $3
+        RETURNING id_paralelo_materia`,
+        [advisorId, day, subject.id_paralelo_materia],
       );
-      return rows[0].id_asesor_paralelo_materia;
+      return rows[0].id_paralelo_materia;
     });
     res.status(201).json((await rowsFor(pool, assignmentId))[0]);
   } catch (error) { handleError(error, res, next); }
@@ -145,11 +154,27 @@ export async function updateAsignacionDocente(req, res, next) {
       if (Number(locked.id_paralelo) !== parallelId) throw failure(409, "La asignación cambió; vuelve a cargarla.");
       if (!parseWeekdays(parallel.dias).includes(day)) throw failure(400, "Ese día no está incluido en los días del paralelo.");
       if (await hasClasses(db, assignmentId)) throw failure(409, "No se puede cambiar una asignación que ya tiene clases registradas.");
-      const subjectLinkId = await parallelSubject(db, parallelId, subjectId);
-      await assertSubjectAvailable(db, subjectLinkId, day, assignmentId);
+
+      if (Number(locked.id_materia) !== subjectId) {
+        const target = await subjectRow(db, parallelId, subjectId, true);
+        if (target.id_paralelo_materia !== assignmentId) {
+          await assertSubjectAvailable(target);
+          // La materia actual queda libre y la nueva recibe al asesor.
+          await db.query(
+            "UPDATE paralelo_materia_asesor SET id_asesor = NULL, dia = NULL WHERE id_paralelo_materia = $1",
+            [assignmentId],
+          );
+          await db.query(
+            "UPDATE paralelo_materia_asesor SET id_asesor = $1, dia = $2 WHERE id_paralelo_materia = $3",
+            [advisorId, day, target.id_paralelo_materia],
+          );
+          return;
+        }
+      }
+
       await db.query(
-        "UPDATE asesor_paralelo_materia SET id_asesor = $1, id_paralelo_materia = $2, dias = $3 WHERE id_asesor_paralelo_materia = $4",
-        [advisorId, subjectLinkId, day, assignmentId],
+        "UPDATE paralelo_materia_asesor SET id_asesor = $1, dia = $2 WHERE id_paralelo_materia = $3",
+        [advisorId, day, assignmentId],
       );
     });
     res.json((await rowsFor(pool, assignmentId))[0]);
@@ -164,7 +189,12 @@ export async function deleteAsignacionDocente(req, res, next) {
       await lockParallel(db, current.id_paralelo);
       await assignmentRow(db, assignmentId, true);
       if (await hasClasses(db, assignmentId)) throw failure(409, "No se puede eliminar una asignación que ya tiene clases registradas.");
-      await db.query("DELETE FROM asesor_paralelo_materia WHERE id_asesor_paralelo_materia = $1", [assignmentId]);
+      // La fila representa la materia del paralelo: al eliminar la asignación
+      // solo se libera el asesor y el día, sin borrar la materia.
+      await db.query(
+        "UPDATE paralelo_materia_asesor SET id_asesor = NULL, dia = NULL WHERE id_paralelo_materia = $1",
+        [assignmentId],
+      );
     });
     res.sendStatus(204);
   } catch (error) { handleError(error, res, next); }

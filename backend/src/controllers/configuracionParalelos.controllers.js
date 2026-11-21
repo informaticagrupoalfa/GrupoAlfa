@@ -1,5 +1,5 @@
 import { pool } from "../db.js";
-import { parseWeekdays } from "../utils/weekdays.js";
+import { normalizeWeekday, parseWeekdays } from "../utils/weekdays.js";
 
 export async function getConfiguracionParalelos(req, res, next) {
   try {
@@ -19,8 +19,8 @@ export async function getConfiguracionParalelos(req, res, next) {
         WHERE id_estudiante IS NOT NULL
         GROUP BY id_paralelo
       ) inscritos ON inscritos.id_paralelo = p.id_paralelo
-      LEFT JOIN paralelo_materia pm ON pm.id_paralelo = p.id_paralelo
-      LEFT JOIN materias m ON m.id_materia = pm.id_materia
+      LEFT JOIN paralelo_materia_asesor pma ON pma.id_paralelo = p.id_paralelo
+      LEFT JOIN materias m ON m.id_materia = pma.id_materia
       GROUP BY p.id_paralelo, a.codigo, a.capacidad, inscritos.total_estudiantes, c.fecha_inicio
       ORDER BY p.id_paralelo DESC`);
     res.json(rows);
@@ -47,7 +47,7 @@ export async function createConfiguracionParalelo(req, res, next) {
         `SELECT 1 FROM materia_capacitacion WHERE id_capacitacion=$1 AND id_materia=$2`, [id_capacitacion,item.id_materia]);
       if (!allowed.length) throw new Error(`La materia ${item.id_materia} no está vinculada a la capacitación.`);
       await client.query(
-        `INSERT INTO paralelo_materia (id_paralelo,id_materia) VALUES ($1,$2)`, [idParalelo,item.id_materia]);
+        `INSERT INTO paralelo_materia_asesor (id_paralelo,id_materia) VALUES ($1,$2)`, [idParalelo,item.id_materia]);
     }
     await client.query("COMMIT");
     res.status(201).json({ id_paralelo: idParalelo });
@@ -77,31 +77,28 @@ export async function updateConfiguracionParalelo(req, res, next) {
       [id_capacitacion,id_aula,nombre_paralelo,nivel||null,modalidad||null,hora_inicio||null,hora_fin||null,weekdays.join(", "),id]);
     if (!updated.rowCount) { await client.query("ROLLBACK"); return res.status(404).json({ message: "Paralelo no encontrado." }); }
     const { rows: assignedDays } = await client.query(
-      `SELECT DISTINCT apm.dias FROM asesor_paralelo_materia apm
-       JOIN paralelo_materia pm ON pm.id_paralelo_materia = apm.id_paralelo_materia
-       WHERE pm.id_paralelo = $1 AND apm.dias IS NOT NULL`, [id]);
-    if (assignedDays.some(row => !weekdays.includes(parseWeekdays(row.dias)[0]))) {
+      `SELECT DISTINCT dia FROM paralelo_materia_asesor
+        WHERE id_paralelo = $1 AND id_asesor IS NOT NULL AND dia IS NOT NULL`, [id]);
+    if (assignedDays.some(row => !weekdays.includes(normalizeWeekday(row.dia)))) {
       throw new Error("No se puede quitar un día que ya tiene asesor asignado.");
     }
     const desiredMatterIds = materias.map(item => Number(item.id_materia));
     const { rows: previous } = await client.query(
-      `SELECT pm.id_paralelo_materia, pm.id_materia
-       FROM paralelo_materia pm WHERE pm.id_paralelo=$1`, [id]);
+      `SELECT id_paralelo_materia, id_materia
+       FROM paralelo_materia_asesor WHERE id_paralelo=$1`, [id]);
     for (const old of previous.filter(item => !desiredMatterIds.includes(Number(item.id_materia)))) {
       const history = await client.query(
-        `SELECT 1 FROM asesor_paralelo_materia apm JOIN clases c
-          ON c.id_asesor_paralelo_materia=apm.id_asesor_paralelo_materia
-         WHERE apm.id_paralelo_materia=$1 LIMIT 1`, [old.id_paralelo_materia]);
+        `SELECT 1 FROM clases c
+         WHERE c.id_asesor_paralelo_materia=$1 LIMIT 1`, [old.id_paralelo_materia]);
       if (history.rowCount) throw new Error(`No se puede quitar la materia ${old.id_materia}: ya tiene clases registradas.`);
-      await client.query(`DELETE FROM asesor_paralelo_materia WHERE id_paralelo_materia=$1`, [old.id_paralelo_materia]);
-      await client.query(`DELETE FROM paralelo_materia WHERE id_paralelo_materia=$1`, [old.id_paralelo_materia]);
+      await client.query(`DELETE FROM paralelo_materia_asesor WHERE id_paralelo_materia=$1`, [old.id_paralelo_materia]);
     }
     for (const item of materias) {
       if (!item.id_materia) throw new Error("Selecciona una materia válida.");
       const { rows: allowed } = await client.query(`SELECT 1 FROM materia_capacitacion WHERE id_capacitacion=$1 AND id_materia=$2`, [id_capacitacion,item.id_materia]);
       if (!allowed.length) throw new Error(`La materia ${item.id_materia} no está vinculada a la capacitación.`);
       await client.query(
-        `INSERT INTO paralelo_materia (id_paralelo,id_materia) VALUES ($1,$2)
+        `INSERT INTO paralelo_materia_asesor (id_paralelo,id_materia) VALUES ($1,$2)
          ON CONFLICT (id_paralelo,id_materia) DO NOTHING`, [id,item.id_materia]);
     }
     await client.query("COMMIT"); res.json({ id_paralelo: id });

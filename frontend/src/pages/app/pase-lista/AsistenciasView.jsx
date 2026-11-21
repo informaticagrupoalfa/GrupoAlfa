@@ -275,12 +275,12 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
     return {
       fecha: String(clase.inicioclase ?? "").slice(0, 10),
       curso: paralelo?.nombre_paralelo ?? (paraleloId != null ? `Paralelo ${paraleloId}` : "Paralelo sin definir"),
-      materia: materias.length > 0 ? materias.join(", ") : "—",
-      asesor: nombres.asesorById.get(String(clase.id_asesor)) ?? "—",
+      materia: clase.materia || (materias.length > 0 ? materias.join(", ") : "—"),
+      asesor: clase.asesor || nombres.asesorById.get(String(clase.id_asesor)) || "—",
       horario: [paralelo?.hora_inicio, paralelo?.hora_fin].filter(Boolean).join(" - "),
-      aula: paralelo?.id_aula != null
+      aula: clase.aula || (paralelo?.id_aula != null
         ? nombres.aulaById.get(String(paralelo.id_aula)) ?? String(paralelo.id_aula)
-        : "—",
+        : "—"),
       tema: clase.tema || "—",
       guardadoEn: null,
       lista: asistencias.map((a) => ({
@@ -354,10 +354,13 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
 
   const selectRow = (row) => {
     setSelected({ tipo: "bd", id: row.clase.id_clase })
+    const asesorPorNombre = (catalogs.asesores ?? []).find(
+      (a) => row.clase.asesor && nombres.asesorById.get(String(a.id_asesor)) === row.clase.asesor,
+    )
     setDraft({
       fecha: String(row.clase.inicioclase ?? "").slice(0, 10),
       tema: row.clase.tema ?? "",
-      idAsesor: String(row.clase.id_asesor ?? ""),
+      idAsesor: String(row.clase.id_asesor ?? asesorPorNombre?.id_asesor ?? ""),
       estados: Object.fromEntries(row.asistencias.map((a) => [a.id_asistencia, a.permiso !== false])),
     })
     setEditorError("")

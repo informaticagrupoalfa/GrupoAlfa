@@ -222,9 +222,18 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
     setGuardado("")
     try {
       const horario = `${form.horaInicio} - ${form.horaFin}`
+      const asignacion = (catalogs.asignacionesDocentes ?? []).find((item) =>
+        String(item.id_paralelo) === String(form.idParalelo) &&
+        String(item.id_materia) === String(form.idMateria) &&
+        (!form.idAsesor || String(item.id_asesor) === String(form.idAsesor))
+      )
+      const aulaSeleccionada = (catalogs.aulas ?? []).find((item) => String(item.id_aula) === String(form.idAula))
       const { idClase, fallos } = await guardarListaEnBD({
         idParalelo: form.idParalelo,
+        idMateria: form.idMateria,
         idAsesor: form.idAsesor,
+        aula: aulaSeleccionada?.codigo ?? (form.idAula || null),
+        idAsesorParaleloMateria: asignacion?.id_paralelo_materia ?? asignacion?.id_asesor_paralelo_materia,
         tema: form.tema.trim(),
         fecha: form.fecha,
         marcados,
