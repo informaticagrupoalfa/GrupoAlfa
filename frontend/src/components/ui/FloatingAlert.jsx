@@ -3,7 +3,7 @@ import { createPortal } from "react-dom"
 import PropTypes from "prop-types"
 import "./FloatingAlert.css"
 
-export default function FloatingAlert({ title, onClose, children, className = "" }) {
+export default function FloatingAlert({ title, onClose, children, className = "", hero = null }) {
   const titleId = useId()
   const closeRef = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -21,11 +21,12 @@ export default function FloatingAlert({ title, onClose, children, className = ""
   return createPortal(
     <div className="floating-alert-backdrop">
       <section
-        className={["floating-alert-dialog", className].filter(Boolean).join(" ")}
+        className={["floating-alert-dialog", hero ? "floating-alert-has-hero" : "", className].filter(Boolean).join(" ")}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
+        {hero && <div className="floating-alert-hero">{hero}</div>}
         <div className="floating-alert-header">
           <h2 id={titleId}>{title}</h2>
           <button ref={closeRef} type="button" className="floating-alert-close" aria-label="Cerrar aviso" onClick={onClose}>×</button>
@@ -42,4 +43,5 @@ FloatingAlert.propTypes = {
   onClose: PropTypes.func.isRequired,
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
+  hero: PropTypes.node,
 }

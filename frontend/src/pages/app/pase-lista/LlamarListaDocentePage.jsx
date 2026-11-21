@@ -267,9 +267,11 @@ export default function LlamarListaDocentePage() {
             title="Asistencia registrada"
             className="llamar-student-popup"
             onClose={() => { popupRequestRef.current += 1; setStudentPopup(null) }}
+            hero={image
+              ? <img className="llamar-student-popup-photo" src={image} alt={`Foto de ${studentName(detail)}`} />
+              : <div className="llamar-student-popup-photo llamar-student-popup-avatar" aria-hidden="true">{String(detail.nombre || "E").charAt(0).toUpperCase()}</div>}
           >
             <div className="llamar-student-popup-identity">
-              {image ? <img src={image} alt={`Foto de ${studentName(detail)}`} /> : <div className="llamar-student-popup-avatar" aria-hidden="true">{String(detail.nombre || "E").charAt(0).toUpperCase()}</div>}
               <div><strong>{studentName(detail)}</strong><small>CI {detail.nro_carnet || "—"}</small></div>
             </div>
             {studentPopup.loading ? <p className="llamar-student-popup-note">Cargando datos del estudiante…</p> : (
@@ -319,18 +321,7 @@ export default function LlamarListaDocentePage() {
             ))}
           </div>
         </section>
-
-        <section className="llamar-panel">
-          <h2>Estudiantes <span>{students.length}</span></h2>
-          <div className="llamar-list">
-            {students.map(student => (
-              <button className="llamar-choice" key={student.id_estudiante} type="button" disabled={!classId || !rosterReady || rosterLoading} onClick={() => mark(student)}>
-                <strong>{studentName(student)}</strong><small>CI {student.nro_carnet || "—"} · Registrar manual</small>
-              </button>
-            ))}
-          </div>
-        </section>
-
+        
         <section className="llamar-panel">
           <h2>Escanear y registrar</h2>
           {!classId && <p className="llamar-scan-hint">Selecciona o crea una clase para activar el escáner.</p>}
@@ -358,6 +349,18 @@ export default function LlamarListaDocentePage() {
             ))}
           </div>
         </section>
+
+        <section className="llamar-panel">
+          <h2>Estudiantes <span>{students.length}</span></h2>
+          <div className="llamar-list">
+            {students.map(student => (
+              <button className="llamar-choice" key={student.id_estudiante} type="button" disabled={!classId || !rosterReady || rosterLoading} onClick={() => mark(student)}>
+                <strong>{studentName(student)}</strong><small>CI {student.nro_carnet || "—"} · Registrar manual</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
       </div>
     </div>
   )
