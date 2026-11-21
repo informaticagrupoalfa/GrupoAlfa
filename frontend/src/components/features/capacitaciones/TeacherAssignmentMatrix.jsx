@@ -169,9 +169,9 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
               {WEEKDAYS.map(day => <th scope="col" key={day.key}>{day.label}</th>)}
             </tr></thead>
             <tbody>
-              {schedules.map(schedule => {
+              {schedules.map((schedule, index) => {
                 const [start, end] = schedule.split("|")
-                return <tr key={schedule}>
+                return <tr key={schedule} className={`schedule-tone-${(index % 4) + 1}`}>
                   <th scope="row" className="teacher-matrix-time">{start} – {end}</th>
                   {WEEKDAYS.map(day => <td key={day.key} className="teacher-matrix-slot">
                     {(slots.get(slotKey(day.key, schedule)) || []).map(parallel => {

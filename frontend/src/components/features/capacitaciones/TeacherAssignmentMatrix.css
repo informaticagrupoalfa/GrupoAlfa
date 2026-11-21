@@ -87,6 +87,19 @@
 .teacher-matrix thead .teacher-matrix-time { z-index: 3; background: #123f55; color: #fff; }
 .teacher-matrix-slot { background: #fbfcfc; }
 
+/* Cada fila de horario recibe un tono distinto (azul, rojo, amarillo y verde). */
+.teacher-matrix tbody tr.schedule-tone-1 { --tone-bg: #e8f2fb; --tone-card: #f7fbff; --tone-accent: #2f6f9f; }
+.teacher-matrix tbody tr.schedule-tone-2 { --tone-bg: #fdeaea; --tone-card: #fff8f8; --tone-accent: #a84242; }
+.teacher-matrix tbody tr.schedule-tone-3 { --tone-bg: #fdf6e2; --tone-card: #fffdf6; --tone-accent: #96701a; }
+.teacher-matrix tbody tr.schedule-tone-4 { --tone-bg: #e7f5ec; --tone-card: #f7fdf9; --tone-accent: #2f7a4d; }
+
+.teacher-matrix tbody tr[class*="schedule-tone-"] .teacher-matrix-slot { background: var(--tone-bg); }
+.teacher-matrix tbody tr[class*="schedule-tone-"] .teacher-matrix-time {
+  background: var(--tone-bg);
+  box-shadow: inset 4px 0 0 var(--tone-accent);
+}
+.teacher-matrix tbody tr[class*="schedule-tone-"] .teacher-parallel-card { background: var(--tone-card); }
+
 .teacher-parallel-card {
   margin-bottom: 9px;
   overflow: hidden;
