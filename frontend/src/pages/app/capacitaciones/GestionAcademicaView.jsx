@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { apiClient } from "../../../services/apiClient"
-import TeacherAssignmentMatrix from "../../../components/features/capacitaciones/TeacherAssignmentMatrix"
 import ParallelSetupFields from "../../../components/features/capacitaciones/ParallelSetupFields"
 import { parseWeekdays } from "../../../utils/weekdays"
 import "./GestionAcademicaView.css"
@@ -28,7 +27,7 @@ function Icon({ name }) {
 }
 Icon.propTypes = { name: PropTypes.string.isRequired }
 
-const initialData = { facultades: [], convocatorias: [], capacitaciones: [], materias: [], aulas: [], asesores: [], materiasCapacitacion: [], paralelos: [], asignacionesDocentes: [] }
+const initialData = { facultades: [], convocatorias: [], capacitaciones: [], materias: [], aulas: [], materiasCapacitacion: [], paralelos: [] }
 export default function GestionAcademicaView() {
   const [data, setData] = useState(initialData)
   const [step, setStep] = useState("facultades")
@@ -38,18 +37,12 @@ export default function GestionAcademicaView() {
   const [search, setSearch] = useState("")
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
-  const [assignment, setAssignment] = useState(null)
-  const [assignmentSlot, setAssignmentSlot] = useState(null)
-  const [pickedAdvisor, setPickedAdvisor] = useState(null)
-  const [pickedSubjectId, setPickedSubjectId] = useState("")
-  const [assignmentMessage, setAssignmentMessage] = useState("")
-  const [assignmentBusy, setAssignmentBusy] = useState(false)
   const current = STEPS.find(item => item.key === step)
 
   const reload = async () => {
-    const endpoints = ["facultades", "convocatorias", "capacitaciones", "materias", "aulas", "asesores", "materias-capacitacion", "configuracion-paralelos", "asignaciones-docentes-paralelo"]
+    const endpoints = ["facultades", "convocatorias", "capacitaciones", "materias", "aulas", "materias-capacitacion", "configuracion-paralelos"]
     const values = await Promise.all(endpoints.map(path => apiClient.get(`/${path}`).then(r => r.data)))
-    setData({ facultades: values[0], convocatorias: values[1], capacitaciones: values[2], materias: values[3], aulas: values[4], asesores: values[5], materiasCapacitacion: values[6], paralelos: values[7], asignacionesDocentes: values[8] })
+    setData({ facultades: values[0], convocatorias: values[1], capacitaciones: values[2], materias: values[3], aulas: values[4], materiasCapacitacion: values[5], paralelos: values[6] })
   }
   useEffect(() => { reload().catch(e => setMessage(e.userMessage || "No se pudieron cargar los datos.")) }, [])
   const rows = useMemo(() => (data[step] || []).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())), [data, step, search])
@@ -95,53 +88,6 @@ export default function GestionAcademicaView() {
     } catch (e) { setMessage(e.userMessage || e.message || "No se pudo guardar.") } finally { setBusy(false) }
   }
   const remove = async row => { if (!window.confirm("¿Eliminar este registro?")) return; try { await apiClient.delete(`/${current.endpoint}/${row[current.pk]}`); if (record?.[current.pk] === row[current.pk]) startNew(); await reload() } catch (e) { setMessage(e.userMessage || "No se pudo eliminar.") } }
-  const chooseAdvisor = advisor => { setPickedAdvisor(advisor); setAssignmentMessage("") }
-  const prepareAssignment = (parallel, day) => {
-    if (assignmentBusy) return
-    setAssignment(null)
-    setAssignmentSlot({ parallel, day })
-    setPickedAdvisor(null)
-    setPickedSubjectId("")
-    setAssignmentMessage("")
-  }
-  const saveAssignment = async () => {
-    if (!assignmentSlot || !pickedAdvisor || !pickedSubjectId || assignmentBusy) return
-    setAssignmentBusy(true); setAssignmentMessage("")
-    try {
-      const payload = {
-        ...(assignment && { id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia }),
-        id_asesor: pickedAdvisor.id_asesor,
-        id_paralelo: assignmentSlot.parallel.id_paralelo,
-        id_materia: Number(pickedSubjectId),
-        dias: assignmentSlot.day,
-      }
-      if (assignment) await apiClient.put("/asignaciones-docentes-paralelo", payload)
-      else await apiClient.post("/asignaciones-docentes-paralelo", payload)
-      await reload()
-      setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId("")
-      setAssignmentMessage(assignment ? "Asignación actualizada." : "Asignación guardada.")
-    } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo guardar la asignación.") }
-    finally { setAssignmentBusy(false) }
-  }
-  const deleteAssignment = async () => {
-    if (!assignment || !window.confirm("¿Eliminar esta asignación docente?")) return
-    setAssignmentBusy(true); setAssignmentMessage("")
-    try {
-      await apiClient.delete("/asignaciones-docentes-paralelo", { data: {
-        id_asesor_paralelo_materia: assignment.id_asesor_paralelo_materia,
-      } })
-      await reload(); setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId(""); setAssignmentMessage("Asignación eliminada.")
-    } catch (error) { setAssignmentMessage(error.userMessage || "No se pudo eliminar la asignación.") }
-    finally { setAssignmentBusy(false) }
-  }
-  const editAssignment = row => {
-    setAssignment(row)
-    setAssignmentSlot({ parallel: data.paralelos.find(item => Number(item.id_paralelo) === Number(row.id_paralelo)), day: row.dias })
-    setPickedAdvisor(data.asesores.find(item => Number(item.id_asesor) === Number(row.id_asesor)) || null)
-    setPickedSubjectId(String(row.id_materia))
-    setAssignmentMessage("")
-  }
-
   return <main className="setup-page">
     <header className="setup-head"><div><span className="setup-kicker">CONFIGURACIÓN ACADÉMICA</span><h1>Preparar un paralelo</h1><p>Completa los catálogos, define los días del paralelo y asigna un asesor en cada día.</p></div><div className="setup-progress">{STEPS.map((s,i)=><span className={step===s.key?"active":""} key={s.key}>{i+1}</span>)}</div></header>
     <nav className="setup-steps">{STEPS.map((s,i)=><button key={s.key} className={step===s.key?"active":""} onClick={()=>{setStep(s.key);setRecord(null);setForm({});setSearch("")}}><span>{i+1}</span><Icon name={s.icon}/>{s.label}</button>)}</nav>
@@ -161,21 +107,5 @@ export default function GestionAcademicaView() {
       <div className="setup-actions"><button className="subtle" type="button" onClick={startNew}>Limpiar</button><button type="submit" disabled={busy}>{busy?"Guardando…":record?"Guardar cambios":"Crear registro"}</button></div></form>{message&&<p className="setup-message" role="status">{message}</p>}
       <p className="editor-tip">{step==="paralelos"?"Al crear, se guardan el paralelo y sus materias. Después asigna un asesor para cada día de clase.":"Los registros relacionados aparecerán disponibles en los siguientes pasos."}</p>
     </section><section className="setup-list"><div className="list-heading"><div><span className={`list-icon tone-${current.color}`}><Icon name={current.icon}/></span><div><h2>{current.label}</h2><p>{rows.length} registros</p></div></div><input type="search" placeholder={`Buscar ${current.label.toLowerCase()}…`} value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="setup-cards">{rows.map(row=>{const id=row[current.pk];return <article key={id} className={`setup-card tone-${current.color} ${record?.[current.pk]===id?"selected":""}`}><button className="card-select" onClick={()=>select(row)}><span className="card-icon"><Icon name={current.icon}/></span><strong>{row[current.title]||`${current.label.slice(0,-1)} ${id}`}</strong><small>Registro #{id}</small>{step==="convocatorias"&&row.modalidad&&<span className="card-meta">Modalidad: {row.modalidad}</span>}{step==="paralelos"&&<span className="card-meta">{row.aula_codigo||"Aula pendiente"} · {row.hora_inicio||"Horario pendiente"}{row.asignaciones?.filter(a=>a.id_materia).length?` · ${row.asignaciones.filter(a=>a.id_materia).length} materia(s)`:""}</span>}</button><div className="card-actions"><button onClick={()=>select(row)}>Editar</button><button onClick={()=>remove(row)}>Eliminar</button></div></article>})}{rows.length===0&&<div className="no-records">Todavía no hay {current.label.toLowerCase()}. Usa el formulario para crear el primer registro.</div>}</div></section></div>
-    <TeacherAssignmentMatrix
-      data={data}
-      assignment={assignment}
-      assignmentSlot={assignmentSlot}
-      pickedAdvisor={pickedAdvisor}
-      pickedSubjectId={pickedSubjectId}
-      busy={assignmentBusy}
-      message={assignmentMessage}
-      onSelectAdvisor={chooseAdvisor}
-      onSelectSubject={setPickedSubjectId}
-      onEdit={editAssignment}
-      onAssign={prepareAssignment}
-      onSave={saveAssignment}
-      onDelete={deleteAssignment}
-      onCancel={() => { setAssignment(null); setAssignmentSlot(null); setPickedAdvisor(null); setPickedSubjectId(""); setAssignmentMessage("") }}
-    />
   </main>
 }

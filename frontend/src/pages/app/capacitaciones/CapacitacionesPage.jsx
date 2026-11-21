@@ -6,6 +6,7 @@ import { useAuth } from "../../../hooks/useAuth"
 
 const VIEWS = {
   gestion: lazy(() => import("./GestionAcademicaView")),
+  "asignacion-docente": lazy(() => import("./AsignacionDocentesView")),
   capacitaciones: lazy(() => import("./CapacitacionesView")),
   paralelos: lazy(() => import("./ParalelosView")),
   convocatorias: lazy(() => import("./ConvocatoriasView")),

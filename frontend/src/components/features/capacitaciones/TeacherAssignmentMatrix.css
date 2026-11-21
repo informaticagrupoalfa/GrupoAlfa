@@ -88,25 +88,46 @@
 .teacher-matrix-slot { background: #fbfcfc; }
 
 .teacher-parallel-card {
-  display: grid;
-  gap: 9px;
   margin-bottom: 9px;
-  padding: 11px;
+  overflow: hidden;
   border: 1px solid #bbd4db;
-  border-left: 3px solid var(--academy);
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 2px 5px #16354b0a;
 }
 .teacher-parallel-card:last-child { margin-bottom: 0; }
-.teacher-parallel-action { width: 100%; color: var(--ink); text-align: left; cursor: pointer; }
-.teacher-parallel-action:hover:not(:disabled) { border-color: var(--academy); background: #f5fafb; }
-.teacher-parallel-action:focus-visible, .teacher-assigned:focus-visible, .teacher-matrix-actions button:focus-visible {
-  outline: 3px solid var(--academy);
-  outline-offset: 2px;
+.teacher-parallel-toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 0;
+  background: #edf4f6;
+  color: var(--ink);
+  text-align: left;
+  font-size: .8rem;
+  font-weight: 750;
+  cursor: pointer;
 }
-.teacher-parallel-action:disabled { opacity: .65; cursor: not-allowed; }
-.teacher-parallel-card.occupied { border-left-color: #39845b; }
+.teacher-parallel-title { min-width: 0; }
+.teacher-parallel-advisors { color: inherit; font-size: .7rem; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.teacher-parallel-toggle:hover:not(:disabled) { filter: brightness(.97); }
+.teacher-parallel-toggle:focus-visible, .teacher-assigned:focus-visible, .teacher-matrix-actions button:focus-visible, .teacher-slot-select:focus-visible {
+  outline: 3px solid var(--academy);
+  outline-offset: -3px;
+}
+.teacher-parallel-toggle:disabled { opacity: .65; cursor: not-allowed; }
+.teacher-parallel-card.status-success { border-color: #77b68e; }
+.teacher-parallel-card.status-success .teacher-parallel-toggle { background: #dff3e6; color: #1f6139; }
+.teacher-parallel-card.status-warning { border-color: #dfa352; }
+.teacher-parallel-card.status-warning .teacher-parallel-toggle { background: #fff0d5; color: #8a4e08; }
+.teacher-parallel-card.status-danger { border-color: #d67575; }
+.teacher-parallel-card.status-danger .teacher-parallel-toggle { background: #fbe1e1; color: #922e2e; }
+.teacher-parallel-details { display: grid; gap: 9px; padding: 11px; border-top: 1px solid var(--line); }
 .teacher-parallel-info { display: grid; gap: 3px; min-width: 0; }
 .teacher-parallel-info strong { color: var(--ink); font-size: .83rem; }
 .teacher-parallel-info span { color: var(--ink-soft); font-size: .72rem; }
@@ -116,6 +137,7 @@
 .teacher-parallel-assignments { display: grid; gap: 5px; }
 .teacher-assigned { width: 100%; padding: 8px; background: #eaf5ee; color: #245d3c; border: 1px solid #c7dfce; text-align: left; font-size: .76rem; }
 .teacher-assigned span { float: right; font-size: .68rem; text-decoration: underline; }
+.teacher-slot-unavailable { color: var(--ink-soft); font-size: .72rem; }
 .teacher-conflict { color: #9a3434; font-size: .7rem; }
 .teacher-matrix-empty-state { margin: 0; padding: 24px; background: #f6fafb; color: var(--ink-soft); border-radius: 8px; }
 

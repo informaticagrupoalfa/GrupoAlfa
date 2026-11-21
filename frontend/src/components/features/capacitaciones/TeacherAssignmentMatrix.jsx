@@ -69,6 +69,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
   const controlsRef = useRef(null)
   const [facultyFilter, setFacultyFilter] = useState("")
   const [courseFilter, setCourseFilter] = useState("")
+  const [expandedSlot, setExpandedSlot] = useState("")
   const courseIdsWithParallels = useMemo(() => new Set(data.paralelos.map(item => String(item.id_capacitacion))), [data.paralelos])
   const availableCourses = useMemo(() => data.capacitaciones.filter(item => courseIdsWithParallels.has(String(item.id_capacitacion))), [data.capacitaciones, courseIdsWithParallels])
   const faculties = useMemo(() => [...new Map(availableCourses.map(course => [facultyKey(course), facultyName(course)])).entries()], [availableCourses])
@@ -94,11 +95,17 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
   const changeFaculty = value => {
     setFacultyFilter(value)
     setCourseFilter("")
+    setExpandedSlot("")
     onCancel()
   }
   const changeCourse = value => {
     setCourseFilter(value)
+    setExpandedSlot("")
     onCancel()
+  }
+  const toggleSlot = (parallelId, day) => {
+    const key = assignmentKey(parallelId, day)
+    setExpandedSlot(current => current === key ? "" : key)
   }
 
   return (
@@ -127,28 +134,29 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
         <span className="teacher-matrix-filter-count">{filteredParallels.length} paralelo(s) · {assignedCount} asignación(es)</span>
       </div>
 
-      <div className="teacher-matrix-controls" ref={controlsRef}>
+      {assignmentSlot && <div className="teacher-matrix-controls" ref={controlsRef}>
         <div className="teacher-matrix-editing">
-          {assignmentSlot ? <><strong>{assignment ? "Editar" : "Nueva asignación"}: {parallel?.nombre_paralelo} · {weekdayLabel(assignmentSlot.day)}</strong><span>Selecciona el asesor y la materia que dictará ese día.</span></> : <><strong>Selecciona un paralelo en la tabla</strong><span>El día y el paralelo aparecerán aquí.</span></>}
+          <strong>{assignment ? "Editar" : "Nueva asignación"}: {parallel?.nombre_paralelo} · {weekdayLabel(assignmentSlot.day)}</strong>
+          <span>Selecciona el asesor y la materia que dictará ese día.</span>
         </div>
         <label htmlFor="teacher-advisor">Asesor
-          <select id="teacher-advisor" disabled={!assignmentSlot || busy} value={pickedAdvisor?.id_asesor ?? ""} onChange={event => onSelectAdvisor(data.asesores.find(item => String(item.id_asesor) === event.target.value) || null)}>
+          <select id="teacher-advisor" disabled={busy} value={pickedAdvisor?.id_asesor ?? ""} onChange={event => onSelectAdvisor(data.asesores.find(item => String(item.id_asesor) === event.target.value) || null)}>
             <option value="">Selecciona un asesor</option>
             {data.asesores.map(item => <option key={item.id_asesor} value={item.id_asesor}>{advisorName(item)}</option>)}
           </select>
         </label>
         <label htmlFor="teacher-subject">Materia
-          <select id="teacher-subject" disabled={!assignmentSlot || busy} value={pickedSubjectId} onChange={event => onSelectSubject(event.target.value)}>
+          <select id="teacher-subject" disabled={busy} value={pickedSubjectId} onChange={event => onSelectSubject(event.target.value)}>
             <option value="">Selecciona una materia</option>
             {availableSubjects.map(item => <option key={item.id_materia} value={item.id_materia}>{item.nombre_materia}</option>)}
           </select>
         </label>
-        {assignmentSlot && <div className="teacher-matrix-actions">
+        <div className="teacher-matrix-actions">
           <button type="button" className="submit-button" disabled={!pickedAdvisor || !pickedSubjectId || busy} onClick={onSave}>{busy ? "Guardando…" : "Guardar asignación"}</button>
           {assignment && <button type="button" className="teacher-delete" disabled={busy} onClick={onDelete}>Eliminar</button>}
           <button type="button" className="teacher-cancel" disabled={busy} onClick={onCancel}>Cancelar</button>
-        </div>}
-      </div>
+        </div>
+      </div>}
       {message && <p className="teacher-matrix-message" role="status">{message}</p>}
       {legacyCount > 0 && <p className="teacher-matrix-warning">{legacyCount} asignación(es) anterior(es) no tienen día y no aparecen en esta cuadrícula.</p>}
       {withoutDays > 0 && <p className="teacher-matrix-warning">{withoutDays} paralelo(s) no tienen días reconocibles. Edítalos en la etapa 6 para mostrarlos aquí.</p>}
@@ -170,22 +178,29 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
                       const course = courses.get(String(parallel.id_capacitacion))
                       const assigned = assignments.get(assignmentKey(parallel.id_paralelo, day.key)) || []
                       const hasAvailableSubject = (parallel.asignaciones || []).some(subject => subject.id_materia != null && !assigned.some(item => Number(item.id_materia) === Number(subject.id_materia)))
-                      return assigned.length
-                        ? <article className="teacher-parallel-card occupied" key={parallel.id_paralelo}>
+                      const slotId = assignmentKey(parallel.id_paralelo, day.key)
+                      const isExpanded = expandedSlot === slotId
+                      const status = assigned.length >= 3 ? "danger" : assigned.length === 2 ? "warning" : assigned.length === 1 ? "success" : "empty"
+                      const assignedAdvisors = [...new Set(assigned.map(item => item.nombre_asesor).filter(Boolean))].join(", ")
+                      return <article className={`teacher-parallel-card status-${status}`} key={parallel.id_paralelo}>
+                        <button type="button" className="teacher-parallel-toggle" disabled={busy}
+                          aria-expanded={isExpanded} aria-controls={`teacher-slot-${parallel.id_paralelo}-${day.key}`}
+                          aria-label={`${parallel.nombre_paralelo}${assignedAdvisors ? `, ${assignedAdvisors}` : ""}: ${assigned.length} asignación${assigned.length === 1 ? "" : "es"}. ${isExpanded ? "Ocultar opciones" : "Mostrar opciones"}`}
+                          onClick={() => toggleSlot(parallel.id_paralelo, day.key)}>
+                          <span className="teacher-parallel-title">{parallel.nombre_paralelo}</span>
+                          {assignedAdvisors && <span className="teacher-parallel-advisors">{assignedAdvisors}</span>}
+                        </button>
+                        {isExpanded && <div id={`teacher-slot-${parallel.id_paralelo}-${day.key}`} className="teacher-parallel-details">
                           <ParallelInfo parallel={parallel} course={course} />
                           <div className="teacher-parallel-assignments">
                             {assigned.map(item => <button type="button" key={item.id_asesor_paralelo_materia} className="teacher-assigned" disabled={busy} onClick={() => onEdit(item)}>
                               <strong>{item.nombre_materia}</strong> · {item.nombre_asesor} <span>Editar</span>
                             </button>)}
                             {hasAvailableSubject && <button type="button" className="teacher-slot-select" disabled={busy} onClick={() => onAssign(parallel, day.key)}>Añadir materia y asesor</button>}
+                            {!hasAvailableSubject && assigned.length === 0 && <span className="teacher-slot-unavailable">Este paralelo no tiene materias disponibles.</span>}
                           </div>
-                        </article>
-                        : <button type="button" className="teacher-parallel-card teacher-parallel-action" key={parallel.id_paralelo}
-                          disabled={busy || !hasAvailableSubject} onClick={() => onAssign(parallel, day.key)}
-                          aria-label={`Preparar asignación para ${parallel.nombre_paralelo} el ${day.label}`}>
-                          <ParallelInfo parallel={parallel} course={course} />
-                          <span className="teacher-slot-select">Seleccionar paralelo</span>
-                        </button>
+                        </div>}
+                      </article>
                     })}
                   </td>)}
                 </tr>

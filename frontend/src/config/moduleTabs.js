@@ -18,7 +18,11 @@ export const MODULE_TABS = {
   capacitaciones: {
     path: "/app/capacitaciones",
     defaultTab: "gestion",
-    items: [{ key: "gestion", label: "Gestión académica" }, ...buildTabs(["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias"])],
+    items: [
+      { key: "gestion", label: "Gestión académica" },
+      { key: "asignacion-docente", label: "Asignación docente" },
+      ...buildTabs(["capacitaciones", "paralelos", "convocatorias", "facultades", "aulas", "materias"]),
+    ],
   },
   matriculaciones: {
     path: "/app/matriculaciones",
@@ -55,7 +59,7 @@ export function getModuleTabConfig(moduleKey, activeRole) {
     return { ...config, defaultTab: "listado", items: config.items.filter((item) => item.key === "listado") }
   }
   if (!config || moduleKey !== "capacitaciones" || activeRole === "SysAdmin") return config
-  return { ...config, items: config.items.filter((item) => item.key === "gestion") }
+  return { ...config, items: config.items.filter((item) => ["gestion", "asignacion-docente"].includes(item.key)) }
 }
 
 export function resolveModuleTab(config, search) {
