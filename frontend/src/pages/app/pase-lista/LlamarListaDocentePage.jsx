@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { apiClient } from "../../../services/apiClient"
 import { useAuth } from "../../../hooks/useAuth"
+import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { parseStudentQr, partitionRoster } from "./llamarListaUtils"
 import "./LlamarListaDocentePage.css"
 
@@ -154,7 +155,7 @@ export default function LlamarListaDocentePage() {
       registeredIdsRef.current.add(studentId)
       setChecked(current => [{ ...student, permiso: permit, razon_permiso: reason.trim() }, ...current])
       setStudents(current => current.filter(item => String(item.id_estudiante) !== studentId))
-      setMessage(`${studentName(student)} registrado.`)
+      setMessage("")
       const popupRequest = ++popupRequestRef.current
       setStudentPopup({ student, paralelo: selected?.nombre_paralelo, loading: true })
       apiClient.get(`/llamar-lista/clases/${targetClassId}/estudiantes/${studentId}/ficha`, { params: { scope } })
@@ -262,11 +263,11 @@ export default function LlamarListaDocentePage() {
         const guardian = [detail.apoderado_nombre, detail.apoderado_apellido_paterno, detail.apoderado_apellido_materno].filter(Boolean).join(" ")
         const image = photoSrc(detail.foto_base64)
         return (
-          <aside className="llamar-student-popup" role="dialog" aria-label="Estudiante registrado">
-            <div className="llamar-student-popup-top">
-              <span className="llamar-student-popup-badge">✓ Asistencia registrada</span>
-              <button type="button" className="llamar-student-popup-close" aria-label="Cerrar ficha" onClick={() => { popupRequestRef.current += 1; setStudentPopup(null) }}>×</button>
-            </div>
+          <FloatingAlert
+            title="Asistencia registrada"
+            className="llamar-student-popup"
+            onClose={() => { popupRequestRef.current += 1; setStudentPopup(null) }}
+          >
             <div className="llamar-student-popup-identity">
               {image ? <img src={image} alt={`Foto de ${studentName(detail)}`} /> : <div className="llamar-student-popup-avatar" aria-hidden="true">{String(detail.nombre || "E").charAt(0).toUpperCase()}</div>}
               <div><strong>{studentName(detail)}</strong><small>CI {detail.nro_carnet || "—"}</small></div>
@@ -283,7 +284,7 @@ export default function LlamarListaDocentePage() {
                 {detail.apoderado_correo && <div><span>Correo</span><strong>{detail.apoderado_correo}</strong></div>}
               </div>
             )}
-          </aside>
+          </FloatingAlert>
         )
       })()}
       <div className="llamar-lista-grid">

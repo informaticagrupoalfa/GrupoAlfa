@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import Skeleton from "../../../components/ui/Skeleton"
 import Button from "../../../components/ui/Button"
 import TextField from "../../../components/ui/TextField"
+import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { useAuth } from "../../../hooks/useAuth"
 import { listResource } from "../../../services/academicService"
 import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
@@ -425,8 +426,12 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
       {form.idParalelo && (isAdministracion || alumnos.length > 0) && (
         <div className="tc-foot">
           <Button type="button" onClick={handleGuardar} disabled={saving}>{saving ? "Guardando..." : isAdministracion ? "Guardar clase" : `Guardar lista · ${marcados}/${total}`}</Button>
-          {guardado && <span className="tc-status" role="status">{guardado}</span>}
         </div>
+      )}
+      {guardado && (
+        <FloatingAlert title="Aviso de asistencia" onClose={() => setGuardado("")}>
+          <p role="status">{guardado}</p>
+        </FloatingAlert>
       )}
     </section>
   )
