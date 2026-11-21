@@ -78,6 +78,7 @@ export default function EstudianteFormModal({
   const [fotoTouched, setFotoTouched] = useState(false)
   const [localError, setLocalError] = useState("")
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraFacing, setCameraFacing] = useState("environment")
   const [cameraError, setCameraError] = useState("")
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -101,7 +102,7 @@ export default function EstudianteFormModal({
       video.srcObject = streamRef.current
       video.play().catch(() => {})
     }
-  }, [cameraOpen])
+  }, [cameraOpen, cameraFacing])
 
   useEffect(() => {
     const onKey = (event) => {
@@ -113,7 +114,7 @@ export default function EstudianteFormModal({
 
   const set = (name, value) => setValues((prev) => ({ ...prev, [name]: value }))
 
-  const abrirCamara = async () => {
+  const abrirCamara = async (facingMode = "environment") => {
     setCameraError("")
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("Tu navegador no permite usar la cámara. Puedes subir una imagen.")
@@ -123,7 +124,7 @@ export default function EstudianteFormModal({
     const requestId = ++cameraRequestRef.current
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 1280 } },
+        video: { facingMode: { exact: facingMode }, width: { ideal: 1280 }, height: { ideal: 1280 } },
         audio: false,
       })
       if (requestId !== cameraRequestRef.current) {
@@ -131,10 +132,16 @@ export default function EstudianteFormModal({
         return
       }
       streamRef.current = stream
+      setCameraFacing(facingMode)
       setCameraOpen(true)
-    } catch {
+    } catch (error) {
       if (requestId === cameraRequestRef.current) {
-        setCameraError("No se pudo acceder a la cámara. Revisa los permisos del navegador o sube una imagen.")
+        const tipo = facingMode === "environment" ? "trasera" : "frontal"
+        setCameraError(
+          error?.name === "OverconstrainedError" || error?.name === "NotFoundError"
+            ? `No se encontró una cámara ${tipo} disponible. Puedes elegir la otra cámara o subir una imagen.`
+            : `No se pudo acceder a la cámara ${tipo}. Revisa los permisos del navegador o sube una imagen.`,
+        )
       }
     }
   }
@@ -286,8 +293,19 @@ export default function EstudianteFormModal({
                 )}
               </div>
               <div className="estudiante-foto-actions">
-                <Button variant="secondary" onClick={abrirCamara} disabled={cameraOpen}>
-                  Usar cámara
+                <Button
+                  variant="secondary"
+                  onClick={() => abrirCamara("environment")}
+                  disabled={cameraOpen && cameraFacing === "environment"}
+                >
+                  Usar cámara trasera
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => abrirCamara("user")}
+                  disabled={cameraOpen && cameraFacing === "user"}
+                >
+                  Usar cámara frontal
                 </Button>
                 <label className="estudiante-foto-upload">
                   Subir imagen
