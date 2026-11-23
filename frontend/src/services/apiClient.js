@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
     }
     if (status === 409) {
       error.userMessage =
-        error?.response?.data?.message ??
+        error?.response?.data?.message ?? error?.response?.data?.error ??
         "Conflicto: referencia duplicada o registro en uso."
     } else if (status === 400) {
       error.userMessage =

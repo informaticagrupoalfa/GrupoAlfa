@@ -46,6 +46,16 @@ test("asesor registra asistencia solo de estudiante inscrito en su clase", async
   })).status, 403);
 });
 
+test("asesor solo modifica sus propias clases y asistencias", async () => {
+  pool.query = async () => ({ rows: [] });
+  assert.equal((await authorize("PUT", "/clases/7", { body: { tema: "Tema" } })).status, 403);
+  assert.equal((await authorize("PUT", "/asistencias/9", { body: { permiso: true } })).status, 403);
+
+  pool.query = async () => ({ rows: [{ "?column?": 1 }] });
+  assert.equal((await authorize("PUT", "/clases/7", { body: { tema: "Tema" } })).status, 200);
+  assert.equal((await authorize("DELETE", "/asistencias/9")).status, 200);
+});
+
 test("Administración con rol de Asesor puede crear clases y registrar asistencias sin la restricción de asignación propia", async () => {
   pool.query = async () => { throw new Error("No debe consultar asignaciones propias"); };
   const roles = ["Asesor", "Administración"];

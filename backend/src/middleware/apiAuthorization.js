@@ -85,9 +85,11 @@ export const authorizeApi = (req, res, next) => {
 
     const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/estudiantes$/.test(path);
     const advisorFichaRoute = req.method === "GET" && /^\/llamar-lista\/clases\/\d+\/estudiantes\/\d+\/ficha$/.test(path);
+    const advisorClassMutation = ["PUT", "DELETE"].includes(req.method) && /^\/clases\/\d+$/.test(path);
+    const advisorAttendanceMutation = ["PUT", "DELETE"].includes(req.method) && /^\/asistencias\/\d+$/.test(path);
     if (hasAnyRole(req.user, [ROLE_NAMES.ASESOR, ROLE_NAMES.ASESOR_COORDINADOR])
       && !hasAnyRole(req.user, ACADEMIC_ROLES)
-      && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute || advisorFichaRoute)) {
+      && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute || advisorFichaRoute || advisorClassMutation || advisorAttendanceMutation)) {
       try {
         if (advisorListRoute) {
           const parallelId = Number(path.match(/\/paralelos\/(\d+)\/estudiantes$/)[1]);
@@ -152,6 +154,31 @@ export const authorizeApi = (req, res, next) => {
           if (rows.length === 0) {
             return res.status(403).json({ error: "Solo puedes registrar estudiantes inscritos en tu clase" });
           }
+        }
+
+        if (advisorClassMutation) {
+          const classId = Number(path.match(/\/clases\/(\d+)$/)[1]);
+          const { rows } = await pool.query(
+            `SELECT 1 FROM clases c
+             JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
+             WHERE c.id_clase = $1 AND a.id_usuario = $2 LIMIT 1`,
+            [classId, req.user.id_usuario],
+          );
+          if (!rows.length) return res.status(403).json({ error: "Solo puedes modificar tus propias clases" });
+        }
+
+        if (advisorAttendanceMutation) {
+          const attendanceId = Number(path.match(/\/asistencias\/(\d+)$/)[1]);
+          const { rows } = await pool.query(
+            `SELECT 1 FROM asistencias asistencia
+             JOIN clases c ON c.id_clase = asistencia.id_clase
+             JOIN paralelo_materia_asesor pma ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+             JOIN asesores a ON a.id_asesor = pma.id_asesor
+             WHERE asistencia.id_asistencia = $1 AND a.id_usuario = $2 LIMIT 1`,
+            [attendanceId, req.user.id_usuario],
+          );
+          if (!rows.length) return res.status(403).json({ error: "Solo puedes modificar asistencias de tus propias clases" });
         }
 
         return next();

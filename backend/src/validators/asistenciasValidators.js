@@ -23,7 +23,7 @@ const fechaHora = (label, required = false) => {
 const asistenciaSchema = z.object({
   id_clase: fk("id_clase"),
   id_estudiante: fk("id_estudiante"),
-  hora_entrada: fechaHora("La hora de entrada", true),
+  hora_entrada: fechaHora("La hora de entrada"),
   salida_antes_de_tiempo: fechaHora("La salida antes de tiempo"),
   permiso: z.boolean().optional(),
   razon_permiso: z

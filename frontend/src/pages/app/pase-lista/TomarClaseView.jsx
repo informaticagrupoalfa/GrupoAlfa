@@ -5,7 +5,6 @@ import Button from "../../../components/ui/Button"
 import TextField from "../../../components/ui/TextField"
 import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { useAuth } from "../../../hooks/useAuth"
-import { listResource } from "../../../services/academicService"
 import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
 import "../../../components/pase-lista/TomarClase.css"
 
@@ -20,7 +19,12 @@ const initialForm = {
   horaFin: "",
   idParalelo: "",
   idAula: "",
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/La_Paz",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()),
   tema: "",
 }
 
@@ -123,9 +127,9 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         if (paraleloSeleccionado) {
           setForm((prev) => ({
             ...prev,
-            idAula: prev.idAula || (paraleloSeleccionado.id_aula != null ? String(paraleloSeleccionado.id_aula) : ""),
-            horaInicio: prev.horaInicio || String(paraleloSeleccionado.hora_inicio ?? "").slice(0, 5),
-            horaFin: prev.horaFin || String(paraleloSeleccionado.hora_fin ?? "").slice(0, 5),
+            idAula: paraleloSeleccionado.id_aula != null ? String(paraleloSeleccionado.id_aula) : "",
+            horaInicio: String(paraleloSeleccionado.hora_inicio ?? "").slice(0, 5),
+            horaFin: String(paraleloSeleccionado.hora_fin ?? "").slice(0, 5),
           }))
         }
         const matriculas = await loadEstudiantesPorParalelo(form.idParalelo)
@@ -135,10 +139,10 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
           const ids = new Set(matriculas.map((m) => String(m.id_estudiante ?? m.estudiante ?? "")))
           lista = (catalogs.estudiantes ?? []).filter((e) => ids.has(String(e.id_estudiante)))
           if (lista.length === 0) lista = matriculas
+        } else if (matriculas === null) {
+          nota = "No se pudo comprobar la matrícula de los estudiantes."
         } else {
-          const todos = await listResource("estudiantes").catch(() => catalogs.estudiantes ?? [])
-          lista = Array.isArray(todos) ? todos : []
-          nota = "El paralelo no tiene matrículas registradas; se muestran todos los estudiantes."
+          nota = "El paralelo no tiene estudiantes matriculados."
         }
         if (mounted) {
           setAlumnos(lista)
@@ -229,7 +233,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
         (!form.idAsesor || String(item.id_asesor) === String(form.idAsesor))
       )
       const aulaSeleccionada = (catalogs.aulas ?? []).find((item) => String(item.id_aula) === String(form.idAula))
-      const { idClase, fallos } = await guardarListaEnBD({
+      const { idClase, fallos, verificaciones } = await guardarListaEnBD({
         idParalelo: form.idParalelo,
         idMateria: form.idMateria,
         idAsesor: form.idAsesor,
@@ -262,7 +266,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
       }
       setGuardado(marcados.length === 0
         ? "Clase guardada en BD sin asistencias."
-        : `Lista guardada en BD (${marcados.length} asistencia(s), ${resumen.presentes} presente(s)). Ver pestaña Asistencias.`)
+        : `Lista guardada en BD (${marcados.length} asistencia(s), ${resumen.presentes} presente(s)). ${verificaciones.filter((item) => item.mensualidad_vigente).length}/${verificaciones.length} con mensualidad registrada para hoy.`)
       onSaved?.()
     } catch (error) {
       setGuardado(error.message ?? "No se pudo guardar la lista.")
@@ -381,16 +385,16 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
               <h3>Cuándo</h3>
               <div className="form-row">
                 <label htmlFor="pl-fecha">Fecha</label>
-                <input id="pl-fecha" type="date" value={form.fecha} onChange={(e) => setField("fecha", e.target.value)} required />
+                <input id="pl-fecha" type="date" value={form.fecha} min={initialForm.fecha} max={initialForm.fecha} readOnly required />
               </div>
               <div className="tc-pair">
                 <div className="form-row">
                   <label htmlFor="pl-hora-inicio">Hora inicio{isAdministracion ? " (opcional)" : ""}</label>
-                  <input id="pl-hora-inicio" type="time" value={form.horaInicio} onChange={(e) => setField("horaInicio", e.target.value)} required={!isAdministracion} />
+                  <input id="pl-hora-inicio" type="time" value={form.horaInicio} readOnly required={!isAdministracion} />
                 </div>
                 <div className="form-row">
                   <label htmlFor="pl-hora-fin">Hora fin{isAdministracion ? " (opcional)" : ""}</label>
-                  <input id="pl-hora-fin" type="time" value={form.horaFin} onChange={(e) => setField("horaFin", e.target.value)} required={!isAdministracion} />
+                  <input id="pl-hora-fin" type="time" value={form.horaFin} readOnly required={!isAdministracion} />
                 </div>
               </div>
             </div>

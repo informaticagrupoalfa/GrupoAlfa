@@ -1,5 +1,6 @@
 import { pool } from "../db.js";
 import { PAGE_DEFAULT_LIMIT, PAGE_MAX_LIMIT } from "../utils/crudFactory.js";
+import { academicClock, dateKey, scheduleProblem } from "../utils/academicSchedule.js";
 
 // Esquema actual:
 //   clases -> paralelo_materia_asesor -> asesor + paralelo + materia
@@ -19,7 +20,8 @@ const SELECT_CLASE = `
 
 const ASSIGNMENT_CONTEXT = `
   SELECT pma.id_paralelo_materia, pma.id_paralelo, pma.id_materia, pma.id_asesor,
-         p.nombre_paralelo, m.nombre_materia,
+         pma.dia AS dia_asignacion, p.nombre_paralelo, p.dias AS dias_paralelo,
+         p.hora_inicio, p.hora_fin, m.nombre_materia,
          concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno) AS nombre_asesor,
          aul.codigo AS aula_codigo
     FROM paralelo_materia_asesor pma
@@ -32,14 +34,14 @@ const ASSIGNMENT_CONTEXT = `
 
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
-async function fetchClase(id) {
-  const { rows } = await pool.query(`${SELECT_CLASE} WHERE c.id_clase = $1`, [id]);
+async function fetchClase(id, db = pool) {
+  const { rows } = await db.query(`${SELECT_CLASE} WHERE c.id_clase = $1`, [id]);
   return rows[0] ?? null;
 }
 
-async function resolveAssignment(body) {
+async function resolveAssignment(body, db = pool) {
   if (body?.id_asesor_paralelo_materia != null) {
-    const { rows } = await pool.query(
+    const { rows } = await db.query(
       `${ASSIGNMENT_CONTEXT} WHERE pma.id_paralelo_materia = $1`,
       [body.id_asesor_paralelo_materia],
     );
@@ -55,7 +57,7 @@ async function resolveAssignment(body) {
       values.push(body.id_asesor);
       advisorClause = ` AND pma.id_asesor = $${values.length}`;
     }
-    const { rows } = await pool.query(
+    const { rows } = await db.query(
       `${ASSIGNMENT_CONTEXT} WHERE pma.id_paralelo = $1 AND pma.id_materia = $2${advisorClause} LIMIT 1`,
       values,
     );
@@ -128,26 +130,52 @@ export async function getClaseById(req, res, next) {
 }
 
 export async function createClase(req, res, next) {
+  const client = await pool.connect();
   try {
-    const assignment = await resolveAssignment(req.body);
+    await client.query("BEGIN");
+    const clock = academicClock(req.academicNow);
+    if (dateKey(req.body.inicioclase) !== clock.date) {
+      throw failure(409, "Las clases solo pueden crearse en la fecha actual.");
+    }
+    const assignment = await resolveAssignment(req.body, client);
+    const problem = scheduleProblem(assignment, clock);
+    if (problem) throw failure(409, problem);
+
+    const dayNumber = Math.floor((Date.parse(`${clock.date}T00:00:00Z`) - Date.parse("2000-01-01T00:00:00Z")) / 86400000);
+    await client.query("SELECT pg_advisory_xact_lock($1, $2)", [assignment.id_paralelo, dayNumber]);
+    const duplicate = await client.query(
+      `SELECT c.id_clase FROM clases c
+        JOIN paralelo_materia_asesor pma
+          ON pma.id_paralelo_materia = c.id_asesor_paralelo_materia
+       WHERE pma.id_paralelo = $1 AND c.inicioclase = $2 LIMIT 1`,
+      [assignment.id_paralelo, clock.date],
+    );
+    if (duplicate.rows.length) throw failure(409, "Ya existe una clase para este paralelo en la fecha de hoy.");
+
     const snapshot = snapshots(req.body, assignment);
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `INSERT INTO clases (id_asesor_paralelo_materia, inicioclase, tema, asesor, materia, aula)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id_clase`,
       [
         assignment.id_paralelo_materia,
-        req.body.inicioclase,
+        clock.date,
         req.body.tema ?? null,
         snapshot.asesor,
         snapshot.materia,
         snapshot.aula,
       ],
     );
-    res.status(201).json(await fetchClase(rows[0].id_clase));
+    const created = await fetchClase(rows[0].id_clase, client);
+    await client.query("COMMIT");
+    res.status(201).json(created);
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    await client.query("ROLLBACK").catch(() => {});
+    if (error.status) return res.status(error.status).json({ message: error.message });
+    if (error.code === "23505") return res.status(409).json({ message: "Ya existe una clase para este paralelo en la fecha de hoy." });
     next(error);
+  } finally {
+    client.release();
   }
 }
 
@@ -158,6 +186,16 @@ export async function updateClase(req, res, next) {
 
     const current = await pool.query(`${SELECT_CLASE} WHERE c.id_clase = $1`, [id]);
     if (!current.rows.length) return res.status(404).json({ message: "Clase no encontrada" });
+    const clock = academicClock(req.academicNow);
+    if (dateKey(current.rows[0].inicioclase) !== clock.date) {
+      return res.status(409).json({ message: "La clase ya está cerrada: solo puede modificarse el día en que fue creada." });
+    }
+    if (req.body.inicioclase !== undefined && dateKey(req.body.inicioclase) !== clock.date) {
+      return res.status(409).json({ message: "No se puede cambiar la clase a otra fecha." });
+    }
+    if (req.body.id_asesor_paralelo_materia !== undefined || req.body.id_paralelo !== undefined || req.body.id_materia !== undefined) {
+      return res.status(409).json({ message: "No se puede cambiar el paralelo o la materia de una clase ya creada." });
+    }
 
     const updates = [];
     const values = [];
@@ -168,12 +206,6 @@ export async function updateClase(req, res, next) {
 
     if (req.body.inicioclase !== undefined) add("inicioclase", req.body.inicioclase);
     if (req.body.tema !== undefined) add("tema", req.body.tema);
-
-    let assignment = null;
-    if (req.body.id_asesor_paralelo_materia !== undefined || req.body.id_paralelo !== undefined || req.body.id_materia !== undefined) {
-      assignment = await resolveAssignment(req.body);
-      add("id_asesor_paralelo_materia", assignment.id_paralelo_materia);
-    }
 
     if (req.body.asesor !== undefined) add("asesor", req.body.asesor || null);
     else if (req.body.id_asesor !== undefined) {
@@ -189,13 +221,6 @@ export async function updateClase(req, res, next) {
     if (req.body.materia !== undefined) add("materia", req.body.materia || null);
     if (req.body.aula !== undefined) add("aula", req.body.aula || null);
 
-    if (assignment) {
-      const snapshot = snapshots(req.body, assignment);
-      if (req.body.asesor === undefined && req.body.id_asesor === undefined) add("asesor", snapshot.asesor);
-      if (req.body.materia === undefined) add("materia", snapshot.materia);
-      if (req.body.aula === undefined) add("aula", snapshot.aula);
-    }
-
     if (!updates.length) return res.json(current.rows[0]);
     values.push(id);
     await pool.query(`UPDATE clases SET ${updates.join(", ")} WHERE id_clase = $${values.length}`, values);
@@ -210,8 +235,12 @@ export async function deleteClase(req, res, next) {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ message: "ID debe ser numérico" });
-    const { rowCount } = await pool.query("DELETE FROM clases WHERE id_clase = $1", [id]);
-    if (!rowCount) return res.status(404).json({ message: "Clase no encontrada" });
+    const current = await pool.query("SELECT inicioclase FROM clases WHERE id_clase = $1", [id]);
+    if (!current.rows.length) return res.status(404).json({ message: "Clase no encontrada" });
+    if (dateKey(current.rows[0].inicioclase) !== academicClock(req.academicNow).date) {
+      return res.status(409).json({ message: "La clase ya está cerrada y no puede eliminarse después de su fecha." });
+    }
+    await pool.query("DELETE FROM clases WHERE id_clase = $1", [id]);
     res.sendStatus(204);
   } catch (error) { next(error); }
 }

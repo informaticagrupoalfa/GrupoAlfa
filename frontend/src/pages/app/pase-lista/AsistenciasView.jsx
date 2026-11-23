@@ -16,6 +16,12 @@ const TomarClaseView = lazy(() => import("./TomarClaseView.jsx"))
 
 const STORAGE_KEY = "ga_pase_lista"
 const PAGE_SIZE = 10
+const todayInLaPaz = () => new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/La_Paz",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date())
 
 function readLocal() {
   try {
@@ -351,6 +357,9 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
   const selectedRow = selected?.tipo === "bd"
     ? rows.find((row) => String(row.clase.id_clase) === String(selected.id))
     : null
+  const canEditSelected = Boolean(
+    selectedRow && String(selectedRow.clase.inicioclase ?? "").slice(0, 10) === todayInLaPaz(),
+  )
 
   const selectRow = (row) => {
     setSelected({ tipo: "bd", id: row.clase.id_clase })
@@ -555,22 +564,22 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
         ) : selectedRow && draft ? (
           <>
             <div className="asistencias-panel-head">
-              <div><h2>Editar lista</h2><p className="muted">{detalleDe(selectedRow.clase, selectedRow.asistencias).curso} · Lista #{selectedRow.clase.id_clase}</p></div>
+              <div><h2>{canEditSelected ? "Editar lista" : "Detalle de lista"}</h2><p className="muted">{detalleDe(selectedRow.clase, selectedRow.asistencias).curso} · Lista #{selectedRow.clase.id_clase}</p></div>
               <Button size="sm" variant="secondary" onClick={startCreate}>Nueva lista</Button>
             </div>
             <form className="asistencias-editor-form" onSubmit={handleUpdate}>
               <div className="asistencias-form-grid">
                 <div className="form-row"><label htmlFor="as-edit-fecha">Fecha</label>
-                  <input id="as-edit-fecha" type="date" value={draft.fecha} onChange={(e) => setDraft((prev) => ({ ...prev, fecha: e.target.value }))} required />
+                  <input id="as-edit-fecha" type="date" value={draft.fecha} readOnly required />
                 </div>
                 <div className="form-row"><label htmlFor="as-edit-asesor">Asesor</label>
-                  <select id="as-edit-asesor" value={draft.idAsesor} onChange={(e) => setDraft((prev) => ({ ...prev, idAsesor: e.target.value }))} required={!isAdministracion}>
+                  <select id="as-edit-asesor" value={draft.idAsesor} onChange={(e) => setDraft((prev) => ({ ...prev, idAsesor: e.target.value }))} required={!isAdministracion} disabled={!canEditSelected}>
                     <option value="" disabled={Boolean(selectedRow.clase.id_asesor)}>{isAdministracion ? "Sin asesor" : "Selecciona un asesor"}</option>
                     {(catalogs.asesores ?? []).map((a) => <option key={a.id_asesor} value={a.id_asesor}>{nombres.asesorById.get(String(a.id_asesor))}</option>)}
                   </select>
                 </div>
                 <div className="form-row asistencias-form-wide"><label htmlFor="as-edit-tema">Tema avanzado</label>
-                  <input id="as-edit-tema" type="text" maxLength={100} value={draft.tema} onChange={(e) => setDraft((prev) => ({ ...prev, tema: e.target.value }))} required={!isAdministracion} />
+                  <input id="as-edit-tema" type="text" maxLength={100} value={draft.tema} onChange={(e) => setDraft((prev) => ({ ...prev, tema: e.target.value }))} required={!isAdministracion} disabled={!canEditSelected} />
                 </div>
               </div>
               <div className="asistencias-roster-head"><h3>Estudiantes</h3><p className="muted">Actualiza las marcas de esta lista.</p></div>
@@ -582,8 +591,8 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
                       <div className="asistencias-student" key={a.id_asistencia}>
                         <span>{nombre}</span>
                         <div className="asistencias-status-options" role="group" aria-label={"Asistencia de " + nombre}>
-                          <button type="button" className={draft.estados[a.id_asistencia] === true ? "is-present" : ""} aria-pressed={draft.estados[a.id_asistencia] === true} onClick={() => setDraft((prev) => ({ ...prev, estados: { ...prev.estados, [a.id_asistencia]: true } }))}>Presente</button>
-                          <button type="button" className={draft.estados[a.id_asistencia] === false ? "is-absent" : ""} aria-pressed={draft.estados[a.id_asistencia] === false} onClick={() => setDraft((prev) => ({ ...prev, estados: { ...prev.estados, [a.id_asistencia]: false } }))}>Ausente</button>
+                          <button type="button" disabled={!canEditSelected} className={draft.estados[a.id_asistencia] === true ? "is-present" : ""} aria-pressed={draft.estados[a.id_asistencia] === true} onClick={() => setDraft((prev) => ({ ...prev, estados: { ...prev.estados, [a.id_asistencia]: true } }))}>Presente</button>
+                          <button type="button" disabled={!canEditSelected} className={draft.estados[a.id_asistencia] === false ? "is-absent" : ""} aria-pressed={draft.estados[a.id_asistencia] === false} onClick={() => setDraft((prev) => ({ ...prev, estados: { ...prev.estados, [a.id_asistencia]: false } }))}>Ausente</button>
                         </div>
                       </div>
                     )
@@ -592,9 +601,10 @@ export default function AsistenciasView({ catalogs, version, onSaved }) {
               )}
               {editorError && <p className="error-message" role="alert">{editorError}</p>}
               {editorNotice && <p className="asistencias-notice" role="status">{editorNotice}</p>}
+              {!canEditSelected && <p className="asistencias-notice" role="status">Esta clase está cerrada. Solo puede modificarse el mismo día en que fue creada.</p>}
               <div className="asistencias-editor-actions">
-                <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
-                <Button type="button" variant="secondary" disabled={saving} onClick={() => handleDeleteBD(selectedRow.clase.id_clase)}>Eliminar lista</Button>
+                <Button type="submit" disabled={saving || !canEditSelected}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
+                <Button type="button" variant="secondary" disabled={saving || !canEditSelected} onClick={() => handleDeleteBD(selectedRow.clase.id_clase)}>Eliminar lista</Button>
               </div>
             </form>
           </>

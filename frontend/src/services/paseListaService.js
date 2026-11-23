@@ -72,7 +72,7 @@ function toApiError(error, fallback) {
  * Persiste el pase de lista en la BD: crea la clase y una asistencia
  * por alumno marcado. Solo los marcados generan registro
  * (presente → hora_entrada; ausente → hora_entrada + permiso false).
- * Devuelve `{ idClase, fallos }`.
+ * Devuelve `{ idClase, fallos, verificaciones }`.
  */
 export async function guardarListaEnBD({ idParalelo, idMateria, idAsesor, aula, idAsesorParaleloMateria, tema, fecha, marcados }) {
   const hora = new Date().toTimeString().slice(0, 8)
@@ -102,7 +102,10 @@ export async function guardarListaEnBD({ idParalelo, idMateria, idAsesor, aula, 
     ),
   )
   const fallos = resultados.filter((r) => r.status === "rejected").length
-  return { idClase: clase.id_clase, fallos }
+  const verificaciones = resultados
+    .filter((result) => result.status === "fulfilled" && result.value?.verificacion)
+    .map((result) => result.value.verificacion)
+  return { idClase: clase.id_clase, fallos, verificaciones }
 }
 
 /**

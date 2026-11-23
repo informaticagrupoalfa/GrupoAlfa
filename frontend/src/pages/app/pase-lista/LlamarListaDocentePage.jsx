@@ -16,8 +16,12 @@ const photoSrc = (base64) => {
 }
 
 const localDate = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/La_Paz",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
 }
 
 async function loadData(setAssignments, setClasses, scope) {
@@ -39,7 +43,7 @@ export default function LlamarListaDocentePage() {
   const [checked, setChecked] = useState([])
   const [selected, setSelected] = useState(null)
   const [classId, setClassId] = useState(null)
-  const [date, setDate] = useState(localDate)
+  const [date] = useState(localDate)
   const [permit, setPermit] = useState(false)
   const [reason, setReason] = useState("")
   const [message, setMessage] = useState("")
@@ -144,7 +148,7 @@ export default function LlamarListaDocentePage() {
     registeringIdsRef.current.add(studentId)
     const targetClassId = classId
     try {
-      await apiClient.post("/asistencias", {
+      const { data: attendance } = await apiClient.post("/asistencias", {
         id_clase: targetClassId,
         id_estudiante: student.id_estudiante,
         hora_entrada: new Date().toISOString(),
@@ -157,20 +161,45 @@ export default function LlamarListaDocentePage() {
       setStudents(current => current.filter(item => String(item.id_estudiante) !== studentId))
       setMessage("")
       const popupRequest = ++popupRequestRef.current
-      setStudentPopup({ student, paralelo: selected?.nombre_paralelo, loading: true })
+      setStudentPopup({
+        student,
+        paralelo: selected?.nombre_paralelo,
+        verification: attendance.verificacion,
+        loading: true,
+      })
       apiClient.get(`/llamar-lista/clases/${targetClassId}/estudiantes/${studentId}/ficha`, { params: { scope } })
         .then(({ data }) => {
           if (popupRequest === popupRequestRef.current && classIdRef.current === targetClassId) {
-            setStudentPopup({ student, data, loading: false })
+            setStudentPopup({
+              student,
+              data,
+              verification: data.verificacion ?? attendance.verificacion,
+              loading: false,
+            })
           }
         })
         .catch(() => {
           if (popupRequest === popupRequestRef.current && classIdRef.current === targetClassId) {
-            setStudentPopup({ student, paralelo: selected?.nombre_paralelo, loading: false, error: true })
+            setStudentPopup({
+              student,
+              paralelo: selected?.nombre_paralelo,
+              verification: attendance.verificacion,
+              loading: false,
+              error: true,
+            })
           }
         })
     } catch (error) {
       setMessage(error.userMessage || "No se pudo registrar la asistencia.")
+      if (error?.response?.data?.verificacion) {
+        setStudentPopup({
+          student,
+          paralelo: selected?.nombre_paralelo,
+          verification: error.response.data.verificacion,
+          registrationFailed: true,
+          loading: false,
+        })
+      }
     } finally {
       registeringIdsRef.current.delete(studentId)
     }
@@ -260,11 +289,12 @@ export default function LlamarListaDocentePage() {
     <div className="llamar-lista">
       {studentPopup && (() => {
         const detail = studentPopup.data || studentPopup.student
+        const verification = studentPopup.verification || detail.verificacion
         const guardian = [detail.apoderado_nombre, detail.apoderado_apellido_paterno, detail.apoderado_apellido_materno].filter(Boolean).join(" ")
         const image = photoSrc(detail.foto_base64)
         return (
           <FloatingAlert
-            title="Asistencia registrada"
+            title={studentPopup.registrationFailed ? "Asistencia no registrada" : "Asistencia registrada"}
             className="llamar-student-popup"
             onClose={() => { popupRequestRef.current += 1; setStudentPopup(null) }}
             hero={image
@@ -277,6 +307,10 @@ export default function LlamarListaDocentePage() {
             {studentPopup.loading ? <p className="llamar-student-popup-note">Cargando datos del estudiante…</p> : (
               <div className="llamar-student-popup-fields">
                 {studentPopup.error && <p className="llamar-student-popup-note">No se pudieron cargar los datos adicionales.</p>}
+                {verification && <>
+                  <div><span>Materia</span><strong className={verification.pertenece_materia ? "is-valid" : "is-invalid"}>{verification.nombre_materia || "Materia"}: {verification.pertenece_materia ? "Sí pertenece" : "No pertenece"}</strong></div>
+                  <div><span>Mensualidad</span><strong className={verification.mensualidad_vigente ? "is-valid" : "is-warning"}>{verification.mensualidad_vigente ? `Registrada para ${String(verification.fecha_registro).slice(0, 10)}` : `Sin mensualidad registrada para ${String(verification.fecha_registro).slice(0, 10)}`}</strong></div>
+                </>}
                 <div><span>Carrera</span><strong>{detail.carrera_nombre || "No registrada"}</strong></div>
                 <div><span>Paralelo</span><strong>{detail.nombre_paralelo || studentPopup.paralelo || "—"}</strong></div>
                 <div><span>Apoderado</span><strong>{guardian || "No registrado"}</strong></div>
@@ -293,7 +327,8 @@ export default function LlamarListaDocentePage() {
         <section className="llamar-panel">
           <h2>Clase y asignaciones</h2>
           <label htmlFor="llamar-fecha">Fecha</label>
-          <input id="llamar-fecha" type="date" value={date} onChange={event => setDate(event.target.value)} />
+          <input id="llamar-fecha" type="date" value={date} min={localDate()} max={localDate()} readOnly />
+          <p className="llamar-scan-hint">La clase se registra con la fecha actual y dentro del horario configurado.</p>
           <button className="submit-button" disabled={!selected} onClick={createClass}>Crear clase</button>
           <div className="llamar-list">
             {assignments.map(item => (
