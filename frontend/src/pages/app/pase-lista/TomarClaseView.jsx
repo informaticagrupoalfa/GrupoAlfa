@@ -6,6 +6,7 @@ import TextField from "../../../components/ui/TextField"
 import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { useAuth } from "../../../hooks/useAuth"
 import { guardarListaEnBD, loadEstudiantesPorParalelo } from "../../../services/paseListaService"
+import { coincideHorario, horarioActual } from "./horarioActual"
 import "../../../components/pase-lista/TomarClase.css"
 
 // split-dynamic-imports: la tabla solo se carga cuando hay curso seleccionado.
@@ -44,6 +45,12 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
   const [asistencia, setAsistencia] = useState({})
   const [guardado, setGuardado] = useState("")
   const [saving, setSaving] = useState(false)
+  const [clock, setClock] = useState(horarioActual)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClock(horarioActual()), 30000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (initialAsesorId != null) {
@@ -96,11 +103,11 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
   )
   const paraleloOptions = useMemo(
     () =>
-      (catalogs.paralelos ?? []).map((p) => ({
+      (catalogs.paralelos ?? []).filter(p => coincideHorario(p, clock)).map((p) => ({
         value: p.id_paralelo,
         label: `${p.nombre_paralelo}${p.nivel ? ` (${p.nivel})` : ""}${p.dias ? ` · ${p.dias}` : ""}`,
       })),
-    [catalogs.paralelos],
+    [catalogs.paralelos, clock],
   )
   const aulaOptions = useMemo(
     () =>
@@ -198,6 +205,10 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
     if (saving) return
     if (!form.idParalelo || !form.fecha) {
       setGuardado("Elige un paralelo y una fecha antes de guardar.")
+      return
+    }
+    if (!coincideHorario(paraleloSeleccionado, horarioActual())) {
+      setGuardado("Este paralelo no tiene clase en el horario actual.")
       return
     }
     if (!isAdministracion && (!form.idMateria || !form.idAsesor || !form.idAula || !form.tema.trim())) {
@@ -352,7 +363,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                   value={form.idParalelo || null}
                   onSelect={(v) => setField("idParalelo", v)}
                   placeholder="Escribe para buscar paralelo..."
-                  hint="Al elegirlo se autocompletan aula y horario."
+                  hint="Se muestran los paralelos con clase en el horario actual."
                 />
               </Suspense>
               <Suspense fallback={<Skeleton lines={1} />}>

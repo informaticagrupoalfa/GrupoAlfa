@@ -1,4 +1,8 @@
 .llamar-lista-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.llamar-views { display: flex; gap: 8px; margin-bottom: 16px; }
+.llamar-views button { padding: 9px 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
+.llamar-views button.is-active { background: var(--academy-pale); border-color: var(--academy); color: var(--academy-dark); font-weight: 700; }
+.llamar-history { max-height: none; }
 .llamar-panel { min-width: 0; max-height: 78vh; overflow: auto; display: grid; gap: 12px; padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 2px 10px #16354b0a; }
 .llamar-panel h2 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 5px; font-size: 1.16rem; }
 .llamar-panel h2 span { color: var(--academy); font-size: .95rem; }

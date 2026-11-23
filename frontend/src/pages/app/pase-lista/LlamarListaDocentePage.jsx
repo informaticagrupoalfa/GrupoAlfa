@@ -3,6 +3,7 @@ import { apiClient } from "../../../services/apiClient"
 import { useAuth } from "../../../hooks/useAuth"
 import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { parseStudentQr, partitionRoster } from "./llamarListaUtils"
+import { coincideHorario, horarioActual } from "./horarioActual"
 import "./LlamarListaDocentePage.css"
 
 const studentName = (student) =>
@@ -13,15 +14,6 @@ const photoSrc = (base64) => {
   if (!base64) return null
   const type = base64.startsWith("/9j/") ? "jpeg" : base64.startsWith("R0lGOD") ? "gif" : base64.startsWith("UklGR") ? "webp" : "png"
   return `data:image/${type};base64,${base64}`
-}
-
-const localDate = () => {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/La_Paz",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
 }
 
 async function loadData(setAssignments, setClasses, scope) {
@@ -43,7 +35,6 @@ export default function LlamarListaDocentePage() {
   const [checked, setChecked] = useState([])
   const [selected, setSelected] = useState(null)
   const [classId, setClassId] = useState(null)
-  const [date] = useState(localDate)
   const [permit, setPermit] = useState(false)
   const [reason, setReason] = useState("")
   const [message, setMessage] = useState("")
@@ -52,6 +43,8 @@ export default function LlamarListaDocentePage() {
   const [rosterReady, setRosterReady] = useState(false)
   const [studentPopup, setStudentPopup] = useState(null)
   const [scanAlert, setScanAlert] = useState("")
+  const [view, setView] = useState("actual")
+  const [clock, setClock] = useState(horarioActual)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const scanRef = useRef(null)
@@ -64,6 +57,27 @@ export default function LlamarListaDocentePage() {
   const popupRequestRef = useRef(0)
   classIdRef.current = classId
   const parallelId = selected?.id_paralelo
+  const activeAssignments = assignments.filter(item => coincideHorario(item, clock, item.dias))
+  const activeIds = new Set(activeAssignments.map(item => String(item.id_asesor_paralelo_materia)))
+  const currentClasses = classes.filter(item =>
+    String(item.fecha).slice(0, 10) === clock.fecha && activeIds.has(String(item.id_asesor_paralelo_materia)),
+  )
+  const selectedHasClass = currentClasses.some(item => String(item.id_asesor_paralelo_materia) === String(selected?.id_asesor_paralelo_materia))
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClock(horarioActual()), 30000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (selected && !assignments.some(item =>
+      String(item.id_asesor_paralelo_materia) === String(selected.id_asesor_paralelo_materia)
+      && coincideHorario(item, clock, item.dias),
+    )) {
+      setSelected(null)
+      setClassId(null)
+    }
+  }, [clock, assignments, selected])
 
   useEffect(() => {
     let active = true
@@ -131,7 +145,7 @@ export default function LlamarListaDocentePage() {
     try {
       const { data } = await apiClient.post("/clases", {
         id_asesor_paralelo_materia: selected.id_asesor_paralelo_materia,
-        inicioclase: date,
+        inicioclase: horarioActual().fecha,
       })
       setClassId(data.id_clase)
       setChecked([])
@@ -294,6 +308,10 @@ export default function LlamarListaDocentePage() {
 
   return (
     <div className="llamar-lista">
+      <nav className="llamar-views" aria-label="Vistas de clases">
+        <button type="button" className={view === "actual" ? "is-active" : ""} aria-current={view === "actual" ? "page" : undefined} onClick={() => setView("actual")}>Clase actual</button>
+        <button type="button" className={view === "creadas" ? "is-active" : ""} aria-current={view === "creadas" ? "page" : undefined} onClick={() => { setView("creadas"); setClassId(null); setSelected(null) }}>Clases creadas</button>
+      </nav>
       {scanAlert && (
         <FloatingAlert title="Estudiante no reconocido" onClose={() => setScanAlert("")}>
           <p role="alert">{scanAlert}</p>
@@ -335,26 +353,46 @@ export default function LlamarListaDocentePage() {
           </FloatingAlert>
         )
       })()}
-      <div className="llamar-lista-grid">
+      {view === "creadas" ? (
+        <section className="llamar-panel llamar-history">
+          <h2>{isSysAdmin ? "Clases creadas" : "Mis clases creadas"} <span>{classes.length}</span></h2>
+          <p className="llamar-scan-hint">Historial de clases registradas. Para pasar lista, vuelve a Clase actual durante el horario del paralelo.</p>
+          <div className="llamar-list">
+            {classes.length === 0 && <p className="llamar-scan-hint">Todavía no hay clases creadas.</p>}
+            {classes.map(item => (
+              <article className="llamar-choice" key={item.id_clase}>
+                <strong>{String(item.fecha).slice(0, 10)} · {item.nombre_paralelo || "Paralelo"}</strong>
+                <span>{item.nombre_materia || "Materia sin nombre"}</span>
+                <small>{item.nombre_asesor ? `${item.nombre_asesor} · ` : ""}{item.total_asistencias} asistencias</small>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : <div className="llamar-lista-grid">
         <section className="llamar-panel">
           <h2>Clase y asignaciones</h2>
           <label htmlFor="llamar-fecha">Fecha</label>
-          <input id="llamar-fecha" type="date" value={date} min={localDate()} max={localDate()} readOnly />
+          <input id="llamar-fecha" type="date" value={clock.fecha} min={clock.fecha} max={clock.fecha} readOnly />
           <p className="llamar-scan-hint">La clase se registra con la fecha actual y dentro del horario configurado.</p>
-          <button className="submit-button" disabled={!selected} onClick={createClass}>Crear clase</button>
+          <button className="submit-button" disabled={!selected || selectedHasClass} onClick={createClass}>Crear clase</button>
           <div className="llamar-list">
-            {assignments.map(item => (
+            {activeAssignments.map(item => (
               <button className="llamar-choice" key={item.id_asesor_paralelo_materia} type="button"
                 aria-pressed={selected?.id_asesor_paralelo_materia === item.id_asesor_paralelo_materia}
-                onClick={() => { setSelected(item); setClassId(null); setChecked([]) }}>
+                onClick={() => {
+                  setSelected(item)
+                  setClassId(currentClasses.find(clase => String(clase.id_asesor_paralelo_materia) === String(item.id_asesor_paralelo_materia))?.id_clase ?? null)
+                  setChecked([])
+                }}>
                 <strong>{item.nombre_paralelo}</strong><span>{item.nombre_materia}</span>
                 <small>{isSysAdmin && item.nombre_asesor ? `${item.nombre_asesor} · ` : ""}{item.nivel} · {item.dias || "Día sin definir"}</small>
               </button>
             ))}
           </div>
-          <h3>{isSysAdmin ? "Clases" : "Mis clases"}</h3>
+          {activeAssignments.length === 0 && <p className="llamar-scan-hint">No hay paralelos en su horario de clase ahora.</p>}
+          <h3>Clase creada en el horario actual</h3>
           <div className="llamar-list">
-            {classes.map(item => (
+            {currentClasses.map(item => (
               <button className="llamar-choice" key={item.id_clase} type="button"
                 aria-pressed={classId === item.id_clase}
                 onClick={() => {
@@ -366,6 +404,7 @@ export default function LlamarListaDocentePage() {
                 {isSysAdmin && item.nombre_asesor ? ` · ${item.nombre_asesor}` : ""}
               </button>
             ))}
+            {currentClasses.length === 0 && <p className="llamar-scan-hint">Aún no se creó una clase para el horario actual.</p>}
           </div>
         </section>
         
@@ -408,7 +447,7 @@ export default function LlamarListaDocentePage() {
           </div>
         </section>
 
-      </div>
+      </div>}
     </div>
   )
 }
