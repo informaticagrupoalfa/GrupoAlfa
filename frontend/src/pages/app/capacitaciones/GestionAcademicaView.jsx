@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { apiClient } from "../../../services/apiClient"
 import ParallelSetupFields from "../../../components/features/capacitaciones/ParallelSetupFields"
+import FacultyCareersSection from "./FacultyCareersSection"
 import ScheduleMatrix from "../../../components/dashboard/ScheduleMatrix"
 import { formatConvocatoriaOption } from "../../../utils/convocatoriaOption"
 import { parseWeekdays } from "../../../utils/weekdays"
@@ -29,7 +30,16 @@ function Icon({ name }) {
 }
 Icon.propTypes = { name: PropTypes.string.isRequired }
 
-const initialData = { facultades: [], convocatorias: [], capacitaciones: [], materias: [], aulas: [], materiasCapacitacion: [], paralelos: [] }
+const initialData = { facultades: [], carreras: [], convocatorias: [], capacitaciones: [], materias: [], aulas: [], materiasCapacitacion: [], paralelos: [] }
+
+async function loadAllCareers() {
+  const items = []
+  for (let offset = 0; ; offset += 100) {
+    const { data } = await apiClient.get("/carreras", { params: { limit: 100, offset } })
+    items.push(...data)
+    if (data.length < 100) return items
+  }
+}
 export default function GestionAcademicaView() {
   const [data, setData] = useState(initialData)
   const [step, setStep] = useState("facultades")
@@ -43,8 +53,8 @@ export default function GestionAcademicaView() {
 
   const reload = async () => {
     const endpoints = ["facultades", "convocatorias", "capacitaciones", "materias", "aulas", "materias-capacitacion", "configuracion-paralelos"]
-    const values = await Promise.all(endpoints.map(path => apiClient.get(`/${path}`).then(r => r.data)))
-    setData({ facultades: values[0], convocatorias: values[1], capacitaciones: values[2], materias: values[3], aulas: values[4], materiasCapacitacion: values[5], paralelos: values[6] })
+    const [values, carreras] = await Promise.all([Promise.all(endpoints.map(path => apiClient.get(`/${path}`).then(r => r.data))), loadAllCareers()])
+    setData({ facultades: values[0], carreras, convocatorias: values[1], capacitaciones: values[2], materias: values[3], aulas: values[4], materiasCapacitacion: values[5], paralelos: values[6] })
   }
   useEffect(() => { reload().catch(e => setMessage(e.userMessage || "No se pudieron cargar los datos.")) }, [])
   const rows = useMemo(() => (data[step] || []).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())), [data, step, search])
@@ -80,6 +90,13 @@ export default function GestionAcademicaView() {
         const payload = { ...form }
         current.fields.filter(f => f.type === "select" || f.type === "number").forEach(f => { if (payload[f.name] !== "" && payload[f.name] != null) payload[f.name] = Number(payload[f.name]) })
         const saved = record ? (await apiClient.put(`/${current.endpoint}/${record[current.pk]}`, payload)).data : (await apiClient.post(`/${current.endpoint}`, payload)).data
+        if (step === "facultades") {
+          await reload()
+          setRecord(saved)
+          setForm({ nombre: saved.nombre })
+          setMessage("Facultad guardada. Ya puedes agregar o asignar carreras.")
+          return
+        }
         if (step === "capacitaciones") {
           const capId = saved.id_capacitacion ?? record?.id_capacitacion
           const old = data.materiasCapacitacion.filter(x => Number(x.id_capacitacion) === Number(capId))
@@ -108,6 +125,7 @@ export default function GestionAcademicaView() {
       />}
 
       <div className="setup-actions"><button className="subtle" type="button" onClick={startNew}>Limpiar</button><button type="submit" disabled={busy}>{busy?"Guardando…":record?"Guardar cambios":"Crear registro"}</button></div></form>{message&&<p className="setup-message" role="status">{message}</p>}
+      {step === "facultades" && <FacultyCareersSection faculty={record} careers={data.carreras} faculties={data.facultades} onChanged={reload} />}
       <p className="editor-tip">{step==="paralelos"?"Al crear, se guardan el paralelo y sus materias. Después asigna un asesor para cada día de clase.":"Los registros relacionados aparecerán disponibles en los siguientes pasos."}</p>
     </section><section className="setup-list"><div className="list-heading"><div><span className={`list-icon tone-${current.color}`}><Icon name={current.icon}/></span><div><h2>{current.label}</h2><p>{rows.length} registros</p></div></div><input type="search" placeholder={`Buscar ${current.label.toLowerCase()}…`} value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="setup-cards">{rows.map(row=>{const id=row[current.pk];return <article key={id} className={`setup-card tone-${current.color} ${record?.[current.pk]===id?"selected":""}`}><button className="card-select" onClick={()=>select(row)}><span className="card-icon"><Icon name={current.icon}/></span><strong>{row[current.title]||`${current.label.slice(0,-1)} ${id}`}</strong><small>Registro #{id}</small>{step==="capacitaciones"&&<span className="card-meta">Precio: {row.precio ?? "—"}</span>}{step==="convocatorias"&&row.modalidad&&<span className="card-meta">Modalidad: {row.modalidad}</span>}{step==="convocatorias"&&<span className="card-meta">Vigencia: {row.vigencia?"Sí":"No"}</span>}{step==="paralelos"&&<span className="card-meta">{row.aula_codigo||"Aula pendiente"} · {row.hora_inicio||"Horario pendiente"}{row.asignaciones?.filter(a=>a.id_materia).length?` · ${row.asignaciones.filter(a=>a.id_materia).length} materia(s)`:""}</span>}</button><div className="card-actions"><button onClick={()=>select(row)}>Editar</button><button onClick={()=>remove(row)}>Eliminar</button></div></article>})}{rows.length===0&&<div className="no-records">Todavía no hay {current.label.toLowerCase()}. Usa el formulario para crear el primer registro.</div>}</div></section></div>
     <ScheduleMatrix aulas={data.aulas} paralelos={scheduleParalelos} />

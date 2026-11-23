@@ -16,6 +16,7 @@ import { pool } from "../db.js";
  * @param {string} cfg.pk columna PK
  * @param {string} cfg.label nombre singular para mensajes 404 ("Carrera", "Clase"...)
  * @param {string[]} cfg.writable columnas escribibles (allowlist del body)
+ * @param {string[]} [cfg.nullable] columnas que aceptan `null` explícito en update
  * @param {string[]} [cfg.filters] columnas filtrables por query (`?col=valor`)
  * @param {Record<string,string>} [cfg.filterAliases] alias de query → columna canónica
  * @param {{column:string,table:string,pk:string,message:string}[]} [cfg.fks]
@@ -31,7 +32,7 @@ export const PAGE_DEFAULT_LIMIT = 25;
 export const PAGE_MAX_LIMIT = 100;
 
 export function createCrud(cfg) {
-  const { table, pk, label, writable, filters = [], filterAliases = {}, fks = [], deleteGuards = [], dateRange = null, customFilters = [] } = cfg;
+  const { table, pk, label, writable, nullable = [], filters = [], filterAliases = {}, fks = [], deleteGuards = [], dateRange = null, customFilters = [] } = cfg;
 
   const buildWhere = (query) => {
     const clauses = [];
@@ -143,7 +144,7 @@ export function createCrud(cfg) {
         return res.json(rows[0]);
       }
       const { rows } = await pool.query(
-        `UPDATE ${table} SET ${cols.map((c, i) => `${c} = COALESCE($${i + 1}, ${c})`).join(", ")} WHERE ${pk} = $${cols.length + 1} RETURNING *`,
+        `UPDATE ${table} SET ${cols.map((c, i) => nullable.includes(c) ? `${c} = $${i + 1}` : `${c} = COALESCE($${i + 1}, ${c})`).join(", ")} WHERE ${pk} = $${cols.length + 1} RETURNING *`,
         [...cols.map((c) => req.body[c]), id],
       );
       if (rows.length === 0) return res.status(404).json({ message: label });

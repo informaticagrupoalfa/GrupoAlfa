@@ -5,6 +5,7 @@ const crud = createCrud({
   pk: "id_carrera",
   label: "Carrera no encontrada",
   writable: ["id_facultad", "nombre"],
+  nullable: ["id_facultad"],
   filters: ["id_facultad"],
   fks: [
     { column: "id_facultad", table: "facultades", pk: "id_facultad", message: "La facultad no existe" },

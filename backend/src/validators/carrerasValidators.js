@@ -15,4 +15,4 @@ const carreraSchema = z.object({
 });
 
 export const createCarreraSchema = carreraSchema;
-export const updateCarreraSchema = carreraSchema.partial();
+export const updateCarreraSchema = carreraSchema.extend({ id_facultad: idFacultad.nullable() }).partial();

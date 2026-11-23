@@ -858,3 +858,62 @@
   background: #fff;
   text-align: center;
 }
+
+.setup-editor.tone-violet {
+  position: static;
+}
+
+.faculty-careers {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.faculty-careers-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+
+.faculty-careers-head h3 { margin: 0; font-size: 16px; }
+.faculty-careers-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
+
+.faculty-careers-head button,
+.faculty-career button,
+.faculty-career-form .modal-actions button {
+  border: 1px solid #8a70c3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f3effb;
+  color: #564083;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faculty-careers button:disabled { opacity: .55; cursor: not-allowed; }
+.faculty-careers-search { display: grid; gap: 6px; margin-top: 15px; font-size: 12px; font-weight: 700; }
+.faculty-careers-search input,
+.faculty-career-form input { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.faculty-careers-list { display: grid; gap: 7px; max-height: 250px; overflow: auto; margin-top: 10px; padding: 2px; }
+.faculty-career { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #faf9fd; }
+.faculty-career strong, .faculty-career small { display: block; overflow-wrap: anywhere; }
+.faculty-career strong { font-size: 12px; }
+.faculty-career small { margin-top: 3px; color: var(--ink-soft); font-size: 11px; }
+.faculty-career button { flex: none; background: white; }
+.faculty-career button.remove { border-color: #e9b7c0; color: #a0364b; }
+.faculty-career button:not(:disabled):hover,
+.faculty-careers-head button:not(:disabled):hover { background: #e9e2f6; }
+.faculty-career button.remove:not(:disabled):hover { background: #fff0f2; }
+.faculty-careers-empty, .faculty-careers-message { margin: 0; padding: 10px; border-radius: 8px; background: #f3effb; color: #564083; font-size: 12px; }
+.faculty-careers-message { margin-top: 9px; }
+.faculty-career-form .modal-body { display: grid; gap: 8px; }
+.faculty-career-form .modal-body label { font-size: 13px; font-weight: 700; }
+.faculty-career-form .modal-actions { display: flex; justify-content: end; gap: 8px; }
+.faculty-career-form .modal-actions button.subtle { border-color: var(--line); background: white; color: var(--ink); }
+
+@media (max-width: 520px) {
+  .faculty-careers-head { flex-direction: column; }
+  .faculty-careers-head button { width: 100%; }
+}
