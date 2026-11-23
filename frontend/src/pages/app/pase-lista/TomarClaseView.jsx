@@ -38,10 +38,10 @@ function userName(u) {
 function capacitacionDisponible(paralelo, capacitaciones, fecha) {
   const capacitacion = capacitaciones.find(item => String(item.id_capacitacion) === String(paralelo.id_capacitacion))
   if (!capacitacion) return false
-  if (capacitacion.activo === true) return true
+  if (capacitacion.activo !== true) return false
   const inicio = String(capacitacion.fecha_inicio ?? "").slice(0, 10)
   const fin = String(capacitacion.fecha_fin ?? "").slice(0, 10)
-  return Boolean(inicio && fecha >= inicio && (!fin || fecha <= fin))
+  return Boolean(inicio && fin && fecha >= inicio && fecha <= fin)
 }
 
 export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = null }) {
@@ -231,7 +231,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
       return
     }
     if (!paraleloSeleccionado || !capacitacionDisponible(paraleloSeleccionado, catalogs.capacitaciones ?? [], horarioActual().fecha)) {
-      setGuardado("La capacitación de este paralelo no está activa ni dentro de sus fechas.")
+      setGuardado("La capacitación de este paralelo debe estar activa y dentro de sus fechas.")
       return
     }
     if (!isAdministracion && (!form.idMateria || !form.idAsesor || !form.idAula || !form.tema.trim())) {
@@ -386,7 +386,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                   value={form.idParalelo || null}
                   onSelect={(v) => setField("idParalelo", v)}
                   placeholder="Escribe para buscar paralelo..."
-                  hint="Se muestran los paralelos del horario actual con capacitación activa o dentro de sus fechas."
+                  hint="Se muestran los paralelos del horario actual con capacitación activa y dentro de sus fechas."
                 />
               </Suspense>
               <Suspense fallback={<Skeleton lines={1} />}>
