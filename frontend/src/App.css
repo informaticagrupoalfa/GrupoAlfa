@@ -2313,6 +2313,72 @@ button.small {
   font-weight: 700;
 }
 
+.students-panel-heading {
+  display: grid;
+  grid-template-columns: auto minmax(190px, 280px);
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.students-panel-heading h2 { margin-bottom: 2px; }
+.students-panel-heading > div > span { color: var(--ink-soft, #5b6b82); font-size: 12px; }
+
+.students-search {
+  display: grid;
+  gap: 5px;
+  color: var(--ink, #0a2540);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.students-search > div { position: relative; }
+.students-search input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 36px 8px 10px;
+  box-sizing: border-box;
+}
+
+.students-search button {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft, #5b6b82);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.students-empty {
+  margin: 0;
+  padding: 28px 18px;
+  border: 1px dashed var(--line, #b3e5fc);
+  border-radius: 8px;
+  background: #f8fbfc;
+  color: var(--ink-soft, #5b6b82);
+  text-align: center;
+}
+
+.students-list-state {
+  min-height: 330px;
+}
+
+.students-list-state .skeleton,
+.students-list-state .error-panel {
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .students-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2730,6 +2796,11 @@ button.small {
 
   .students-grid {
     grid-template-columns: 1fr;
+  }
+
+  .students-panel-heading {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .info-row {

@@ -4,6 +4,7 @@ import QRCode from "qrcode"
 import { apiClient } from "../../../services/apiClient"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
 import MensualidadesCalendar from "../../../components/features/mensualidades/MensualidadesCalendar"
+import StudentAttendanceCalendar from "../../../components/features/estudiantes/StudentAttendanceCalendar"
 import "./MiInformacionPage.css"
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("es-BO", {
@@ -299,6 +300,15 @@ export default function MiInformacionPage() {
         >
           Mensualidades
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "asistencias"}
+          className={activeView === "asistencias" ? "active" : ""}
+          onClick={() => setActiveView("asistencias")}
+        >
+          Asistencias
+        </button>
       </div>
 
       {activeView === "informacion" ? (
@@ -451,7 +461,7 @@ export default function MiInformacionPage() {
         </InfoCard>
           </div>
         </>
-      ) : (
+      ) : activeView === "mensualidades" ? (
         <section className="mi-mensualidades-view" role="tabpanel">
           <header className="mi-mensualidades-header">
             <div>
@@ -466,6 +476,13 @@ export default function MiInformacionPage() {
             emptyMessage="No tienes mensualidades registradas."
           />
         </section>
+      ) : (
+        <div className="mi-asistencias-view" role="tabpanel">
+          <StudentAttendanceCalendar
+            student={estudiante}
+            attendanceEndpoint="/mi-informacion/asistencias"
+          />
+        </div>
       )}
     </section>
   )

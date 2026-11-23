@@ -117,6 +117,10 @@ export default function MensualidadesEstudiantesView() {
   const [studentsLoading, setStudentsLoading] = useState(true)
   const [studentsError, setStudentsError] = useState("")
   const [studentPage, setStudentPage] = useState(1)
+  const [studentSearch, setStudentSearch] = useState("")
+  const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("")
+  const [studentTotal, setStudentTotal] = useState(0)
+  const [studentReloadKey, setStudentReloadKey] = useState(0)
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [selectedStudentId, setSelectedStudentId] = useState(null)
 
@@ -134,6 +138,11 @@ export default function MensualidadesEstudiantesView() {
   const [editMensualidadSaving, setEditMensualidadSaving] = useState(false)
   const [monthlyListError, setMonthlyListError] = useState("")
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedStudentSearch(studentSearch.trim()), 300)
+    return () => window.clearTimeout(timeout)
+  }, [studentSearch])
+
   // Carga primero los datos livianos de las cards y luego sus fotos en una
   // solicitud independiente para que el listado aparezca sin esperar imágenes.
   useEffect(() => {
@@ -142,11 +151,16 @@ export default function MensualidadesEstudiantesView() {
       try {
         setStudentsLoading(true)
         setStudentsError("")
-        const response = await listResource("estudiantes/resumen", { page: studentPage, limit: STUDENTS_PER_PAGE })
+        const response = await listResource("estudiantes/resumen", {
+          page: studentPage,
+          limit: STUDENTS_PER_PAGE,
+          q: debouncedStudentSearch || undefined,
+        })
         if (mounted) {
           const rows = Array.isArray(response?.filas) ? response.filas : []
           setStudents(rows)
           setStudentPhotos({})
+          setStudentTotal(Math.max(0, Number(response?.total) || 0))
           setStudentTotalPages(Math.max(1, Number(response?.totalPaginas) || 1))
           setStudentsLoading(false)
 
@@ -172,7 +186,7 @@ export default function MensualidadesEstudiantesView() {
     }
     load()
     return () => { mounted = false }
-  }, [studentPage])
+  }, [debouncedStudentSearch, studentPage, studentReloadKey])
 
   // Selecciona un estudiante: guarda su info, carga sus inscripciones y sus mensualidades.
   const handleSelectStudent = async (student) => {
@@ -412,9 +426,6 @@ export default function MensualidadesEstudiantesView() {
 
   const studentName = selectedStudent ? getStudentName(selectedStudent) : ""
 
-  if (studentsLoading) return <Skeleton lines={15} />
-  if (studentsError) return <ErrorFallback message={studentsError} onRetry={() => setStudentPage(1)} />
-
   return (
     <section className="mensualidades-view">
       <div className="mensualidades-header">
@@ -424,8 +435,50 @@ export default function MensualidadesEstudiantesView() {
       <div className="mensualidades-layout">
         {/* Panel izquierdo: lista de estudiantes paginada. */}
         <div className="students-panel">
-          <h2>Estudiantes</h2>
-          <div className="students-grid">
+          <div className="students-panel-heading">
+            <div>
+              <h2>Estudiantes</h2>
+              <span>{studentTotal} resultado{studentTotal !== 1 ? "s" : ""}</span>
+            </div>
+            <label className="students-search">
+              <span>Buscar estudiante</span>
+              <div>
+                <input
+                  type="search"
+                  value={studentSearch}
+                  placeholder="Nombre, apellido o carnet"
+                  onChange={(event) => {
+                    setStudentSearch(event.target.value)
+                    setStudentPage(1)
+                  }}
+                />
+                {studentSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentSearch("")
+                      setStudentPage(1)
+                    }}
+                    aria-label="Limpiar búsqueda"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </label>
+          </div>
+          {studentsLoading ? (
+            <div className="students-list-state" role="status">
+              <Skeleton lines={6} />
+            </div>
+          ) : studentsError ? (
+            <div className="students-list-state">
+              <ErrorFallback
+                message={studentsError}
+                onRetry={() => setStudentReloadKey((key) => key + 1)}
+              />
+            </div>
+          ) : students.length ? <div className="students-grid">
             {students.map((s, idx) => {
               const id = getStudentId(s)
               const name = getStudentName(s)
@@ -448,10 +501,14 @@ export default function MensualidadesEstudiantesView() {
                 </div>
               )
             })}
-          </div>
-          <div className="students-pagination">
-            <Pagination page={studentPage} totalPages={studentTotalPages} onPageChange={setStudentPage} />
-          </div>
+          </div> : (
+            <p className="students-empty">No se encontraron estudiantes con esa búsqueda.</p>
+          )}
+          {!studentsLoading && !studentsError && studentTotalPages > 1 && (
+            <div className="students-pagination">
+              <Pagination page={studentPage} totalPages={studentTotalPages} onPageChange={setStudentPage} />
+            </div>
+          )}
         </div>
 
         {/* Panel derecho: detalle del estudiante seleccionado. */}

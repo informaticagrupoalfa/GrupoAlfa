@@ -5,6 +5,7 @@ import { apiClient } from "../../../services/apiClient"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
 import Pagination from "../../../components/ui/Pagination"
 import EstudianteFormModal from "../../../components/features/estudiantes/EstudianteFormModal"
+import StudentAttendanceCalendar from "../../../components/features/estudiantes/StudentAttendanceCalendar"
 import "./EstudiantesPage.css"
 
 const LIMIT = 15
@@ -290,6 +291,7 @@ export default function EstudiantesPage() {
   const filas = data?.filas ?? []
   const total = data?.total ?? 0
   const totalPaginas = data?.totalPaginas ?? 0
+  const calendarStudent = detalle ?? filas.find((student) => student.id_estudiante === selectedId)
 
   if (error) return <ErrorFallback message={error} onRetry={loadResumen} />
 
@@ -551,6 +553,11 @@ export default function EstudiantesPage() {
 
         <div className="estudiantes-detail-panel">{renderDetalle()}</div>
       </div>
+      {selectedId != null && (
+        <StudentAttendanceCalendar
+          student={calendarStudent ?? { id_estudiante: selectedId }}
+        />
+      )}
       {formOpen && (
         <EstudianteFormModal
           key={formMode === "edit" ? `edit-${detalle?.id_estudiante}` : "create"}

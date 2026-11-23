@@ -256,3 +256,33 @@ export const getMiInformacion = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getMisAsistencias = async (req, res, next) => {
+  try {
+    if (!hasAnyRole(req.user, [ROLE_NAMES.ESTUDIANTE])) {
+      return res.status(403).json({ error: "Este portal es exclusivo para estudiantes" });
+    }
+
+    let limit = parseInt(req.query?.limit, 10);
+    if (Number.isNaN(limit)) limit = 100;
+    limit = Math.min(Math.max(limit, 1), 100);
+
+    let offset = parseInt(req.query?.offset, 10);
+    if (Number.isNaN(offset) || offset < 0) offset = 0;
+
+    const { rows } = await pool.query(
+      `SELECT a.id_asistencia, a.id_clase, a.id_estudiante, a.hora_entrada,
+              a.salida_antes_de_tiempo, a.permiso, a.razon_permiso
+         FROM asistencias a
+         JOIN estudiantes e ON e.id_estudiante = a.id_estudiante
+        WHERE e.id_usuario = $1
+        ORDER BY a.hora_entrada DESC, a.id_asistencia DESC
+        LIMIT $2 OFFSET $3`,
+      [req.user.id_usuario, limit, offset],
+    );
+
+    res.status(200).json(rows);
+  } catch (error) {
+    next(error);
+  }
+};

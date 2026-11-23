@@ -87,6 +87,14 @@
   margin-top: 20px;
 }
 
+.mi-asistencias-view {
+  min-width: 0;
+}
+
+.mi-asistencias-view .student-calendar-panel {
+  margin-top: 0;
+}
+
 .mi-info-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -487,7 +495,7 @@
 @media (max-width: 480px) {
   .mi-info-tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
   }
 

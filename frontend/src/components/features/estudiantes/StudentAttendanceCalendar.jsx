@@ -76,7 +76,7 @@ Month.propTypes = {
   attendanceByDay: PropTypes.instanceOf(Map).isRequired,
 }
 
-export default function StudentAttendanceCalendar({ student }) {
+export default function StudentAttendanceCalendar({ student, attendanceEndpoint = "/asistencias" }) {
   const [attendances, setAttendances] = useState([])
   const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(false)
@@ -98,7 +98,7 @@ export default function StudentAttendanceCalendar({ student }) {
       const rows = []
       let offset = 0
       while (!cancelled) {
-        const response = await apiClient.get("/asistencias", {
+        const response = await apiClient.get(attendanceEndpoint, {
           params: { id_estudiante: studentId, limit: PAGE_SIZE, offset },
         })
         const page = Array.isArray(response.data) ? response.data : []
@@ -118,7 +118,7 @@ export default function StudentAttendanceCalendar({ student }) {
       })
 
     return () => { cancelled = true }
-  }, [studentId])
+  }, [attendanceEndpoint, studentId])
 
   const attendanceByDay = useMemo(() => {
     const grouped = new Map()
@@ -187,4 +187,5 @@ export default function StudentAttendanceCalendar({ student }) {
 
 StudentAttendanceCalendar.propTypes = {
   student: PropTypes.object,
+  attendanceEndpoint: PropTypes.string,
 }
