@@ -32,6 +32,8 @@ Icon.propTypes = { name: PropTypes.string.isRequired }
 
 const initialData = { facultades: [], carreras: [], convocatorias: [], capacitaciones: [], materias: [], aulas: [], materiasCapacitacion: [], paralelos: [] }
 
+const dateInputValue = value => value ? String(value).slice(0, 10) : ""
+
 async function loadAllCareers() {
   const items = []
   for (let offset = 0; ; offset += 100) {
@@ -62,7 +64,10 @@ export default function GestionAcademicaView() {
   const startNew = () => { setRecord(null); setForm(step === "paralelos" ? { activo: true } : step === "convocatorias" ? { vigencia: true } : {}); setSelectedMaterias([]); setMessage("") }
   const select = async row => {
     setRecord(row); setMessage("")
-    const next = Object.fromEntries(current.fields.map(f => [f.name, row[f.name] ?? (f.type === "checkbox" ? false : "")]))
+    const next = Object.fromEntries(current.fields.map(f => [
+      f.name,
+      f.type === "date" ? dateInputValue(row[f.name]) : row[f.name] ?? (f.type === "checkbox" ? false : ""),
+    ]))
     setForm(step === "paralelos" ? { ...next, dias: row.dias ?? "" } : next); setSelectedMaterias([])
     if (step === "capacitaciones") {
       const links = data.materiasCapacitacion.filter(x => Number(x.id_capacitacion) === Number(row.id_capacitacion))
@@ -89,6 +94,7 @@ export default function GestionAcademicaView() {
       } else {
         const payload = { ...form }
         current.fields.filter(f => f.type === "select" || f.type === "number").forEach(f => { if (payload[f.name] !== "" && payload[f.name] != null) payload[f.name] = Number(payload[f.name]) })
+        current.fields.filter(f => f.type === "date" && !f.required).forEach(f => { if (payload[f.name] === "") payload[f.name] = null })
         const saved = record ? (await apiClient.put(`/${current.endpoint}/${record[current.pk]}`, payload)).data : (await apiClient.post(`/${current.endpoint}`, payload)).data
         if (step === "facultades") {
           await reload()
