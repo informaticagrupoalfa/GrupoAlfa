@@ -1,3 +1,5 @@
+import { formatConvocatoriaOption } from "../utils/convocatoriaOption"
+
 export const ENTITIES = {
   dashboard: {
     key: "dashboard",
@@ -118,7 +120,7 @@ export const ENTITIES = {
       { key: "activo", label: "Activo", type: "checkbox" },
     ],
     fields: [
-      { name: "id_convocatoria", label: "Convocatoria", type: "select", required: true, optionsEndpoint: "convocatorias", optionsValue: "id_convocatoria" },
+      { name: "id_convocatoria", label: "Convocatoria", type: "select", required: true, optionsEndpoint: "convocatorias", optionsValue: "id_convocatoria", optionLabel: formatConvocatoriaOption },
       { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
       { name: "fecha_fin", label: "Fecha de fin", type: "date", required: false },
       { name: "activo", label: "Activo", type: "checkbox", required: false, inline: true },
