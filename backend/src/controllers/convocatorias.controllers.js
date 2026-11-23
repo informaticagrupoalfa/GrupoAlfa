@@ -5,7 +5,7 @@ const crud = createCrud({
   table: "convocatorias_preuniversitario",
   pk: "id_convocatoria",
   label: "Convocatoria no encontrada",
-  writable: ["id_facultad", "fecha_inicio", "modalidad"],
+  writable: ["id_facultad", "fecha_inicio", "modalidad", "vigencia"],
   filters: ["id_facultad"],
   fks: [
     { column: "id_facultad", table: "facultades", pk: "id_facultad", message: "La facultad no existe" },
@@ -15,7 +15,7 @@ const crud = createCrud({
 export const getConvocatorias = async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
-      SELECT c.id_convocatoria, c.id_facultad, c.fecha_inicio, c.modalidad, f.nombre AS nombre_facultad
+      SELECT c.id_convocatoria, c.id_facultad, c.fecha_inicio, c.modalidad, c.vigencia, f.nombre AS nombre_facultad
       FROM convocatorias_preuniversitario c
       LEFT JOIN facultades f ON f.id_facultad = c.id_facultad
       ORDER BY c.id_convocatoria DESC

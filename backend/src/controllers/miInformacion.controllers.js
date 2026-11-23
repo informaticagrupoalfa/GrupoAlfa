@@ -74,13 +74,16 @@ const TOTAL_CLASES_QUERY = `
   WHERE pma.id_paralelo = $1
 `;
 
-const MENSUALIDAD_QUERY = `
-  SELECT id_mensualidad, fecha_inicio_mensualidad, fecha_fin_mensualidad,
-         pago, codigo_comprobante
-  FROM mensualidades
-  WHERE id_inscripcion = $1
-  ORDER BY fecha_fin_mensualidad DESC NULLS LAST
-  LIMIT 1
+const MENSUALIDADES_QUERY = `
+  SELECT m.id_mensualidad, m.id_inscripcion,
+         m.fecha_inicio_mensualidad, m.fecha_fin_mensualidad,
+         m.pago, m.codigo_comprobante,
+         i.fecha_insc, i.id_paralelo, p.nombre_paralelo
+  FROM mensualidades m
+  JOIN inscripciones i ON i.id_inscripcion = m.id_inscripcion
+  LEFT JOIN paralelos p ON p.id_paralelo = i.id_paralelo
+  WHERE i.id_estudiante = $1
+  ORDER BY m.fecha_fin_mensualidad DESC NULLS LAST, m.id_mensualidad DESC
 `;
 
 const fullName = (row) =>
@@ -163,9 +166,10 @@ export const getMiInformacion = async (req, res, next) => {
     let materias = [];
     let resumen = { asistencias: 0, permisos: 0, total_clases: 0, ultima_asistencia: null };
     let mensualidad = null;
+    let mensualidades = [];
 
     if (inscripcion) {
-      const tasks = [pool.query(MENSUALIDAD_QUERY, [inscripcion.id_inscripcion])];
+      const tasks = [pool.query(MENSUALIDADES_QUERY, [row.id_estudiante])];
 
       if (inscripcion.id_paralelo != null) {
         tasks.push(
@@ -176,7 +180,10 @@ export const getMiInformacion = async (req, res, next) => {
       }
 
       const [mensualidadResult, materiasResult, asistenciaResult, clasesResult] = await Promise.all(tasks);
-      mensualidad = mensualidadResult.rows[0] ?? null;
+      mensualidades = mensualidadResult.rows;
+      mensualidad = mensualidades.find(
+        (item) => String(item.id_inscripcion) === String(inscripcion.id_inscripcion),
+      ) ?? null;
       materias = materiasResult ? toMaterias(materiasResult.rows) : [];
 
       if (asistenciaResult) {
@@ -243,6 +250,7 @@ export const getMiInformacion = async (req, res, next) => {
       materias,
       resumen,
       mensualidad,
+      mensualidades,
     });
   } catch (error) {
     next(error);

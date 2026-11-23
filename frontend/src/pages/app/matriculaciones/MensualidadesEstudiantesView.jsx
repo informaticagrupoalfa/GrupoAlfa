@@ -5,6 +5,7 @@ import ErrorFallback from "../../../components/ui/ErrorFallback"
 import Pagination from "../../../components/ui/Pagination"
 import Button from "../../../components/ui/Button"
 import Modal from "../../../components/ui/Modal"
+import MensualidadesCalendar from "../../../components/features/mensualidades/MensualidadesCalendar"
 import { useAuth } from "../../../hooks/useAuth"
 
 // Cantidad de estudiantes mostrados por página en el panel izquierdo.
@@ -22,7 +23,6 @@ function formatDate(value) {
   const year = d.getFullYear()
   return `${day}/${month}/${year}`
 }
-
 function todayISO() {
   const now = new Date()
   const year = now.getFullYear()
@@ -133,7 +133,6 @@ export default function MensualidadesEstudiantesView() {
   const [editMensualidadError, setEditMensualidadError] = useState("")
   const [editMensualidadSaving, setEditMensualidadSaving] = useState(false)
   const [monthlyListError, setMonthlyListError] = useState("")
-  const [calendarYearPage, setCalendarYearPage] = useState(1)
 
   // Carga primero los datos livianos de las cards y luego sus fotos en una
   // solicitud independiente para que el listado aparezca sin esperar imágenes.
@@ -396,20 +395,6 @@ export default function MensualidadesEstudiantesView() {
   const inscripcionMensualidades = selectedInscripcion
     ? mensualidades.filter((item) => String(item.id_inscripcion) === String(selectedInscripcion.id_inscripcion))
     : []
-  const calendarYears = inscripcionMensualidades.flatMap((item) => [
-    new Date(`${item.fecha_inicio_mensualidad.slice(0, 10)}T00:00:00`).getFullYear(),
-    new Date(`${item.fecha_fin_mensualidad.slice(0, 10)}T00:00:00`).getFullYear(),
-  ])
-  const calendarStartYear = calendarYears.length ? Math.min(...calendarYears) : null
-  const calendarEndYear = calendarYears.length ? Math.max(...calendarYears) : null
-  const calendarTotalPages = calendarStartYear != null && calendarEndYear != null
-    ? Math.max(1, calendarEndYear - calendarStartYear + 1)
-    : 1
-  const calendarYear = calendarStartYear == null ? null : calendarStartYear + calendarYearPage - 1
-
-  useEffect(() => {
-    setCalendarYearPage(1)
-  }, [selectedInscripcion?.id_inscripcion, mensualidades])
 
   // Inicializa el formulario de creación de mensualidad con valores por defecto.
   useEffect(() => {
@@ -606,62 +591,20 @@ export default function MensualidadesEstudiantesView() {
         </div>
       </div>
       {selectedStudent && selectedInscripcion && (
-        <div className="calendar-panel">
-          <h3>Calendario de Mensualidades · {selectedInscripcion.carrera || selectedInscripcion.grupo || `Inscripción ${selectedInscripcion.id_inscripcion}`}</h3>
-          {inscripcionMensualidades.length === 0 ? (
-            <p className="muted">Esta inscripción no tiene mensualidades registradas.</p>
-          ) : (
-            <>
-              {monthlyListError && <p className="error-message" role="alert">{monthlyListError}</p>}
-              <div className="calendar">
-                <div className="calendar-year-pagination">
-                  <h4>{calendarYear}</h4>
-                  <Pagination page={calendarYearPage} totalPages={calendarTotalPages} onPageChange={setCalendarYearPage} />
-                </div>
-                <div className="calendar-heatmap">
-                  <div className="calendar-months">
-                    {generateCalendarMonths(calendarYear, inscripcionMensualidades).map((month) => (
-                      <div className="calendar-month" key={month.key}>
-                        <h4>{month.label}</h4>
-                        <div className="calendar-month-layout">
-                          <div className="calendar-weekdays" aria-hidden="true">
-                            {WEEKDAYS.map((weekday) => <span key={weekday}>{weekday}</span>)}
-                          </div>
-                          <div className="calendar-month-grid">
-                            {month.cells.map((day, index) => (
-                              <div
-                                key={day?.date ?? "empty-" + index}
-                                className={`calendar-heat-day ${day?.paymentColor ? "calendar-payment-day" : ""} ${day?.isSelected ? "calendar-day-selected" : ""}`}
-                                style={day?.paymentColor ? { "--payment-color": day.paymentColor } : undefined}
-                                title={day ? day.date + ((day.paymentColor || day.isSelected) ? " · Dentro de la mensualidad" : "") : undefined}
-                                aria-label={day ? day.day + " de " + month.label : undefined}
-                              >
-                                {day?.day ?? ""}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="calendar-payment-list" aria-label="Mensualidades de la inscripción">
-                {inscripcionMensualidades.map((item, index) => (
-                  <div className="calendar-payment-item" key={item.id_mensualidad ?? `${item.fecha_inicio_mensualidad}-${item.fecha_fin_mensualidad}`}>
-                    <span className="calendar-payment-swatch" style={{ backgroundColor: MONTHLY_COLORS[index % MONTHLY_COLORS.length] }} aria-hidden="true" />
-                    <span><strong>{formatDate(item.fecha_inicio_mensualidad)} – {formatDate(item.fecha_fin_mensualidad)}</strong></span>
-                    {item.pago != null && <span>Bs. {item.pago}</span>}
-                    <div className="calendar-payment-actions">
-                      <Button variant="secondary" size="sm" onClick={() => openEditMensualidad(item)}>Editar</Button>
-                      <Button variant="secondary" size="sm" onClick={() => handleDeleteMensualidad(item)}>Eliminar</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <>
+          {monthlyListError && <p className="error-message" role="alert">{monthlyListError}</p>}
+          <MensualidadesCalendar
+            title={`Calendario de Mensualidades · ${selectedInscripcion.carrera || selectedInscripcion.grupo || `Inscripción ${selectedInscripcion.id_inscripcion}`}`}
+            mensualidades={inscripcionMensualidades}
+            emptyMessage="Esta inscripción no tiene mensualidades registradas."
+            renderActions={(item) => (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => openEditMensualidad(item)}>Editar</Button>
+                <Button variant="secondary" size="sm" onClick={() => handleDeleteMensualidad(item)}>Eliminar</Button>
+              </>
+            )}
+          />
+        </>
       )}
       {editingMensualidad && editMensualidadForm && (
         <Modal
@@ -729,40 +672,4 @@ export default function MensualidadesEstudiantesView() {
       )}
     </section>
   )
-}
-
-const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
-const MONTHS_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-const MONTHLY_COLORS = ["#86efac", "#93c5fd", "#fca5a5", "#fcd34d", "#c4b5fd", "#f9a8d4", "#67e8f9", "#fdba74"]
-
-// Los doce meses del año en cuatro columnas, con la semana de lunes a domingo
-// en el eje horizontal.
-function generateCalendarMonths(year, mensualidades) {
-  const periods = mensualidades.map((item) => ({
-    start: new Date(`${item.fecha_inicio_mensualidad.slice(0, 10)}T00:00:00`),
-    end: new Date(`${item.fecha_fin_mensualidad.slice(0, 10)}T00:00:00`),
-  })).map((period, index) => ({ ...period, color: MONTHLY_COLORS[index % MONTHLY_COLORS.length] }))
-  const months = []
-
-  for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
-    const monthDate = new Date(year, monthIndex, 1)
-    const firstWeekday = (monthDate.getDay() + 6) % 7
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
-    const cells = Array(42).fill(null)
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const date = new Date(year, monthIndex, day)
-      const dateString = year + "-" + String(monthIndex + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0")
-      const paymentPeriod = periods.find((period) => date >= period.start && date <= period.end)
-      cells[firstWeekday + day - 1] = {
-        date: dateString,
-        day,
-        isSelected: periods.some((period) => date.getTime() === period.start.getTime() || date.getTime() === period.end.getTime()),
-        paymentColor: paymentPeriod?.color,
-      }
-    }
-
-    months.push({ key: year + "-" + (monthIndex + 1), label: MONTHS_ES[monthIndex] + " " + year, cells })
-  }
-  return months
 }

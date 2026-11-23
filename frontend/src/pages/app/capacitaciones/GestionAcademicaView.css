@@ -741,3 +741,120 @@
 .parallel-subject small { grid-column: 2; color: var(--ink-soft); font-size: .7rem; }
 .parallel-subject-empty { margin: 0 !important; padding: 11px; border-radius: 7px; background: #fff; }
 @media (max-width: 520px) { .parallel-subject-options { grid-template-columns: 1fr; } }
+
+/* Campo booleano del formulario (Activa / Vigente). */
+.setup-form > label.check-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid var(--line, #dce4eb);
+  border-radius: 9px;
+  background: var(--wash, #f6f9fb);
+  cursor: pointer;
+}
+.setup-form > label.check-field:focus-within {
+  outline: 3px solid var(--academy, #146b85);
+  outline-offset: 2px;
+}
+.check-field .checkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--deep, var(--ink, #19344d));
+  font-weight: 700;
+  white-space: nowrap;
+}
+.check-field .checkline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--academy, #146b85);
+  cursor: pointer;
+}
+.check-field .checkline > span {
+  font-size: 11.5px;
+}
+
+/* Selección de materias de la capacitación. */
+.setup-form > fieldset.choice-box {
+  min-inline-size: 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line, #dce4eb);
+  border-radius: 10px;
+  background: #f8fbfc;
+}
+.setup-form > fieldset.choice-box > legend {
+  padding: 0 4px;
+  color: var(--ink, #19344d);
+  font-size: 12px;
+  font-weight: 750;
+}
+.choice-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--academy-pale, #e4f1f4);
+  color: var(--academy-dark, #0e566b);
+  font-size: 10.5px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+.setup-form > fieldset.choice-box > p {
+  margin: 0;
+  line-height: 1.45;
+}
+.choice-list {
+  display: grid;
+  gap: 6px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 2px;
+}
+.setup-form > fieldset.choice-box .choice-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.setup-form > fieldset.choice-box .choice-row:hover {
+  border-color: var(--tone, #b9cbd6);
+}
+.setup-form > fieldset.choice-box .choice-row:has(input:checked) {
+  background: var(--wash, #eef7fa);
+  border-color: var(--tone, #146b85);
+}
+.setup-form > fieldset.choice-box .choice-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--tone, #146b85);
+  cursor: pointer;
+}
+.setup-form > fieldset.choice-box .choice-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.choice-empty {
+  padding: 11px;
+  border-radius: 7px;
+  background: #fff;
+  text-align: center;
+}

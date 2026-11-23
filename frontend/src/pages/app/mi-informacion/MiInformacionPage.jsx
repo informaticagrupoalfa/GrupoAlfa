@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import QRCode from "qrcode"
 import { apiClient } from "../../../services/apiClient"
 import ErrorFallback from "../../../components/ui/ErrorFallback"
+import MensualidadesCalendar from "../../../components/features/mensualidades/MensualidadesCalendar"
 import "./MiInformacionPage.css"
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("es-BO", {
@@ -248,6 +249,7 @@ export default function MiInformacionPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [activeView, setActiveView] = useState("informacion")
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -271,14 +273,37 @@ export default function MiInformacionPage() {
   if (error) return <ErrorFallback message={error} onRetry={load} />
   if (!data) return null
 
-  const { estudiante, apoderado, inscripcion, paralelo, capacitacion, materias, resumen, mensualidad } = data
+  const { estudiante, apoderado, inscripcion, paralelo, capacitacion, materias, resumen, mensualidad, mensualidades = [] } = data
   const nombre = fullName(estudiante)
   const imagen = photoSrc(estudiante.foto_base64)
   const rutaInicio = capacitacion?.facultad || (capacitacion ? `Capacitación #${capacitacion.id_capacitacion}` : "Sin capacitación")
 
   return (
     <section className="mi-info-page">
-      <div className="mi-info-hero">
+      <div className="mi-info-tabs" role="tablist" aria-label="Secciones de mi información">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "informacion"}
+          className={activeView === "informacion" ? "active" : ""}
+          onClick={() => setActiveView("informacion")}
+        >
+          Mi información
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "mensualidades"}
+          className={activeView === "mensualidades" ? "active" : ""}
+          onClick={() => setActiveView("mensualidades")}
+        >
+          Mensualidades
+        </button>
+      </div>
+
+      {activeView === "informacion" ? (
+        <>
+          <div className="mi-info-hero">
         <div className="mi-info-identity">
           {imagen ? (
             <img className="mi-info-photo" src={imagen} alt={`Foto de ${nombre}`} />
@@ -310,9 +335,9 @@ export default function MiInformacionPage() {
           </p>
           <span className="mi-info-qr-id">ID {estudiante.id_estudiante}</span>
         </div>
-      </div>
+          </div>
 
-      <div className="mi-info-grid">
+          <div className="mi-info-grid">
         <InfoCard title="Datos personales">
           <dl className="mi-info-list">
             <InfoRow label="Nombre completo" value={nombre} />
@@ -424,7 +449,24 @@ export default function MiInformacionPage() {
             <p className="muted">No tienes mensualidades registradas.</p>
           )}
         </InfoCard>
-      </div>
+          </div>
+        </>
+      ) : (
+        <section className="mi-mensualidades-view" role="tabpanel">
+          <header className="mi-mensualidades-header">
+            <div>
+              <h2>Mis mensualidades</h2>
+              <p>Consulta los periodos cubiertos, pagos y comprobantes registrados a tu nombre.</p>
+            </div>
+            <span>{mensualidades.length} registrada{mensualidades.length === 1 ? "" : "s"}</span>
+          </header>
+          <MensualidadesCalendar
+            title={`Calendario de mensualidades · ${nombre}`}
+            mensualidades={mensualidades}
+            emptyMessage="No tienes mensualidades registradas."
+          />
+        </section>
+      )}
     </section>
   )
 }

@@ -12,6 +12,7 @@ const convocatoriaSchema = z.object({
       message: "La fecha de inicio debe ser una fecha válida",
     }),
   modalidad: z.string().trim().max(100, "La modalidad debe tener máximo 100 caracteres").optional(),
+  vigencia: z.boolean({ invalid_type_error: "La vigencia debe ser un valor booleano" }).optional(),
 });
 
 export const createConvocatoriaSchema = convocatoriaSchema;
