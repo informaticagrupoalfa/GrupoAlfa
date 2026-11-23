@@ -4,3 +4,4 @@ node_modules
 .agents
 .zencoder
 .backupsAgentes
+"dbScripts/usuarios base.sql"

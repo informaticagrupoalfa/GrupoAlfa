@@ -3,7 +3,7 @@ import { generateToken } from "../utils/generateToken.js";
 import bcrypt from "bcrypt";
 
 const PUBLIC_COLUMNS =
-  "id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, usuario_vigente";
+  "id_usuario, nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono, usuario_vigente";
 
 const rolesSubquery = (alias = "usuarios") => `COALESCE((
   SELECT json_agg(r.nombre ORDER BY r.nombre)
@@ -122,6 +122,7 @@ export const createUsuario = async (req, res, next) => {
       nombre,
       fecha_nacimiento,
       correo_electronico,
+      nro_telefono,
       contraseña,
       usuario_vigente,
     } = req.body;
@@ -138,10 +139,10 @@ export const createUsuario = async (req, res, next) => {
 
     const { rows } = await pool.query(
       `INSERT INTO usuarios
-       (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, contraseña, usuario_vigente)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       (nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono, contraseña, usuario_vigente)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        RETURNING ${PUBLIC_COLUMNS}`,
-      [nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, contraEncriptada, usuario_vigente ?? true]
+      [nro_carnet, apellido_paterno, apellido_materno, nombre, fecha_nacimiento, correo_electronico, nro_telefono ?? null, contraEncriptada, usuario_vigente ?? true]
     );
 
     const token = generateToken(rows[0].id_usuario, res);
