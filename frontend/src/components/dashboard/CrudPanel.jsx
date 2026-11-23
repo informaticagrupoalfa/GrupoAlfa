@@ -12,7 +12,7 @@ const EntityFormModal = lazy(() => import("./EntityFormModal.jsx"))
 
 const PAGE_SIZE = 25
 
-export default function CrudPanel({ entity, defaultParams }) {
+export default function CrudPanel({ entity, defaultParams, onRecordSelect }) {
   const { items, isLoading, error, selected, setSelected, reload, save, remove } = useCrud(entity, defaultParams)
   const [search, setSearch] = useState("")
   const [filterMateria, setFilterMateria] = useState("")
@@ -55,6 +55,7 @@ export default function CrudPanel({ entity, defaultParams }) {
   const openEdit = useCallback(
     async (row) => {
       setSelected(row)
+      onRecordSelect?.(row)
       setFormError("")
       setMateriasSeleccionadas([])
       setMateriaAsignaciones({})
@@ -76,7 +77,7 @@ export default function CrudPanel({ entity, defaultParams }) {
         }
       }
     },
-    [entity, setSelected],
+    [entity, onRecordSelect, setSelected],
   )
 
   const handleDelete = useCallback(
@@ -225,4 +226,5 @@ export default function CrudPanel({ entity, defaultParams }) {
 CrudPanel.propTypes = {
   entity: PropTypes.object.isRequired,
   defaultParams: PropTypes.object,
+  onRecordSelect: PropTypes.func,
 }
