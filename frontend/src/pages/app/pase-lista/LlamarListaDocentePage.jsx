@@ -51,6 +51,7 @@ export default function LlamarListaDocentePage() {
   const [rosterLoading, setRosterLoading] = useState(false)
   const [rosterReady, setRosterReady] = useState(false)
   const [studentPopup, setStudentPopup] = useState(null)
+  const [scanAlert, setScanAlert] = useState("")
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const scanRef = useRef(null)
@@ -112,6 +113,7 @@ export default function LlamarListaDocentePage() {
     cameraRequestRef.current += 1
     popupRequestRef.current += 1
     setStudentPopup(null)
+    setScanAlert("")
     if (!streamRef.current) return
     streamRef.current.getTracks().forEach(track => track.stop())
     streamRef.current = null
@@ -207,11 +209,14 @@ export default function LlamarListaDocentePage() {
 
   scanRef.current = async (raw) => {
     const studentId = parseStudentQr(raw)
-    if (!studentId) return setMessage("QR no reconocido.")
+    if (!studentId) {
+      setScanAlert("QR no reconocido. Verifica el código e intenta nuevamente.")
+      return
+    }
     if (registeredIdsRef.current.has(studentId)) return
     const student = students.find(item => String(item.id_estudiante) === studentId)
     if (student) await mark(student)
-    else setMessage("No pertenece a este paralelo o ya fue escaneado.")
+    else setScanAlert("No se reconoció al estudiante en la lista de este paralelo.")
   }
 
   const toggleCamera = async () => {
@@ -287,6 +292,11 @@ export default function LlamarListaDocentePage() {
 
   return (
     <div className="llamar-lista">
+      {scanAlert && (
+        <FloatingAlert title="Estudiante no reconocido" onClose={() => setScanAlert("")}>
+          <p role="alert">{scanAlert}</p>
+        </FloatingAlert>
+      )}
       {studentPopup && (() => {
         const detail = studentPopup.data || studentPopup.student
         const verification = studentPopup.verification || detail.verificacion
