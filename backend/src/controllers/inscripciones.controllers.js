@@ -324,6 +324,19 @@ export const registrarEstudiante = async (req, res, next) => {
       idEstudiante = rows[0].id_estudiante;
     }
 
+    if (id_carrera != null && id_carrera !== "") {
+      // Serializa los registros del estudiante para evitar postulaciones duplicadas.
+      await client.query("SELECT pg_advisory_xact_lock($1, $2)", [1937001, idEstudiante]);
+      await client.query(
+        `INSERT INTO postulaciones (id_estudiante, id_carrera)
+         SELECT $1, $2
+         WHERE NOT EXISTS (
+           SELECT 1 FROM postulaciones WHERE id_estudiante = $1 AND id_carrera = $2
+         )`,
+        [idEstudiante, id_carrera],
+      );
+    }
+
     // 7. Crear inscripción: el paralelo se guarda directamente en la inscripción
     const columns = ["id_administrativo", "id_estudiante", "id_paralelo", "como_se_entero_de_nosotros",
       "recalculo", "preparacion_previa", "tiempo_de_preparacion_meses", "lugar_de_preparacion", "num_credencial", "fecha_insc"];
