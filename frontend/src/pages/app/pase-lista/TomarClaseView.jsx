@@ -35,6 +35,15 @@ function userName(u) {
   return full || u.nombre_completo || u.correo_electronico || `Usuario ${u.id_usuario ?? u.nro_carnet ?? ""}`
 }
 
+function capacitacionDisponible(paralelo, capacitaciones, fecha) {
+  const capacitacion = capacitaciones.find(item => String(item.id_capacitacion) === String(paralelo.id_capacitacion))
+  if (!capacitacion) return false
+  if (capacitacion.activo === true) return true
+  const inicio = String(capacitacion.fecha_inicio ?? "").slice(0, 10)
+  const fin = String(capacitacion.fecha_fin ?? "").slice(0, 10)
+  return Boolean(inicio && fecha >= inicio && (!fin || fecha <= fin))
+}
+
 export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = null }) {
   const { activeRole } = useAuth()
   const isAdministracion = activeRole === "Administración"
@@ -103,12 +112,22 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
   )
   const paraleloOptions = useMemo(
     () =>
-      (catalogs.paralelos ?? []).filter(p => coincideHorario(p, clock)).map((p) => ({
+      (catalogs.paralelos ?? [])
+        .filter(p => coincideHorario(p, clock) && capacitacionDisponible(p, catalogs.capacitaciones ?? [], clock.fecha))
+        .map((p) => ({
         value: p.id_paralelo,
         label: `${p.nombre_paralelo}${p.nivel ? ` (${p.nivel})` : ""}${p.dias ? ` · ${p.dias}` : ""}`,
       })),
-    [catalogs.paralelos, clock],
+    [catalogs.paralelos, catalogs.capacitaciones, clock],
   )
+
+  useEffect(() => {
+    if (form.idParalelo && !paraleloOptions.some(option => String(option.value) === String(form.idParalelo))) {
+      setForm(current => ({ ...current, idParalelo: "", idAula: "", horaInicio: "", horaFin: "" }))
+      setAlumnos([])
+      setAsistencia({})
+    }
+  }, [form.idParalelo, paraleloOptions])
   const aulaOptions = useMemo(
     () =>
       (catalogs.aulas ?? []).map((a) => ({
@@ -209,6 +228,10 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
     }
     if (!coincideHorario(paraleloSeleccionado, horarioActual())) {
       setGuardado("Este paralelo no tiene clase en el horario actual.")
+      return
+    }
+    if (!paraleloSeleccionado || !capacitacionDisponible(paraleloSeleccionado, catalogs.capacitaciones ?? [], horarioActual().fecha)) {
+      setGuardado("La capacitación de este paralelo no está activa ni dentro de sus fechas.")
       return
     }
     if (!isAdministracion && (!form.idMateria || !form.idAsesor || !form.idAula || !form.tema.trim())) {
@@ -363,7 +386,7 @@ export default function TomarClaseView({ catalogs, onSaved, initialAsesorId = nu
                   value={form.idParalelo || null}
                   onSelect={(v) => setField("idParalelo", v)}
                   placeholder="Escribe para buscar paralelo..."
-                  hint="Se muestran los paralelos con clase en el horario actual."
+                  hint="Se muestran los paralelos del horario actual con capacitación activa o dentro de sus fechas."
                 />
               </Suspense>
               <Suspense fallback={<Skeleton lines={1} />}>

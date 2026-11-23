@@ -18,6 +18,12 @@ const capacitacionSchema = z.object({
     .positive("El id_convocatoria debe ser mayor a 0"),
   fecha_inicio: fecha("fecha de inicio"),
   fecha_fin: fecha("fecha de fin").nullable().optional(),
+  precio: z.preprocess(
+    (value) => typeof value === "string" && value.trim() !== "" ? Number(value) : value,
+    z.number({ required_error: "El precio es obligatorio" })
+    .finite("El precio debe ser un número válido")
+    .nonnegative("El precio no puede ser negativo"),
+  ),
   activo: z.boolean().optional(),
 });
 

@@ -10,6 +10,7 @@ export default function TextField({
   required = false,
   maxLength,
   min,
+  step,
   autoComplete,
   error,
 }) {
@@ -25,6 +26,7 @@ export default function TextField({
         required={required}
         maxLength={maxLength}
         min={min}
+        step={step}
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
       />
@@ -47,6 +49,7 @@ TextField.propTypes = {
   required: PropTypes.bool,
   maxLength: PropTypes.number,
   min: PropTypes.string,
+  step: PropTypes.string,
   autoComplete: PropTypes.string,
   error: PropTypes.string,
 }

@@ -5,6 +5,7 @@ const SELECT_CAPACITACION = `
          c.id_convocatoria,
          c.fecha_inicio,
          c.fecha_fin,
+         c.precio,
          c.activo,
          cv.fecha_inicio AS fecha_inicio_convocatoria,
          cv.id_facultad,
@@ -48,15 +49,15 @@ const checkConvocatoria = async (idConvocatoria) => {
 
 export const createCapacitacion = async (req, res, next) => {
   try {
-    const { id_convocatoria, fecha_inicio, fecha_fin, activo } = req.body;
+    const { id_convocatoria, fecha_inicio, fecha_fin, precio, activo } = req.body;
     const fkError = await checkConvocatoria(id_convocatoria);
     if (fkError) return res.status(409).json({ error: fkError });
 
     const { rows } = await pool.query(
-      `INSERT INTO capacitaciones (id_convocatoria, fecha_inicio, fecha_fin, activo)
-       VALUES ($1, $2, $3, COALESCE($4, TRUE))
+      `INSERT INTO capacitaciones (id_convocatoria, fecha_inicio, fecha_fin, precio, activo)
+       VALUES ($1, $2, $3, $4, COALESCE($5, TRUE))
        RETURNING id_capacitacion`,
-      [id_convocatoria, fecha_inicio, fecha_fin ?? null, activo ?? null],
+      [id_convocatoria, fecha_inicio, fecha_fin ?? null, precio, activo ?? null],
     );
     res.status(201).json(await fetchCapacitacion(rows[0].id_capacitacion));
   } catch (error) {
@@ -72,7 +73,7 @@ export const updateCapacitacion = async (req, res, next) => {
     const fkError = await checkConvocatoria(req.body.id_convocatoria);
     if (fkError) return res.status(409).json({ error: fkError });
 
-    const allowed = ["id_convocatoria", "fecha_inicio", "fecha_fin", "activo"];
+    const allowed = ["id_convocatoria", "fecha_inicio", "fecha_fin", "precio", "activo"];
     const entries = allowed
       .filter((column) => req.body[column] !== undefined)
       .map((column) => [column, req.body[column]]);
