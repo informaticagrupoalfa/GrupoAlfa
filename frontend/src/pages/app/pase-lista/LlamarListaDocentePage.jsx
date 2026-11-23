@@ -263,6 +263,8 @@ export default function LlamarListaDocentePage() {
         if (!scanBusyRef.current) {
           scanBusyRef.current = true
           try {
+            await new Promise(resolve => window.setTimeout(resolve, 500))
+            if (streamRef.current !== stream) return
             const codes = await detector.detect(videoRef.current)
             if (streamRef.current !== stream) return
             const raw = codes[0]?.rawValue ?? ""
