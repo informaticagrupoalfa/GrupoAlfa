@@ -1,10 +1,25 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { buildSchedule, WEEKDAY_LABELS } from "../../utils/dashboardSchedule"
 import "./ScheduleMatrix.css"
 
+const fechaBolivia = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/La_Paz", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date())
+  const fecha = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  return `${fecha.year}-${fecha.month}-${fecha.day}`
+}
+
 export default function ScheduleMatrix({ aulas, paralelos }) {
-  const schedule = useMemo(() => buildSchedule(paralelos, aulas), [paralelos, aulas])
+  const [hoy, setHoy] = useState(fechaBolivia)
+  useEffect(() => {
+    const timer = window.setInterval(() => setHoy(fechaBolivia()), 60000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const schedule = useMemo(() => buildSchedule(paralelos.filter(paralelo => {
+    const inicio = String(paralelo.capacitacion_inicio ?? "").slice(0, 10)
+    const fin = String(paralelo.capacitacion_fin ?? "").slice(0, 10)
+    return paralelo.capacitacion_activa === true && inicio && fin && inicio <= hoy && hoy <= fin
+  }), aulas), [paralelos, aulas, hoy])
 
   return (
     <section className="chart-panel schedule-panel" aria-labelledby="schedule-title">
@@ -26,7 +41,7 @@ export default function ScheduleMatrix({ aulas, paralelos }) {
       {!schedule.rooms.length ? (
         <p className="muted">Registra aulas para ver su capacidad semanal.</p>
       ) : !schedule.slots.length ? (
-        <p className="muted">Registra los días y horarios de los paralelos para construir la matriz.</p>
+        <p className="muted">No hay paralelos con horarios registrados en capacitaciones activas y vigentes.</p>
       ) : (
         <div className="schedule-scroll" role="region" aria-label="Matriz semanal de aulas" tabIndex={0}>
           <table className="schedule-table">

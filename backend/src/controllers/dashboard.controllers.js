@@ -30,6 +30,8 @@ export async function getDashboardResumen(req, res, next) {
       pool.query("SELECT id_aula, codigo, capacidad FROM aulas ORDER BY codigo NULLS LAST, id_aula"),
       pool.query(`SELECT p.id_paralelo, p.nombre_paralelo, p.id_aula, p.dias,
           p.hora_inicio, p.hora_fin, p.activo,
+          c.activo AS capacitacion_activa, c.fecha_inicio AS capacitacion_inicio,
+          c.fecha_fin AS capacitacion_fin,
           f.nombre AS facultad,
           COALESCE(inscritos.ocupados, 0) AS ocupados
         FROM paralelos p

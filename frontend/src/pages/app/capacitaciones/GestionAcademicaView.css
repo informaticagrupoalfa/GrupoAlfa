@@ -680,6 +680,19 @@
 .setup-actions button.subtle { background: #e8eef0; color: var(--ink); }
 .setup-card { background: var(--wash); border-color: var(--line); }
 .setup-card.selected { outline: 2px solid var(--tone); outline-offset: 1px; box-shadow: none; }
+.setup-card.course-active { background: #dff3e5; }
+.setup-card.course-inactive { background: #e8ebee; }
+.setup-card { height: auto; min-height: 150px; padding: 6px; }
+.card-select {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 0;
+}
+.card-icon { align-self: center; }
+.card-actions { padding: 0; }
+.card-actions button { min-width: 48px; min-height: 26px; padding: 0; }
 .setup-message { background: var(--academy-pale); color: var(--academy-dark); }
 @media (max-width: 520px) { .setup-page { padding: 0; } }
 
