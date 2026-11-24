@@ -1,0 +1,46 @@
+﻿.ap-view { display: grid; gap: 18px; }
+.ap-heading, .ap-section-head { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.ap-heading h2, .ap-section-head h3 { margin: 0; color: var(--ink); }
+.ap-heading h2 { font-size: 1.4rem; }
+.ap-heading p, .ap-section-head p { margin: 5px 0 0; color: var(--ink-soft); font-size: .86rem; }
+.ap-counter { display: grid; grid-template-columns: auto auto; align-items: center; gap: 3px 18px; padding: 13px 18px; border: 1px solid #b7d8dc; border-radius: 10px; background: #edf7f7; color: var(--academy-dark); }
+.ap-counter span { font-size: .82rem; font-weight: 650; }
+.ap-counter strong { font-size: 1.8rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ap-counter small { grid-column: 1 / -1; max-width: 240px; }
+.ap-panel { min-width: 0; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.ap-panel > p { color: var(--ink-soft); font-size: .85rem; }
+.ap-arrows { display: flex; gap: 6px; }
+.ap-arrows button, .ap-year button { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); background: #fff; color: var(--academy-dark); font-size: 1.3rem; cursor: pointer; }
+.ap-folders { display: flex; gap: 14px; overflow-x: auto; padding: 20px 2px 8px; scroll-snap-type: x proximity; }
+.ap-folder { position: relative; display: flex; align-items: center; flex: 0 0 200px; min-height: 96px; margin-top: 9px; padding: 18px 15px; border: 1px solid #a6cbd0; border-radius: 4px 9px 9px 9px; background: #e6f2f1; color: #195660; text-align: left; font-weight: 700; cursor: pointer; scroll-snap-align: start; }
+.ap-folder::before { position: absolute; content: ""; left: -1px; top: -10px; width: 75px; height: 10px; border: 1px solid #a6cbd0; border-bottom: 0; border-radius: 6px 8px 0 0; background: #cce5e3; }
+.ap-folder:hover, .ap-folder.is-selected { border-color: #347e83; background: #cfe9e4; box-shadow: inset 0 -4px 0 #347e83; }
+.ap-folder.is-selected::before { border-color: #347e83; background: #98cbc2; }
+.ap-folder span { overflow-wrap: anywhere; }
+.ap-parallels { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 16px; }
+.ap-parallel { display: grid; gap: 5px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 8px; background: #f9fbfb; color: var(--ink); text-align: left; cursor: pointer; }
+.ap-parallel span { color: var(--ink-soft); font-size: .78rem; }
+.ap-parallel:hover, .ap-parallel.is-selected { border-color: var(--academy); background: var(--academy-pale); }
+.ap-year { display: grid; grid-template-columns: 34px 66px 34px; align-items: center; text-align: center; font-variant-numeric: tabular-nums; }
+.ap-legend { display: flex; align-items: center; gap: 7px; margin: 17px 0 0; }
+.ap-legend span { width: 12px; height: 12px; border: 1px solid #78b993; border-radius: 3px; background: #dcefe3; }
+.ap-total { margin: 9px 0 0; }
+.ap-month-grid { display: grid; grid-template-columns: repeat(4, minmax(175px, 1fr)); gap: 12px; margin-top: 14px; }
+.ap-month { min-width: 0; padding: 12px; border: 1px solid #dfe8ea; border-radius: 8px; background: #fbfcfc; }
+.ap-month h4 { margin: 0 0 9px; color: var(--academy-dark); font-size: .9rem; }
+.ap-weekdays, .ap-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.ap-weekdays { margin-bottom: 5px; color: #7a8d97; font-size: .65rem; font-weight: 700; text-align: center; }
+.ap-day { display: grid; place-items: center; min-width: 0; aspect-ratio: 1; padding: 0; border: 1px solid #e2e9eb; border-radius: 4px; background: #fff; color: #6d7d85; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.ap-day.has-list { border-color: #78b993; background: #dcefe3; color: #17623d; font-weight: 700; cursor: pointer; }
+.ap-day.has-list:hover, .ap-day.is-selected { border-color: #17623d; background: #a4d7b4; }
+.ap-day.is-today { outline: 2px solid var(--academy); outline-offset: 1px; }
+.ap-view button:focus-visible { outline: 3px solid var(--academy); outline-offset: 2px; }
+@media (max-width: 1100px) { .ap-month-grid { grid-template-columns: repeat(3, minmax(170px, 1fr)); } }
+@media (max-width: 780px) { .ap-month-grid { grid-template-columns: repeat(2, minmax(155px, 1fr)); } }
+@media (max-width: 540px) {
+  .ap-heading { align-items: stretch; flex-direction: column; }
+  .ap-counter { align-self: flex-start; }
+  .ap-panel { padding: 15px; }
+  .ap-calendar .ap-section-head { align-items: flex-start; flex-direction: column; }
+  .ap-month-grid { grid-template-columns: 1fr; }
+}

@@ -43,7 +43,7 @@ export const MODULE_TABS = {
     defaultTab: "asistencias",
     items: [
       { key: "asistencias", label: "Asistencias" },
-      { key: "tomar-clase", label: "Tomar clase" },
+      { key: "asistencias-paralelo", label: "Asistencias paralelo" },
     ],
   },
   "llamar-lista": {

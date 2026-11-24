@@ -5,10 +5,10 @@ import ErrorFallback from "../../../components/ui/ErrorFallback"
 import { loadPaseListaCatalogs } from "../../../services/paseListaService"
 
 // split-component-lazy: cada pestaña en su propio chunk.
-const TomarClaseView = lazy(() => import("./TomarClaseView.jsx"))
+const AsistenciasParaleloView = lazy(() => import("./AsistenciasParaleloView.jsx"))
 const AsistenciasView = lazy(() => import("./AsistenciasView.jsx"))
 
-const TABS = ["asistencias", "tomar-clase"]
+const TABS = ["asistencias", "asistencias-paralelo"]
 
 export default function PaseListaPage() {
   const [searchParams] = useSearchParams()
@@ -53,9 +53,9 @@ export default function PaseListaPage() {
 
   return (
     <section>
-      {active === "tomar-clase" && (
+      {active === "asistencias-paralelo" && (
         <Suspense fallback={<Skeleton lines={6} />}>
-          <TomarClaseView catalogs={catalogs} onSaved={() => setListVersion((v) => v + 1)} />
+          <AsistenciasParaleloView catalogs={catalogs} version={listVersion} />
         </Suspense>
       )}
 
