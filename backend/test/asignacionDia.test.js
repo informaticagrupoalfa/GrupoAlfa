@@ -106,6 +106,46 @@ test("actualiza solo la asignación seleccionada", async () => {
   assert.deepEqual(updated, [4, "miercoles", 12]);
 });
 
+test("permite quitar y reasignar el asesor conservando la materia, el día y las clases", async () => {
+  let advisor = 3;
+  const snapshots = [];
+  pool.connect = async () => ({
+    release() {},
+    async query(sql, params) {
+      if (sql.includes("FROM paralelos WHERE")) return { rows: [{ id_paralelo: 7, dias: "lunes" }] };
+      if (sql.includes("WHERE id_paralelo_materia = $1")) return { rows: [{ id_paralelo_materia: 51, id_paralelo: 7, id_materia: 5, id_asesor: advisor, dia: "lunes" }] };
+      if (sql.includes("SELECT 1 FROM clases")) return { rowCount: 1 };
+      if (sql.includes("UPDATE clases")) { snapshots.push(params); return { rowCount: 1 }; }
+      if (sql.includes("UPDATE paralelo_materia_asesor")) advisor = params[0];
+      return { rows: [], rowCount: 0 };
+    },
+  });
+  pool.query = async () => ({ rows: [{ id_paralelo_materia: 51, id_asesor: advisor, dia: "lunes" }] });
+  for (const value of [null, 4]) {
+    const res = response();
+    await updateAsignacionDocente({ body: { id_paralelo_materia: 51, id_asesor: value, id_paralelo: 7, id_materia: 5, dia: "lunes" } }, res, error => { throw error; });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.id_asesor, value);
+    assert.equal(res.body.dia, "lunes");
+  }
+  assert.deepEqual(snapshots, [[51, 3]]);
+});
+
+test("no permite cambiar la materia o el día de una asignación con clases", async () => {
+  pool.connect = async () => ({
+    release() {},
+    async query(sql) {
+      if (sql.includes("FROM paralelos WHERE")) return { rows: [{ id_paralelo: 7, dias: "lunes, miercoles" }] };
+      if (sql.includes("WHERE id_paralelo_materia = $1")) return { rows: [{ id_paralelo_materia: 51, id_paralelo: 7, id_materia: 5, id_asesor: 3, dia: "lunes" }] };
+      if (sql.includes("SELECT 1 FROM clases")) return { rowCount: 1 };
+      return { rows: [], rowCount: 0 };
+    },
+  });
+  const res = response();
+  await updateAsignacionDocente({ body: { id_paralelo_materia: 51, id_asesor: null, id_paralelo: 7, id_materia: 5, dia: "miercoles" } }, res, error => { throw error; });
+  assert.equal(res.statusCode, 409);
+});
+
 test("elimina la asignación liberando la materia del paralelo", async () => {
   let freedId;
   pool.connect = async () => ({

@@ -111,8 +111,8 @@
 .teacher-parallel-card:last-child { margin-bottom: 0; }
 .teacher-parallel-toggle {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   min-height: 42px;
@@ -127,7 +127,7 @@
   cursor: pointer;
 }
 .teacher-parallel-title { min-width: 0; }
-.teacher-parallel-advisors { color: inherit; font-size: .7rem; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.teacher-parallel-advisors { color: inherit; font-size: .7rem; font-weight: 600; text-align: left; overflow-wrap: anywhere; }
 .teacher-parallel-toggle:hover:not(:disabled) { filter: brightness(.97); }
 .teacher-parallel-toggle:focus-visible, .teacher-assigned:focus-visible, .teacher-matrix-actions button:focus-visible, .teacher-slot-select:focus-visible {
   outline: 3px solid var(--academy);
@@ -136,6 +136,8 @@
 .teacher-parallel-toggle:disabled { opacity: .65; cursor: not-allowed; }
 .teacher-parallel-card.status-success { border-color: #77b68e; }
 .teacher-parallel-card.status-success .teacher-parallel-toggle { background: #dff3e6; color: #1f6139; }
+.teacher-parallel-card.status-empty { border-color: #c3c9cd; }
+.teacher-parallel-card.status-empty .teacher-parallel-toggle { background: #e6e8ea; color: #424b52; }
 .teacher-parallel-card.status-warning { border-color: #dfa352; }
 .teacher-parallel-card.status-warning .teacher-parallel-toggle { background: #fff0d5; color: #8a4e08; }
 .teacher-parallel-card.status-danger { border-color: #d67575; }

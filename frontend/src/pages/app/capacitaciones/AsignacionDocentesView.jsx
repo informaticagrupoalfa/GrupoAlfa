@@ -85,7 +85,7 @@ export default function AsignacionDocentesView() {
   }
 
   const saveAssignment = async () => {
-    if (!assignmentSlot || !pickedAdvisor || !pickedSubjectId || busy) return
+    if (!assignmentSlot || (!assignment && !pickedAdvisor) || !pickedSubjectId || busy) return
     const capacitacion = data.capacitaciones.find(c => String(c.id_capacitacion) === String(assignmentSlot.parallel?.id_capacitacion))
     if (!capacitacionVigente(capacitacion, horarioActual().fecha)) {
       clearSelection()
@@ -98,7 +98,7 @@ export default function AsignacionDocentesView() {
     try {
       const payload = {
         ...(assignment && { id_paralelo_materia: assignment.id_paralelo_materia ?? assignment.id_asesor_paralelo_materia }),
-        id_asesor: pickedAdvisor.id_asesor,
+        id_asesor: pickedAdvisor?.id_asesor ?? null,
         id_paralelo: assignmentSlot.parallel.id_paralelo,
         id_materia: Number(pickedSubjectId),
         dia: assignmentSlot.day,

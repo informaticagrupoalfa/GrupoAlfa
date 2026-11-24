@@ -149,7 +149,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
       {assignmentSlot && <div className="teacher-matrix-controls" ref={controlsRef}>
         <div className="teacher-matrix-editing">
           <strong>{assignment ? "Editar" : "Nueva asignación"}: {parallel?.nombre_paralelo} · {weekdayLabel(assignmentSlot.day)}</strong>
-          <span>Selecciona el asesor y la materia que dictará ese día.</span>
+          <span>{assignment ? "Selecciona un asesor o deja la asignación sin asesor." : "Selecciona el asesor y la materia que dictará ese día."}</span>
         </div>
         <label htmlFor="teacher-advisor">Asesor
           <select id="teacher-advisor" disabled={busy} value={pickedAdvisor?.id_asesor ?? ""} onChange={event => onSelectAdvisor(data.asesores.find(item => String(item.id_asesor) === event.target.value) || null)}>
@@ -164,7 +164,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
           </select>
         </label>
         <div className="teacher-matrix-actions">
-          <button type="button" className="submit-button" disabled={!pickedAdvisor || !pickedSubjectId || busy} onClick={onSave}>{busy ? "Guardando…" : "Guardar asignación"}</button>
+          <button type="button" className="submit-button" disabled={(!assignment && !pickedAdvisor) || !pickedSubjectId || busy} onClick={onSave}>{busy ? "Guardando…" : "Guardar asignación"}</button>
           {assignment && <button type="button" className="teacher-delete" disabled={busy} onClick={onDelete}>Eliminar</button>}
           <button type="button" className="teacher-cancel" disabled={busy} onClick={onCancel}>Cancelar</button>
         </div>
@@ -197,7 +197,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
                       const hasAvailableSubject = (parallel.asignaciones || []).some(subject => subject.id_materia != null && !assignedElsewhere.has(String(subject.id_materia)))
                       const slotId = assignmentKey(parallel.id_paralelo, day.key)
                       const isExpanded = expandedSlot === slotId
-                      const status = assigned.length >= 3 ? "danger" : assigned.length === 2 ? "warning" : assigned.length === 1 ? "success" : "empty"
+                      const status = assigned.length && assigned.every(item => item.id_asesor != null) ? "success" : "empty"
                       const assignedAdvisors = [...new Set(assigned.map(item => item.nombre_asesor).filter(Boolean))].join(", ")
                       return <article className={`teacher-parallel-card status-${status}`} key={parallel.id_paralelo}>
                         <button type="button" className="teacher-parallel-toggle" disabled={busy}
@@ -205,13 +205,13 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
                           aria-label={`${parallel.nombre_paralelo}${assignedAdvisors ? `, ${assignedAdvisors}` : ""}: ${assigned.length} asignación${assigned.length === 1 ? "" : "es"}. ${isExpanded ? "Ocultar opciones" : "Mostrar opciones"}`}
                           onClick={() => toggleSlot(parallel.id_paralelo, day.key)}>
                           <span className="teacher-parallel-title">{parallel.nombre_paralelo}</span>
-                          {assignedAdvisors && <span className="teacher-parallel-advisors">{assignedAdvisors}</span>}
+                          {assigned.map(item => <span className="teacher-parallel-advisors" key={assignmentId(item)}>{item.nombre_materia} · {item.nombre_asesor || "Sin docente"}</span>)}
                         </button>
                         {isExpanded && <div id={`teacher-slot-${parallel.id_paralelo}-${day.key}`} className="teacher-parallel-details">
                           <ParallelInfo parallel={parallel} course={course} />
                           <div className="teacher-parallel-assignments">
                             {assigned.map(item => <button type="button" key={assignmentId(item)} className="teacher-assigned" disabled={busy} onClick={() => onEdit(item)}>
-                              <strong>{item.nombre_materia}</strong> · {item.nombre_asesor} <span>Editar</span>
+                              <strong>{item.nombre_materia}</strong> · {item.nombre_asesor || "Sin docente"} <span>Editar</span>
                             </button>)}
                             {hasAvailableSubject && <button type="button" className="teacher-slot-select" disabled={busy} onClick={() => onAssign(parallel, day.key)}>Añadir materia y asesor</button>}
                             {!hasAvailableSubject && assigned.length === 0 && <span className="teacher-slot-unavailable">Este paralelo no tiene materias disponibles.</span>}
