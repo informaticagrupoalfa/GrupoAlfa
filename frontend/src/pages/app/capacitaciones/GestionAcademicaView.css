@@ -679,10 +679,16 @@
 .setup-actions button { background: var(--academy); }
 .setup-actions button.subtle { background: #e8eef0; color: var(--ink); }
 .setup-card { background: var(--wash); border-color: var(--line); }
-.setup-card.selected { outline: 2px solid var(--tone); outline-offset: 1px; box-shadow: none; }
+.setup-card.selected {
+  outline: 3px solid var(--tone);
+  outline-offset: 1px;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px #16354b30;
+}
 .setup-card.course-active { background: #dff3e5; }
 .setup-card.course-inactive { background: #e8ebee; }
-.setup-card { height: auto; min-height: 150px; padding: 6px; }
+.setup-card { height: auto; min-height: 150px; padding: 6px; transition: transform 180ms ease, box-shadow 180ms ease; }
+@media (prefers-reduced-motion: reduce) { .setup-card { transition: none; } }
 .card-select {
   display: flex;
   flex-direction: column;
