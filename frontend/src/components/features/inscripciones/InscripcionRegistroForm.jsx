@@ -600,27 +600,30 @@ export default function InscripcionRegistroForm({
       setFormError("El CI es obligatorio.")
       return
     }
-    if (!form.apoderado_ci.trim()) {
+    const tieneApoderado = [form.apoderado_ci, form.apoderado_nombre, form.apoderado_apellido_paterno,
+      form.apoderado_apellido_materno, form.apoderado_telefono, form.apoderado_correo_electronico,
+      form.apoderado_parentesco, form.apoderado_contraseña].some(value => value.trim())
+    if (tieneApoderado && !form.apoderado_ci.trim()) {
       setFormError("El CI del apoderado es obligatorio.")
       return
     }
-    if (!form.apoderado_nombre.trim()) {
+    if (tieneApoderado && !form.apoderado_nombre.trim()) {
       setFormError("El nombre del apoderado es obligatorio.")
       return
     }
-    if (!form.apoderado_apellido_paterno.trim()) {
+    if (tieneApoderado && !form.apoderado_apellido_paterno.trim()) {
       setFormError("El apellido paterno del apoderado es obligatorio.")
       return
     }
-    if (!form.apoderado_apellido_materno.trim()) {
+    if (tieneApoderado && !form.apoderado_apellido_materno.trim()) {
       setFormError("El apellido materno del apoderado es obligatorio.")
       return
     }
-    if (!form.apoderado_telefono.trim()) {
+    if (tieneApoderado && !form.apoderado_telefono.trim()) {
       setFormError("El teléfono del apoderado es obligatorio.")
       return
     }
-    if (!existingGuardian?.id_apoderado && !form.apoderado_contraseña) {
+    if (tieneApoderado && !existingGuardian?.id_usuario && !selectedApoderadoId && !form.apoderado_contraseña) {
       setFormError("La contraseña del apoderado es obligatoria.")
       return
     }
@@ -934,7 +937,7 @@ export default function InscripcionRegistroForm({
       </section>
 
       <section className="card" aria-labelledby="ins-datos-apoderado">
-        <h3 id="ins-datos-apoderado">Datos del apoderado</h3>
+        <h3 id="ins-datos-apoderado">Datos del apoderado (opcional)</h3>
         <div className="inscripcion-fields">
           <div className="inscripcion-form-row">
             <RegistroCampo id="ins-apoderado" label="Apoderado registrado" wide>

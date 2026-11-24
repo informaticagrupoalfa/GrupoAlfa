@@ -262,40 +262,55 @@ export const registrarEstudiante = async (req, res, next) => {
       idUsuarioEstudiante = rows[0].id_usuario;
     }
 
-    const apoderadoExistente = await client.query(
-      "SELECT id_usuario FROM usuarios WHERE nro_carnet = $1 LIMIT 1",
-      [apoderado_ci]
-    );
-    let idUsuarioApoderado;
-    if (apoderadoExistente.rows.length > 0) {
-      idUsuarioApoderado = apoderadoExistente.rows[0].id_usuario;
-    } else {
-      const salAp = await bcrypt.genSalt(10);
-      const contraAp = await bcrypt.hash(apoderado_contraseña, salAp);
-      const { rows } = await client.query(
-        `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, correo_electronico, contraseña, usuario_vigente)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-         RETURNING id_usuario`,
-        [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, apoderado_correo_electronico ?? null, contraAp]
-      );
-      idUsuarioApoderado = rows[0].id_usuario;
+    let idUsuarioApoderado = null;
+    let idApoderado = null;
+    const datosApoderado = [apoderado_ci, apoderado_nombre, apoderado_apellido_paterno,
+      apoderado_apellido_materno, apoderado_telefono, apoderado_correo_electronico,
+      apoderado_contraseña, apoderado_parentesco];
+    const tieneApoderado = datosApoderado.some(value => value != null && String(value).trim() !== "");
+    if (tieneApoderado && !String(apoderado_ci ?? "").trim()) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "El CI del apoderado es obligatorio cuando se proporcionan sus datos." });
     }
+    if (tieneApoderado) {
+      const apoderadoExistente = await client.query(
+        "SELECT id_usuario FROM usuarios WHERE nro_carnet = $1 LIMIT 1",
+        [apoderado_ci]
+      );
+      if (apoderadoExistente.rows.length > 0) {
+        idUsuarioApoderado = apoderadoExistente.rows[0].id_usuario;
+      } else {
+        if (![apoderado_nombre, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_telefono, apoderado_contraseña]
+          .every(value => typeof value === "string" && value.trim())) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ error: "Completa los datos y la contraseña del nuevo apoderado." });
+        }
+        const salAp = await bcrypt.genSalt(10);
+        const contraAp = await bcrypt.hash(apoderado_contraseña, salAp);
+        const { rows } = await client.query(
+          `INSERT INTO usuarios (nro_carnet, apellido_paterno, apellido_materno, nombre, nro_telefono, correo_electronico, contraseña, usuario_vigente)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+           RETURNING id_usuario`,
+          [apoderado_ci, apoderado_apellido_paterno, apoderado_apellido_materno, apoderado_nombre, apoderado_telefono, apoderado_correo_electronico ?? null, contraAp]
+        );
+        idUsuarioApoderado = rows[0].id_usuario;
+      }
 
-    // 5. Reutilizar el perfil de apoderado si el usuario ya lo tiene.
-    const apoderadoPerfilExistente = await client.query(
-      "SELECT id_apoderado FROM apoderados WHERE id_usuario = $1 LIMIT 1",
-      [idUsuarioApoderado]
-    );
-    let idApoderado;
-    if (apoderadoPerfilExistente.rows.length > 0) {
-      idApoderado = apoderadoPerfilExistente.rows[0].id_apoderado;
-    } else {
-      const { rows } = await client.query(
-        "INSERT INTO apoderados (id_usuario, parentesco) VALUES ($1,$2) RETURNING id_apoderado",
-        [idUsuarioApoderado, apoderado_parentesco]
+      // 5. Reutilizar el perfil de apoderado si el usuario ya lo tiene.
+      const apoderadoPerfilExistente = await client.query(
+        "SELECT id_apoderado FROM apoderados WHERE id_usuario = $1 LIMIT 1",
+        [idUsuarioApoderado]
       );
-      idApoderado = rows[0].id_apoderado;
-    }
+      if (apoderadoPerfilExistente.rows.length > 0) {
+        idApoderado = apoderadoPerfilExistente.rows[0].id_apoderado;
+      } else {
+        const { rows } = await client.query(
+          "INSERT INTO apoderados (id_usuario, parentesco) VALUES ($1,$2) RETURNING id_apoderado",
+          [idUsuarioApoderado, apoderado_parentesco]
+        );
+        idApoderado = rows[0].id_apoderado;
+      }
+      }
 
     // 6. Reutilizar el perfil de estudiante si el usuario ya lo tiene.
     const fotoBuffer = foto ? Buffer.from(foto, "base64") : null;
@@ -308,7 +323,7 @@ export const registrarEstudiante = async (req, res, next) => {
       idEstudiante = estudiantePerfilExistente.rows[0].id_estudiante;
       await client.query(
         `UPDATE estudiantes
-         SET id_apoderado = $1,
+         SET id_apoderado = COALESCE($1, id_apoderado),
              colegio_de_procedencia = COALESCE($2, colegio_de_procedencia),
              direccion_de_domicilio = COALESCE($3, direccion_de_domicilio),
              foto = COALESCE($4, foto)
@@ -366,7 +381,7 @@ export const registrarEstudiante = async (req, res, next) => {
     const idInscripcion = inscripcionRow[0].id_inscripcion;
 
     await assignRole(client, idUsuarioEstudiante, "Estudiante");
-    await assignRole(client, idUsuarioApoderado, "Apoderado");
+    if (idUsuarioApoderado != null) await assignRole(client, idUsuarioApoderado, "Apoderado");
 
     await client.query("COMMIT");
 
