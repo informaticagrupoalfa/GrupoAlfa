@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { apiClient } from "../../../services/apiClient"
 import { useRef } from "react"
-import BrandLogo from "../../../components/ui/BrandLogo"
+import ClaseInfoHeader from "./ClaseInfoHeader"
 import FloatingAlert from "../../../components/ui/FloatingAlert"
 import { coincideHorario, horarioActual } from "./horarioActual"
 import { parseStudentQr } from "./llamarListaUtils"
@@ -40,6 +40,8 @@ export default function ClaseActualView() {
   const [dialog, setDialog] = useState(null)
   const [busy, setBusy] = useState(false)
   const [camera, setCamera] = useState(false)
+  const [scanPermit, setScanPermit] = useState(false)
+  const [permitReason, setPermitReason] = useState("")
   const [cameraAvailability, setCameraAvailability] = useState("unknown")
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -100,6 +102,8 @@ export default function ClaseActualView() {
   useEffect(() => {
     setCamera(false)
     lastQrRef.current = ""
+    setScanPermit(false)
+    setPermitReason("")
     return () => {
       cameraRequestRef.current += 1
       streamRef.current?.getTracks().forEach(track => track.stop())
@@ -160,26 +164,41 @@ export default function ClaseActualView() {
     finally { setBusy(false) }
   }
 
-  const register = async (student, scanned = false) => {
+  const register = async (student, scanned = false, permit = false, reason = "") => {
     if (busy || registeringRef.current || !classId) return
+    if (permit && !reason.trim()) {
+      setMessage("Escribe la razón del permiso antes de escanear al estudiante.")
+      return
+    }
     registeringRef.current = true
     const targetClass = classId
     setBusy(true)
     try {
       const existing = attendances[String(student.id_estudiante)]
+      const status = { permiso: permit ? true : null, razon_permiso: permit ? reason.trim() : null }
       const response = existing
-        ? await apiClient.put("/asistencias/" + existing.id_asistencia, { permiso: null, razon_permiso: null })
-        : await apiClient.post("/asistencias", { id_clase: classId, id_estudiante: student.id_estudiante, hora_entrada: new Date().toISOString() })
+        ? await apiClient.put("/asistencias/" + existing.id_asistencia, status)
+        : await apiClient.post("/asistencias", { id_clase: classId, id_estudiante: student.id_estudiante, hora_entrada: new Date().toISOString(), ...(permit ? { permiso: true, razon_permiso: reason.trim() } : {}) })
       if (classRef.current !== targetClass) return
       setAttendances(current => ({ ...current, [String(student.id_estudiante)]: response.data }))
-      setDialog(scanned ? { student, status: "scanned", verification: response.data.verificacion } : null)
-      setMessage("Asistencia registrada: " + nameOf(student) + ".")
+      if (scanned && permit) { setScanPermit(false); setPermitReason("") }
+      const request = Symbol("ficha")
+      setDialog({ student, status: "registered", request, verification: response.data.verificacion, loading: true })
+      setMessage((permit ? "Permiso registrado: " : "Asistencia registrada: ") + nameOf(student) + ".")
+      apiClient.get(`/llamar-lista/clases/${targetClass}/estudiantes/${student.id_estudiante}/ficha`, { params: { scope: "mine" } })
+        .then(({ data }) => {
+          if (classRef.current === targetClass) setDialog(current => current?.request === request ? { ...current, detail: data, loading: false } : current)
+        })
+        .catch(() => {
+          if (classRef.current === targetClass) setDialog(current => current?.request === request ? { ...current, loading: false, detailError: true } : current)
+        })
     } catch (error) {
       if (classRef.current === targetClass) { setMessage(errorOf(error, "No se pudo registrar la asistencia.")); setDialog(null) }
     } finally { registeringRef.current = false; setBusy(false) }
   }
 
   scanRef.current = async raw => {
+    if (dialog || busy) return
     const id = parseStudentQr(raw)
     const student = id && students.find(item => String(item.id_estudiante) === id)
     if (!student) {
@@ -189,7 +208,7 @@ export default function ClaseActualView() {
     const existing = attendances[id]
     if (existing?.permiso === true) setDialog({ student, status: "permiso", record: existing })
     else if (existing && existing.permiso !== false) setMessage("La asistencia de " + nameOf(student) + " ya está registrada.")
-    else await register(student, true)
+    else await register(student, true, scanPermit, permitReason)
   }
 
   const toggleCamera = async () => {
@@ -287,14 +306,13 @@ export default function ClaseActualView() {
         </>}
     </form>}
     {open && assignment && <div>
-      <div className="clase-actual-header">
-        <div className="clase-actual-logo"><BrandLogo size={90} /></div>
-        <div className="clase-actual-fields">
-          {fields.map(([label, value]) => <div className="clase-actual-field" key={label}><span>{label}</span><strong>{value || "No registrado"}</strong></div>)}
-        </div>
-      </div>
+      <ClaseInfoHeader fields={fields} />
       <div className="clase-actual-scanner">
-        <button type="button" className="secondary-button clase-actual-camera-button" disabled={!camera && (cameraAvailability === "missing" || !classId || rosterLoading || Boolean(rosterError))} onClick={toggleCamera}>{camera ? "Cerrar cámara" : cameraAvailability === "missing" ? "Cámara no encontrada" : "Escanear QR de asistencia"}</button>
+        <div className="clase-actual-scan-options">
+          <button type="button" className="secondary-button clase-actual-camera-button" disabled={!camera && (cameraAvailability === "missing" || !classId || rosterLoading || Boolean(rosterError))} onClick={toggleCamera}>{camera ? "Cerrar cámara" : cameraAvailability === "missing" ? "Cámara no encontrada" : "Escanear QR de asistencia"}</button>
+          <label className="clase-actual-scan-permit"><input type="checkbox" checked={scanPermit} disabled={busy} onChange={event => { setScanPermit(event.target.checked); if (!event.target.checked) setPermitReason("") }} /> Escanear con permiso</label>
+          {scanPermit && <label className="clase-actual-permit-reason">Razón del permiso<input type="text" value={permitReason} disabled={busy} maxLength={150} onChange={event => setPermitReason(event.target.value)} /></label>}
+        </div>
         <video ref={videoRef} className="llamar-video clase-actual-video" hidden={!camera} playsInline muted />
         {camera && <p>Apunta la cámara al QR del estudiante para registrar su asistencia.</p>}
       </div>
@@ -319,9 +337,20 @@ export default function ClaseActualView() {
         <label>Fecha<input type="date" value={clock.fecha} readOnly /></label>
       </div>
     </div>}
-    {dialog && <FloatingAlert title={dialog.status === "permiso" ? "Motivo del permiso" : dialog.status === "presente" || dialog.status === "scanned" ? "Asistencia registrada" : "Confirmar asistencia"} onClose={() => setDialog(null)}>
-      <p><strong>{nameOf(dialog.student)}</strong></p>
-      {dialog.status === "permiso" ? <p>{dialog.record.razon_permiso || "No se registró un motivo."}</p> : dialog.status === "presente" ? <p>El estudiante ya tiene asistencia registrada.</p> : dialog.status === "scanned" ? <><p>Asistencia registrada correctamente.</p>{dialog.verification && <p>{dialog.verification.mensualidad_vigente ? "Mensualidad vigente." : "Sin mensualidad vigente."}</p>}</> : <><p>¿Registrar la asistencia de este estudiante?</p><div className="clase-actual-confirm-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => setDialog(null)}>Cancelar</button><button type="button" className="submit-button" disabled={busy} onClick={() => register(dialog.student)}>{busy ? "Registrando…" : "Confirmar asistencia"}</button></div></>}
+    {dialog && <FloatingAlert title={dialog.status === "permiso" ? "Motivo del permiso" : dialog.status === "presente" || dialog.status === "registered" ? "Asistencia registrada" : "Confirmar asistencia"} onClose={() => setDialog(null)}>
+      {dialog.status === "registered" ? <div className="clase-actual-registration">
+        {imageOf(dialog.detail?.foto_base64 || photos[String(dialog.student.id_estudiante)])
+          ? <img className="clase-actual-registration-photo" src={imageOf(dialog.detail?.foto_base64 || photos[String(dialog.student.id_estudiante)])} alt={"Foto de " + nameOf(dialog.student)} />
+          : <div className="clase-actual-registration-photo clase-actual-registration-placeholder" aria-label="Sin foto">—</div>}
+        <p><strong>Curso:</strong> {(() => {
+          const paid = dialog.detail?.verificacion?.mensualidad_vigente ?? dialog.verification?.mensualidad_vigente
+          return typeof paid === "boolean" ? <span className={paid ? "clase-actual-payment is-paid" : "clase-actual-payment is-unpaid"}>{paid ? "Pagado" : "Sin pagar"}</span> : dialog.loading ? "Consultando…" : "No disponible"
+        })()}</p>
+        <p><strong>Nombre:</strong> {nameOf(dialog.detail || dialog.student)}</p>
+        <p><strong>Carrera:</strong> {dialog.detail?.carrera_nombre || (dialog.loading ? "Consultando…" : dialog.detailError ? "No disponible" : "No registrada")}</p>
+      </div> : <><p><strong>{nameOf(dialog.student)}</strong></p>
+        {dialog.status === "permiso" ? <p>{dialog.record.razon_permiso || "No se registró un motivo."}</p> : dialog.status === "presente" ? <p>El estudiante ya tiene asistencia registrada.</p> : <><p>¿Registrar la asistencia de este estudiante?</p><div className="clase-actual-confirm-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => setDialog(null)}>Cancelar</button><button type="button" className="submit-button" disabled={busy} onClick={() => register(dialog.student)}>{busy ? "Registrando…" : "Confirmar asistencia"}</button></div></>}
+      </>}
     </FloatingAlert>}
   </section>
 }

@@ -15,6 +15,16 @@
 .clase-actual-field strong { overflow-wrap: anywhere; }
 .clase-actual-scanner { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
 .clase-actual-scanner p { margin: 0; color: var(--ink-soft); }
+.clase-actual-scan-options { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.clase-actual-scan-permit { display: inline-flex; align-items: center; gap: 6px; }
+.clase-actual-scan-permit input { width: auto; }
+.clase-actual-permit-reason { display: grid; gap: 4px; min-width: 200px; }
+.clase-actual-registration { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.clase-actual-registration-photo { width: 150px; height: 150px; border-radius: 10px; object-fit: cover; background: #edf2f3; }
+.clase-actual-registration-placeholder { display: grid; place-items: center; font-size: 2rem; color: var(--ink-soft); }
+.clase-actual-payment { display: inline-block; padding: 3px 9px; border-radius: 5px; font-weight: 700; }
+.clase-actual-payment.is-paid { background: #d8efde; color: #195b32; }
+.clase-actual-payment.is-unpaid { background: #f9dddd; color: #922e2e; }
 .clase-actual-video { max-width: 360px; }
 .clase-actual-camera-button:disabled { background: #e0e2e5; border-color: #c8cbd0; color: #656a70; cursor: not-allowed; }
 .clase-actual-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
