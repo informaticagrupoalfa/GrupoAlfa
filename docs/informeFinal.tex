@@ -1,0 +1,677 @@
+% =============================================================================
+% Informe Final de Pasantía
+% Sistema Académico para la Institución Grupo Alfa: Módulo 1
+% =============================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,top=3cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{bookmark}
+
+\setlength{\headheight}{14pt}
+
+% -----------------------------------------------------------------------------
+% Configuración general
+% -----------------------------------------------------------------------------
+\definecolor{alfaAzul}{RGB}{20,52,94}
+\definecolor{alfaGris}{RGB}{242,244,247}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=alfaAzul,
+  urlcolor=alfaAzul,
+  citecolor=alfaAzul,
+  pdftitle={Informe Final de Pasantía - Sistema Académico Grupo Alfa},
+  pdfauthor={Marcelo Luque Tarqui}
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlength{\emergencystretch}{2.5em}
+\onehalfspacing
+
+\titleformat{\chapter}[display]
+  {\normalfont\LARGE\bfseries\centering\color{alfaAzul}}
+  {CAPÍTULO \Roman{chapter} --}
+  {0.35em}
+  {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{22pt}
+
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{alfaAzul}}
+  {\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsection}{0.6em}{}
+
+\captionsetup{font=small,labelfont=bf,justification=centering}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{alfaAzul}Sistema Académico Grupo Alfa}
+\fancyhead[R]{\small\color{alfaAzul}Informe Final}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
+
+% Logo institucional: se resuelve según el directorio desde el que se compile.
+\newcommand{\logotipoalfa}{%
+  \IfFileExists{../frontend/public/LogoGrupoAlfa.jpg}{../frontend/public/LogoGrupoAlfa.jpg}{%
+    \IfFileExists{frontend/public/LogoGrupoAlfa.jpg}{frontend/public/LogoGrupoAlfa.jpg}{}}%
+}
+
+% Caja de nota
+\newcommand{\notabox}[2]{%
+  \noindent\fcolorbox{black!45}{alfaGris}{%
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
+      \small\textbf{#1}\par\vspace{0.3em}#2
+    \end{minipage}}%
+}
+
+% =============================================================================
+\begin{document}
+
+% -----------------------------------------------------------------------------
+% Portada
+% -----------------------------------------------------------------------------
+\pagenumbering{roman}
+\begin{titlepage}
+  \centering
+  \thispagestyle{empty}
+
+  {\large\bfseries UNIVERSIDAD MAYOR DE SAN ANDRÉS\par}
+  \vspace{0.35cm}
+  {\large\bfseries FACULTAD DE CIENCIAS PURAS Y NATURALES\par}
+  \vspace{0.35cm}
+  {\large\bfseries CARRERA DE INFORMÁTICA\par}
+
+  \vspace{1.2cm}
+  \IfFileExists{\logotipoalfa}{%
+    \includegraphics[width=0.30\textwidth]{\logotipoalfa}\par
+  }{%
+    \fbox{\begin{minipage}{0.30\textwidth}\centering\vspace{1.4cm}
+      \small Logotipo institucional\vspace{1.4cm}\end{minipage}}\par
+  }
+
+  \vspace{1.2cm}
+  {\Large\bfseries SISTEMA ACADÉMICO PARA LA INSTITUCIÓN GRUPO ALFA: MÓDULO 1\par}
+  \vspace{0.8cm}
+  {\LARGE\bfseries INFORME FINAL DE PASANTÍA\par}
+  \vspace{0.4cm}
+  {\large Desarrollo de actividades\par}
+
+  \vfill
+  \begin{tabular}{@{}>{\bfseries}p{4.4cm}p{8.2cm}@{}}
+    Docente coordinador: & M.Sc. Cayoja Cortez Juan \\
+    Tutor institucional: & Lic. Adán Sanz Guerrero Selaez \\
+    Pasante: & Luque Tarqui Marcelo \\
+  \end{tabular}
+
+  \vspace{1.2cm}
+  {\large LA PAZ -- BOLIVIA\par}
+  {\large 2026\par}
+\end{titlepage}
+
+% -----------------------------------------------------------------------------
+% Datos del documento
+% -----------------------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{2}
+
+\begin{center}
+  {\Large\bfseries\color{alfaAzul}Ficha del informe\par}
+\end{center}
+
+\vspace{0.4cm}
+
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.3cm}X@{}}
+  \toprule
+  Carrera: & Informática \\
+  Universidad: & Universidad Mayor de San Andrés \\
+  Modalidad: & Pasantía \\
+  Pasante: & Marcelo Luque Tarqui \\
+  Periodo de referencia: & Del 9 al 24 de noviembre de 2026 \\
+  Estado del proyecto: & Sistema web en producción; cliente móvil integrado en desarrollo \\
+  \bottomrule
+\end{tabularx}
+
+\vspace{0.9cm}
+
+\notabox{Nota de confidencialidad}{Este documento presenta el trabajo realizado desde una perspectiva académica y técnica. Se han omitido o generalizado credenciales, cadenas de conexión, datos personales, identificadores de estudiantes y apoderados, direcciones privadas, configuraciones sensibles y cualquier otro dato que pueda comprometer a la institución. Las descripciones de arquitectura y despliegue no incluyen valores de acceso ni información operativa reservada.}
+
+\vspace{0.9cm}
+
+\notabox{Alcance del informe}{El presente informe final describe la evolución del proyecto desde el cierre de la etapa reportada en octubre hasta el estado del repositorio al 24 de noviembre de 2026. El análisis comprende 63 confirmaciones de cambio (\textit{commits}) que modificaron 259 archivos, con un saldo aproximado de 36\,685 líneas agregadas y 2\,898 eliminadas, e incluye trabajo sobre base de datos, API, aplicación web, aplicación Android, pruebas automatizadas y documentación. Las cifras de código son indicativas del volumen de trabajo y no sustituyen una medición de calidad o de productividad.}
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% Índice
+% -----------------------------------------------------------------------------
+\renewcommand{\contentsname}{Índice general}
+\tableofcontents
+
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% =============================================================================
+\chapter{Marco institucional}
+% =============================================================================
+
+\section{Antecedentes de la institución}
+
+La pasantía se desarrolla en una institución dedicada a actividades de capacitación académica y preparación de estudiantes para procesos de ingreso universitario. La organización administra cursos, convocatorias, materias, grupos, aulas, horarios, docentes o asesores, inscripciones y asistencia. La coordinación de estos procesos requiere mantener información coherente entre las áreas académica y administrativa.
+
+El levantamiento previo identificó el uso de formularios, listas físicas, hojas de cálculo y registros distribuidos. El sistema académico se construyó para centralizar progresivamente esos procesos y facilitar el acceso controlado a la información. Al cierre del periodo, la solución incorpora un modelo académico más depurado, una API con autorización por roles, una aplicación web operativa y un cliente Android integrado.
+
+\section{Tipo y características de la organización}
+
+La institución desarrolla cursos de capacitación, preparación preuniversitaria, nivelación y actividades de refuerzo. La operación académica comprende la organización de facultades, carreras, convocatorias, capacitaciones, paralelos, materias, docentes, aulas y horarios; el registro de estudiantes y apoderados; el control de inscripciones, mensualidades y asistencia; y la consulta de información académica por parte de los actores habilitados.
+
+Los procesos de inscripción y matriculación conectan los datos personales y académicos con los programas y grupos correspondientes. La estructura actual distingue la oferta académica (capacitación) de sus secciones físicas u horarias (paralelos), lo que permite representar varias secciones de un mismo programa con aulas, días y docentes propios.
+
+\section{Creación y antecedentes históricos}
+
+CCTP Grupo Alfa Malaver S.R.L. es un centro de capacitación y preparación académica ubicado en La Paz, Bolivia. Su actividad incluye programas preuniversitarios, nivelación, talleres y apoyo educativo. La descripción se limita a la información institucional utilizada en los informes precedentes; no se atribuyen fechas o antecedentes que no estén documentados.
+
+\section{Misión}
+
+No se dispone de una declaración institucional oficial validada para citar textualmente. La actividad observada se orienta a brindar capacitación y preparación académica a estudiantes mediante programas de formación, nivelación y apoyo educativo.
+
+\section{Visión}
+
+No se dispone de una declaración institucional oficial de visión para este documento. La orientación descrita refleja el fortalecimiento de los servicios de capacitación y preparación para la continuidad educativa, sin presentarse como una cita institucional.
+
+\section{Objetivos institucionales identificados}
+
+El levantamiento permitió identificar los siguientes objetivos operativos: organizar programas de capacitación y sus convocatorias; administrar estudiantes, apoderados e inscripciones; coordinar facultades, carreras, materias, asesores, aulas, paralelos y horarios; registrar clases y asistencia; controlar mensualidades; y facilitar el seguimiento académico cuando corresponda. Estos objetivos se utilizan como contexto funcional y no sustituyen una planificación estratégica institucional.
+
+\section{Estructura funcional identificada}
+
+La documentación del proyecto contempla nueve roles funcionales: SysAdmin, Rooter, Gerencia, Cajero, Administración, Asesor Coordinador, Asesor, Apoderado y Estudiante. Esta clasificación representa perfiles previstos por el sistema y no debe interpretarse como un organigrama oficial.
+
+En el periodo final se consolidó el control de acceso por roles tanto en la interfaz web como en la API. La matriz vigente agrupa permisos de gestión, operación académica, inscripción, asesoría y administración del sistema. No todos los perfiles se encuentran habilitados como usuarios operativos en todos los módulos, y los perfiles de Estudiante y Apoderado tienen un alcance restringido a la consulta de su propia información.
+
+\subsection{Estructura funcional simplificada}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{3.2cm}X@{}}
+  \toprule
+  Grupo de acceso & Roles incluidos \\
+  \midrule
+  Gestión & SysAdmin, Rooter, Gerencia \\
+  Operación académica & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Inscripción & SysAdmin, Administración \\
+  Asesoría & SysAdmin, Asesor, Asesor Coordinador \\
+  Administración del sistema & SysAdmin \\
+  Consulta personal & Estudiante (y perfiles sin módulos operativos) \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+
+\emph{Tabla 1.1. Agrupación funcional de roles utilizada por la matriz de permisos.} La tabla es una referencia funcional y no reemplaza un organigrama oficial.
+
+\section{Posición del pasante dentro de la estructura}
+
+El pasante participa en el análisis, diseño, desarrollo, integración, pruebas y documentación del sistema. Durante la etapa final, su intervención abarcó la reestructuración del modelo de datos, la implementación de módulos académicos y administrativos, la autorización por roles en API y web, la integración del cliente Android, la generación de reportes y la preparación de documentación técnica. Por su alcance, el rol puede describirse como analista-desarrollador Full Stack con actividades de desarrollo móvil y apoyo a la operación de despliegue.
+
+% =============================================================================
+\chapter{Objetivos y metodología}
+% =============================================================================
+
+\section{Descripción del proyecto de pasantía}
+
+El proyecto consiste en el desarrollo progresivo de un sistema académico para centralizar la gestión de estudiantes, apoderados, inscripciones, capacitaciones, paralelos, materias, aulas, horarios, clases, asistencia, mensualidades y reportes. La aplicación web se encuentra disponible en producción y la API con la base de datos opera en infraestructura cloud. Paralelamente se desarrolló un cliente Android nativo integrado con la API para la consulta de paralelos, la visualización del código QR del estudiante y la toma de asistencia por parte de los asesores.
+
+El alcance de la etapa final comprende la consolidación del esquema académico, la reestructuración de los módulos de capacitaciones e inscripciones, la incorporación de reportes de inscripción, la gestión de mensualidades, la toma de asistencia con lectura de QR, el portal de consulta del estudiante, el refuerzo de la autorización por roles y la evolución del cliente móvil. La distribución del cliente Android en una tienda de aplicaciones permanece como trabajo posterior.
+
+\section{Objetivo general de la pasantía}
+
+\textbf{Consolidar y poner en operación un sistema académico web con control de acceso por roles, servicios de datos integrados y mecanismos digitales de inscripción, asistencia y seguimiento, complementado por un cliente móvil Android que amplíe el acceso a las funciones académicas y contribuya a la centralización y trazabilidad de los procesos de la institución.}
+
+\section{Objetivos específicos}
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=1.6em]
+  \item Reestructurar el modelo de datos académico para distinguir capacitaciones, paralelos, asignaciones docentes por día e inscripciones.
+  \item Implementar y consolidar la autorización de módulos y operaciones de API según los roles definidos.
+  \item Desarrollar los módulos web de capacitaciones, inscripciones, estudiantes, mensualidades, pase de lista y llamar lista.
+  \item Incorporar generación de códigos QR y lectura de QR para la toma de asistencia.
+  \item Implementar reportes imprimibles de inscripción y paneles de resumen académico.
+  \item Desarrollar y ampliar el cliente Android nativo integrado con la API para asesores y estudiantes.
+  \item Proteger la persistencia de credenciales de sesión en el dispositivo móvil.
+  \item Mantener pruebas automatizadas, documentación técnica y registrar el avance, las dificultades y las recomendaciones para etapas posteriores.
+\end{enumerate}
+
+\section{Plan de trabajo}
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{@{}c p{0.30\textwidth} p{0.52\textwidth}@{}}
+  \toprule
+  \textbf{Etapa} & \textbf{Actividad principal} & \textbf{Resultado alcanzado al cierre} \\
+  \midrule
+  \endhead
+  \textbf{1} & Consolidación del modelo & Esquema académico con capacitaciones, paralelos, inscripciones, asignaciones docentes y auditoría \\
+  \textbf{2} & Seguridad de acceso & Matriz de permisos, guardias de ruta y autorización de API por roles \\
+  \textbf{3} & Módulos académicos & Gestión académica guiada, inscripciones, estudiantes y reportes \\
+  \textbf{4} & Asistencia digital & Pase de lista administrativo, llamar lista docente y lectura de QR \\
+  \textbf{5} & Gestión administrativa & Mensualidades, calendarios de pago y control de comprobantes \\
+  \textbf{6} & Integración móvil & Cliente Android con autenticación, paralelos, QR y asistencia \\
+  \textbf{7} & Calidad y documentación & Pruebas automatizadas, migraciones versionadas y documentación funcional \\
+  \bottomrule
+\end{longtable}
+
+\emph{Tabla 2.1. Plan de trabajo y resultados alcanzados en la etapa final.} La puesta en producción del sistema web se considera alcanzada; la aplicación móvil se encuentra integrada y no se presenta como publicada en una tienda o desplegada para usuarios finales.
+
+\section{Metodología de desarrollo}
+
+Se mantuvo el enfoque híbrido descrito en los informes anteriores: etapas ordenadas de análisis, diseño, implementación, validación y mantenimiento, complementadas con iteraciones de corrección. Para la etapa final se añadieron tareas de reestructuración de datos con migraciones versionadas, pruebas automatizadas de reglas de negocio, revisión de autorización en API y web, y validación de flujos con datos de prueba.
+
+El trabajo se organizó por módulos funcionales y por cortes verticales: cada módulo comprendió modelo de datos, controladores y validaciones de API, pantallas web, integración con catálogos y verificación de flujos. Los cambios de esquema se acompañaron de scripts numerados y de documentación de las decisiones adoptadas.
+
+\section{Técnicas utilizadas}
+
+\subsection{Observación directa}
+Revisión de los procesos académicos de inscripción, organización de grupos, asignación docente, registro de asistencia y control de pagos.
+
+\subsection{Revisión documental}
+Consulta de requerimientos, esquemas, migraciones, documentación del sistema, bitácoras de pantallas y reportes de etapas anteriores.
+
+\subsection{Análisis técnico}
+Inspección de cambios de código, integración entre clientes y API, configuración de permisos, estructura de datos y reglas de integridad.
+
+\subsection{Validación iterativa}
+Revisión de flujos, ejecución de pruebas automatizadas y corrección de problemas detectados durante la integración y la preparación del despliegue.
+
+\subsection{Pruebas automatizadas}
+Incorporación de pruebas con el ejecutor nativo de Node.js para reglas de asignación, autorización de asesores, administración de clases, fichas de inscripción, listado de inscripciones y llamar lista. También se agregaron pruebas de utilidades del frontend para la interpretación del QR y la partición del listado de estudiantes.
+
+\section{Modelado}
+
+Se reemplazó el modelo anterior por un esquema académico más expresivo. La oferta se representa mediante \texttt{capacitaciones}, asociadas a convocatorias y con vigencia por fechas. Las secciones físicas se representan mediante \texttt{paralelos}, que vinculan una capacitación con un aula, un nivel, una modalidad, días y un rango horario.
+
+La relación docente--materia--paralelo se modela mediante \texttt{paralelo\_materia\_asesor}, con posibilidad de asignar un asesor y una materia por día. Las clases referencian esa asignación, lo que permite registrar la materia, el asesor y el paralelo de forma coherente. Las inscripciones relacionan al estudiante con un paralelo y conservan datos de credencial, fecha de inscripción y características del proceso.
+
+Las mensualidades se asocian a la inscripción y registran período, monto y código de comprobante. Se incorporó una tabla de auditoría para conservar el historial de actualizaciones y eliminaciones, junto con funciones y disparadores que evitan duplicados de clase por paralelo y fecha, y de asistencia por clase y estudiante.
+
+\section{Tecnologías aplicadas}
+
+\textbf{Backend:} Node.js y Express.js; API REST; middleware de autenticación y autorización por roles; PostgreSQL; validación con Zod; configuración CORS restringida a orígenes aprobados y variables de entorno para la configuración de ejecución.
+
+\textbf{Frontend web:} React 18, Vite, React Router, Context API y CSS. La navegación usa guardias de ruta, una matriz de permisos y un selector de rol activo; las comprobaciones en el cliente complementan y no sustituyen la autorización de la API. Se incorporaron \texttt{qrcode} para la generación de códigos y \texttt{recharts} para visualizaciones del panel.
+
+\textbf{Aplicación móvil:} Kotlin, Jetpack Compose, Material 3, Retrofit 2, corrutinas y ViewModels con separación de responsabilidades cercana a MVVM. La lectura de QR utiliza la cámara del dispositivo y la generación de códigos emplea ZXing. El almacenamiento de sesión emplea Android Keystore mediante \texttt{SecureCredentialStore}; no se incluyen valores de credenciales en este informe.
+
+\textbf{Infraestructura:} Vercel para servir la aplicación web como SPA con reglas de reescritura; backend API y PostgreSQL administrado en servicios cloud. Las direcciones, identificadores de recursos y parámetros privados se omiten deliberadamente.
+
+% =============================================================================
+\chapter{Desarrollo de actividades}
+% =============================================================================
+
+\section{Consolidación del modelo académico}
+
+La etapa final comenzó con una reestructuración del esquema de datos orientada a separar la oferta académica de su organización operativa. El esquema resultante, identificado en el repositorio como Esquema 8 y su ajuste posterior Esquema 8i, comprende 27 tablas y sustituye el uso indistinto de cursos y matriculaciones por entidades específicas.
+
+Los cambios principales fueron los siguientes:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{capacitaciones}: representa la oferta académica de una convocatoria, con fechas de inicio y fin, estado activo y precio.
+  \item \texttt{paralelos}: representa una sección de una capacitación, con aula, nivel, modalidad, días, horario y estado activo.
+  \item \texttt{paralelo\_materia\_asesor}: relaciona un paralelo, una materia y un asesor, con el día de dictado.
+  \item \texttt{inscripciones}: vincula al estudiante con un paralelo y conserva credencial, fecha de inscripción y datos del proceso.
+  \item \texttt{mensualidades}: se asocia a la inscripción y registra período, pago y código de comprobante.
+  \item \texttt{usuario\_rol}: concentra la asignación de roles operativos.
+  \item \texttt{auditorias}: conserva el historial de actualizaciones y eliminaciones con datos anteriores y nuevos.
+\end{itemize}
+
+Se incorporaron migraciones numeradas para crear las relaciones nuevas, retirar claves foráneas antiguas, habilitar la asignación docente por día, agregar la vigencia de convocatorias y reforzar la integridad de clases y asistencias. Las migraciones son idempotentes en los casos previstos y preservan los registros históricos. Su aplicación debe realizarse de forma controlada en cada entorno.
+
+\section{Gestión académica guiada y catálogos}
+
+Se rediseñó el módulo de capacitaciones como un asistente de configuración académica por pasos. La vista \texttt{GestionAcademicaView} ordena el trabajo según las dependencias del modelo: facultades, convocatorias, capacitaciones, materias, aulas y paralelos con docentes.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Facultades y carreras:} se incorporó una sección que permite administrar carreras dependientes de una facultad, con creación, edición y eliminación controlada.
+  \item \textbf{Convocatorias:} se agregaron modalidad y vigencia, además de la fecha de inicio y la facultad. La interfaz muestra las convocatorias de forma legible y filtra las vigentes cuando corresponde.
+  \item \textbf{Capacitaciones:} se administran con fechas de inicio y fin, estado activo y precio. Se añadieron filtros por fecha, un banner de capacitación activa y una diferenciación visual de registros activos e inactivos.
+  \item \textbf{Paralelos:} se administran con capacitación, aula, nombre, nivel, modalidad, días y horario. La validación impide que la hora de fin sea anterior o igual a la de inicio.
+  \item \textbf{Aulas y materias:} se gestionan como catálogos reutilizables por paralelos y asignaciones. Las aulas incorporan código y capacidad.
+\end{itemize}
+
+La pantalla conserva pestañas independientes para los catálogos y restringe su visibilidad según el rol activo. Solo el perfil SysAdmin accede a todas las pestañas; los demás roles del grupo académico utilizan la gestión guiada, lo que reduce la exposición de operaciones de configuración avanzada.
+
+\section{Asignación docente por día y matriz de horarios}
+
+Se implementó una matriz de asignación docente que permite definir, para cada paralelo, qué asesor dicta cada materia en cada día de la semana. La matriz valida que la combinación de paralelo, materia y día no se duplique y que el asesor esté vinculado a la materia correspondiente.
+
+La asignación resultante alimenta las clases y la toma de asistencia. También permite que el asesor consulte únicamente sus propias asignaciones y que el administrador visualice el conjunto completo. En el panel principal se incorporó una matriz semanal de capacidad de aulas por día y horario, con estados de ocupación libre, con cupos, llena y con exceso. La matriz considera únicamente capacitaciones activas y vigentes por fecha, y advierte sobre paralelos sin aula, día u horario completo.
+
+\section{Módulo de inscripciones}
+
+El módulo de inscripciones se reorganizó en tres vistas: registro, listado y reportes.
+
+\subsection{Registro y edición de inscripciones}
+
+La vista de registro permite crear una inscripción, consultar su ficha y editarla. El formulario integra datos del estudiante, vinculación o creación opcional del apoderado, selección de facultad, carrera, capacitación y paralelo, y datos complementarios del proceso de inscripción. Se incorporaron validaciones de campos, búsqueda de estudiante por carnet o nombre, control de duplicados y mensajes de error específicos.
+
+La ficha muestra la información académica y administrativa, incluidos estudiante, apoderado, administrativo responsable, capacitación, paralelo, aula, horario y personas vinculadas. El formulario permite generar la inscripción conforme a las reglas del sistema y revisar los datos antes de guardar. No se reproducen ejemplos con datos reales ni identificadores de personas.
+
+\subsection{Listado y consulta}
+
+La vista de listado presenta las inscripciones en modo de consulta, con buscador, paginación y detalle lateral. Permite localizar una inscripción por estudiante o por datos académicos y revisar su estado, su paralelo y su información de contacto. El listado se actualizó para mostrar los nombres legibles de facultad, carrera, capacitación y paralelo en lugar de identificadores internos.
+
+\subsection{Reportes de inscripción}
+
+La vista de reportes permite seleccionar una inscripción, previsualizar su constancia y editar el código de conducta incluido en el documento. El reporte se genera en una plantilla imprimible que puede guardarse como PDF desde el navegador. Incluye encabezado institucional, datos del estudiante, apoderado, administrativo, capacitación, paralelo, aula, horario y código de conducta. La generación se realiza en el cliente y no expone servicios internos ni credenciales.
+
+\section{Módulo de estudiantes}
+
+La pantalla de estudiantes dejó de ser un CRUD genérico para convertirse en una consulta académica con filtros y detalle. El listado se alimenta de un endpoint de resumen que integra datos del estudiante, su inscripción, su paralelo, su capacitación y su estado.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Filtros:} búsqueda por texto, capacitación y paralelo.
+  \item \textbf{Listado paginado:} tarjetas con los datos principales del estudiante y su situación académica.
+  \item \textbf{Detalle:} ficha con datos personales, académicos y de inscripción, incluidos correo, teléfono, fecha de nacimiento, colegio de procedencia, dirección, capacitación, paralelo, clases asistidas, fin de mensualidad y estado.
+  \item \textbf{Calendario de asistencias:} representación visual de las clases registradas y de los permisos.
+  \item \textbf{Código QR:} generación en el navegador a partir del identificador del estudiante, utilizado luego por el lector de asistencia.
+\end{itemize}
+
+La edición de los datos del rol Estudiante se mantiene en el módulo de Usuarios, con un formulario específico que permite actualizar datos personales, apoderado, colegio, dirección y fotografía. La fotografía se almacena en la base de datos y se recupera para la ficha y para la alerta de registro de asistencia.
+
+\section{Pase de lista administrativo}
+
+El módulo de pase de lista se consolidó con dos vistas: asistencias y toma de clase.
+
+\subsection{Listado y edición de asistencias}
+
+La vista de asistencias consulta las clases registradas en la base de datos y permite filtrar por rango de fechas, paralelo, materia y tema. Los filtros son combinables y se presentan como chips activables. La tabla muestra fecha, curso, materia, tema, presentes y ausentes, con paginación de diez registros por página.
+
+Cada fila abre el detalle de la lista, con los metadatos de la clase y la marca de cada estudiante. Desde el detalle se puede eliminar la clase, con confirmación y manejo del conflicto cuando existen registros dependientes. La sección ``En este dispositivo'' conserva la última lista guardada localmente cuando no aparece en la página actual, sin reemplazar la fuente principal de datos.
+
+\subsection{Toma de clase y guardado}
+
+La vista de toma de clase permite registrar materia, tema, paralelo, asesor, aula, fecha y horario, y marcar la asistencia de los estudiantes del paralelo. El guardado crea primero la clase y luego las asistencias de los estudiantes marcados. Los presentes se registran con hora de entrada; los ausentes se registran con la marca de permiso en falso. Si falla la clase no se crea ninguna asistencia; si fallan asistencias individuales se informa el número de fallos y no se sobrescribe la copia local.
+
+La pantalla aplica reglas de integridad reforzadas en la base de datos: una clase por paralelo y fecha, y una asistencia por estudiante y clase. Estas reglas se complementan con bloqueos transaccionales para evitar duplicados ante solicitudes simultáneas. Para el rol Administración, algunos campos descriptivos son opcionales; para los demás roles se exigen los datos completos.
+
+\section{Llamar lista docente con lectura de QR}
+
+Se incorporó una pantalla específica para asesores y asesores coordinadores. El docente selecciona una de sus asignaciones, elige la clase y la fecha, y accede a la lista de estudiantes del paralelo. La toma de asistencia puede realizarse de forma manual o mediante la lectura del código QR del estudiante con la cámara del dispositivo.
+
+La lectura exitosa muestra una alerta flotante con la ficha del estudiante, su fotografía, su paralelo, su materia, su carrera, su apoderado y el estado de su mensualidad. La cámara trasera se utiliza por defecto y el escáner puede reubicarse en la interfaz. Se agregó un pequeño retardo para evitar lecturas repetidas y se controla que el estudiante pertenezca al paralelo y a la clase.
+
+El acceso a los datos se delimita en el servidor: el perfil SysAdmin puede consultar todas las asignaciones y clases, mientras que los asesores solo acceden a las propias. La API verifica la pertenencia del paralelo, de la clase, de la asistencia y del estudiante antes de permitir consultas o modificaciones. Esta verificación complementa la restricción visual del menú.
+
+\section{Mensualidades y control de pagos}
+
+El módulo de matriculaciones se transformó en un módulo de mensualidades asociado a las inscripciones. Se incorporaron tres vistas: realización de pago, listado y tabla.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Realizar pago:} permite buscar y seleccionar un estudiante, revisar sus inscripciones y el estado de sus mensualidades, registrar un pago con fechas, monto y comprobante, y editar o eliminar registros existentes.
+  \item \textbf{Listado:} presenta las mensualidades con detalle lateral, incluidos datos del estudiante, carnet, correo, teléfono, inscripción, paralelo, nivel, modalidad, horario y calendario.
+  \item \textbf{Tabla:} ofrece un CRUD tabular con inscripción, estudiante, administrativo, fechas, pago y comprobante, con catálogos para mostrar nombres legibles.
+\end{itemize}
+
+Se incorporó un calendario de mensualidades por inscripción que permite visualizar los períodos pagados y pendientes. La validación exige fechas coherentes, monto no negativo y comprobante cuando corresponde. La información de pagos se integra con la ficha del estudiante y con la alerta de asistencia del asesor.
+
+\section{Portal de consulta del estudiante}
+
+Se habilitó una vista de ``Mi información'' para el rol Estudiante. El portal presenta los datos personales y académicos del estudiante autenticado, su código QR de asistencia, su capacitación y paralelo, las materias y asesores asignados, el resumen de asistencias y el calendario de mensualidades.
+
+El acceso se limita al usuario autenticado: las consultas se delimitan por su identificador y no aceptan parámetros que permitan solicitar información de otro estudiante. Cuando no existen datos de apoderado, capacitación, paralelo o materias, la interfaz muestra mensajes informativos en lugar de errores. El portal complementa la consulta presencial y reduce la dependencia de solicitudes individuales al personal administrativo.
+
+\section{Seguridad y autorización por roles}
+
+Se consolidó un esquema de autorización en dos capas. En el frontend, la matriz \texttt{permissions.js} define grupos de acceso y módulos; los guardias \texttt{RequireAuth} y \texttt{RequireModuleAccess} protegen las rutas, y el selector de rol activo permite cambiar el contexto cuando un usuario tiene más de un rol. La página de acceso denegado informa los roles asignados y ofrece una ruta de retorno al primer módulo permitido.
+
+En el backend, el middleware de autorización valida el token y aplica reglas por método y ruta. Los módulos de usuarios, roles y asignaciones de rol se reservan al grupo de gestión; los módulos académicos admiten además a Cajero y Administración; las escrituras de inscripciones se reservan a SysAdmin y Administración; y las rutas de llamar lista aplican un alcance por asesor. También se protegen las consultas de fichas, la búsqueda de usuarios por carnet y el explorador de datos.
+
+Se deshabilitó la ruta pública de registro de cuentas y se centralizó la creación de usuarios en el módulo administrativo. Esta decisión reduce la posibilidad de que personas no autorizadas creen cuentas y refuerza el control de roles. La eliminación de la restricción de apoderado en el formulario de registro de inscripción permitió además flexibilizar el alta de estudiantes cuyos datos de apoderado no están disponibles en el momento.
+
+\section{Panel de resumen y reportes}
+
+El panel principal se amplió con un endpoint de resumen que reúne conteos de usuarios, materias, asesores, capacitaciones, inscripciones, estudiantes, temas y mensualidades, junto con la distribución de roles, las aulas y los paralelos. La interfaz presenta indicadores, tarjetas de acceso y la matriz semanal de capacidad de aulas.
+
+La información se filtra por la vigencia de la capacitación y por el estado activo del paralelo. El panel deja de ser un conjunto de conteos aislados y pasa a ofrecer una lectura operativa de la ocupación y de la oferta académica. Los reportes de inscripción se generan como documentos imprimibles y se integran al flujo administrativo.
+
+\section{Aplicación móvil Android}
+
+El cliente Android nativo continuó su desarrollo e integró nuevas funciones para asesores y estudiantes. La aplicación utiliza Kotlin, Jetpack Compose y Material 3, con Retrofit y corrutinas para la comunicación con la API, y ViewModels para separar el estado de la interfaz.
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Mis paralelos:} lista los paralelos del asesor o del estudiante autenticado, con acceso al detalle de cada uno.
+  \item \textbf{Detalle del paralelo:} muestra capacitación, aula, nivel, modalidad, días, horario, materias y asesores.
+  \item \textbf{Llamar lista:} permite al asesor seleccionar una asignación y una clase, consultar los estudiantes y registrar asistencia.
+  \item \textbf{Código QR:} el estudiante puede mostrar su código para la lectura por parte del asesor; el código se genera a partir de su identificador.
+  \item \textbf{Sesión segura:} la persistencia de credenciales se mantiene mediante Android Keystore.
+  \item \textbf{Identidad visual:} se actualizaron el icono, los colores y la marca de la aplicación.
+\end{itemize}
+
+La aplicación se encuentra integrada a nivel de código con la API y utiliza permisos de Internet y cámara. El trabajo de distribución, publicación y soporte operativo del cliente móvil permanece pendiente.
+
+\section{Migraciones, integridad y calidad}
+
+Se incorporaron migraciones para crear las relaciones del nuevo modelo, limpiar claves foráneas antiguas, agregar la asignación docente por día, incorporar la vigencia de convocatorias y reforzar las reglas de clases y asistencias. También se documentaron scripts de limpieza, respaldo y datos base para apoyar la operación y las pruebas.
+
+La tabla de auditoría registra las operaciones de actualización y eliminación con datos anteriores y nuevos, usuario de base de datos, usuario de aplicación, dirección de origen e identificador de petición. Esta capacidad mejora la trazabilidad, aunque requiere políticas de retención y acceso restringido para no convertirse en un repositorio de datos sensibles sin control.
+
+Se agregaron pruebas automatizadas para las reglas de asignación por día, la autorización de asesores, la administración de clases, las fichas y el listado de inscripciones, la llamar lista y la interpretación del QR. Las pruebas se ejecutan con el runner nativo de Node.js y complementan la verificación manual de los flujos.
+
+\section{Documentación técnica, métricas y dificultades resueltas}
+
+Se actualizaron y ampliaron los documentos del proyecto: inventario de pantallas, documentación general, documentación por módulos, pantallas y vistas, bitácoras de pase de lista, asistencias y mensualidades. Estos documentos describen rutas, componentes, permisos, endpoints y decisiones de diseño para apoyar el mantenimiento.
+
+Las principales dificultades abordadas fueron la convivencia entre el esquema anterior y el nuevo; la migración de datos y relaciones sin perder trazabilidad; la coordinación entre permisos de interfaz y API; la delimitación de datos por asesor; la lectura de QR y el control de lecturas repetidas; la generación de reportes imprimibles; la integración de catálogos y nombres legibles; y la validación de reglas de integridad en la base de datos.
+
+Se atendieron mediante migraciones versionadas, una factoría común de CRUD, middleware de autorización por ruta, guardias de navegación, utilidades compartidas de fechas y vigencia, pruebas automatizadas, componentes reutilizables y documentación de las decisiones. La deuda técnica identificada se registró para las etapas posteriores.
+
+\section{Medición cualitativa del avance}
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{@{}p{0.30\textwidth} c p{0.48\textwidth}@{}}
+  \toprule
+  \textbf{Componente} & \textbf{Estado} & \textbf{Observación} \\
+  \midrule
+  \endhead
+  Modelo académico & Consolidado & Capacitaciones, paralelos, inscripciones, asignaciones docentes y auditoría \\
+  Autorización por roles & Implementada & Matriz en web y validación por ruta en la API \\
+  Gestión académica & Implementada & Asistente por pasos, catálogos y asignación docente por día \\
+  Inscripciones & Implementado & Registro, listado, ficha y reporte imprimible \\
+  Estudiantes & Implementado & Resumen, filtros, detalle, calendario, foto y QR \\
+  Pase de lista & Implementado & Toma de clase, filtros, paginación y copia local de la última lista \\
+  Llamar lista docente & Implementado & Asignaciones propias, QR, ficha y marcado manual \\
+  Mensualidades & Implementado & Pago, listado, tabla y calendario por inscripción \\
+  Portal del estudiante & Implementado & Consulta de datos, QR, asistencias y mensualidades \\
+  Panel de resumen & Implementado & Conteos, roles, aulas y matriz semanal de capacidad \\
+  Aplicación Android & En desarrollo integrado & Cliente nativo conectado a la API; distribución pendiente \\
+  Reportes institucionales ampliados & Parcial & Constancia de inscripción; faltan reportes consolidados de asistencia y rendimiento \\
+  \bottomrule
+\end{longtable}
+
+\emph{Tabla 3.1. Estado cualitativo al cierre del periodo.} Los estados describen el alcance observado en el repositorio y no representan una auditoría de disponibilidad ni una certificación de calidad.
+
+\section{Comparación entre la situación inicial y la solución}
+
+La situación inicial dependía de formularios, listas y fuentes distribuidas, con escasa integración entre la información académica y la administrativa. La solución actual centraliza los procesos en una aplicación web con permisos diferenciados, datos relacionados, inscripciones con reporte, control de mensualidades y registro de asistencia con QR.
+
+La separación entre capacitaciones y paralelos permite representar la oferta y sus secciones sin duplicar datos. La asignación docente por día y la delimitación de datos por asesor mejoran la trazabilidad de la asistencia. El portal del estudiante y el cliente Android amplían los canales de consulta. La operación y validación institucional continúan siendo necesarias para consolidar su uso.
+
+\section{Conocimientos académicos aplicados}
+
+Se aplicaron fundamentos de bases de datos relacionales, ingeniería de software, arquitectura cliente--servidor, desarrollo web y móvil, seguridad de aplicaciones, diseño de interfaces, pruebas de software y documentación técnica. La separación de capas, el uso de migraciones y la incorporación de pruebas permitieron atender cambios funcionales sin perder trazabilidad del esquema ni de las reglas de negocio.
+
+\section{Dificultades y medidas adoptadas}
+
+La transición de esquema requirió distinguir datos históricos y datos nuevos, revisar relaciones y preservar registros. La autorización requirió alinear permisos del cliente con las reglas del servidor y evitar que un asesor accediera a datos de otro. La lectura de QR requirió controlar la cámara, evitar lecturas repetidas y validar la pertenencia del estudiante a la clase. La generación de reportes requirió una plantilla imprimible y una revisión cuidadosa de los datos expuestos.
+
+Las medidas adoptadas incluyeron migraciones versionadas, una factoría común de operaciones CRUD, middleware de autorización, guardias de ruta, utilidades compartidas, pruebas automatizadas, componentes reutilizables y documentación de las decisiones. Se recomienda continuar comprobando cada despliegue y migración en el entorno correspondiente.
+
+% =============================================================================
+\chapter{Conclusiones y recomendaciones}
+% =============================================================================
+
+\section{Conclusiones}
+
+Durante la etapa final el sistema evolucionó desde un conjunto de módulos académicos hacia una plataforma integrada. La reestructuración del modelo de datos permitió representar con mayor precisión la oferta académica, los paralelos, las asignaciones docentes y las inscripciones, y sentó la base para la asistencia, las mensualidades y los reportes.
+
+La autorización por roles se consolidó tanto en la navegación web como en la API, con reglas por módulo, por método y por alcance de datos. La eliminación de la ruta pública de registro y la centralización de la creación de usuarios redujeron la superficie de exposición. El módulo de llamar lista incorporó la lectura de QR y la verificación de pertenencia, mientras que el portal del estudiante amplió el acceso controlado a la información personal y académica.
+
+La aplicación web se mantiene en producción y el cliente Android se encuentra integrado con la API, con funciones de consulta de paralelos, visualización de QR y toma de asistencia. La distribución del cliente móvil, la ampliación de reportes y la validación institucional de los flujos permanecen como trabajo posterior.
+
+\section{Aprendizajes obtenidos}
+
+El periodo permitió aplicar prácticas de modelado relacional, migraciones controladas, autorización por roles, validación de API, desarrollo web y móvil, generación y lectura de códigos QR, pruebas automatizadas y documentación técnica. También mostró que la evolución de un sistema académico exige coordinar datos, permisos, interfaces y operación, y que la trazabilidad de las decisiones es tan importante como la funcionalidad entregada.
+
+\section{Valor agregado de la intervención universitaria}
+
+La intervención permitió transformar requerimientos académicos en una solución digital progresiva, documentada y extensible. La integración web y móvil, el control de acceso, la estructuración de datos, la generación de reportes y los mecanismos de asistencia proporcionan una base técnica para continuar la digitalización de procesos institucionales.
+
+\section{Recomendaciones técnicas}
+
+\subsection{Incorporar telemetría y monitoreo}
+Registrar errores y métricas operativas sin recolectar datos personales innecesarios, con alertas sobre fallos de API, tiempos de respuesta y disponibilidad.
+
+\subsection{Automatizar copias de seguridad}
+Definir periodicidad, retención y pruebas de restauración para la base administrada, incluyendo la tabla de auditoría y los datos de inscripción y pagos.
+
+\subsection{Consolidar el cliente Android}
+Completar pruebas funcionales, manejo de errores de red, accesibilidad, políticas de privacidad y distribución antes de ampliar su uso a usuarios finales.
+
+\subsection{Validar los permisos}
+Revisar periódicamente la matriz de roles frente a las responsabilidades y las rutas de API activas, y mantener pruebas de autorización para las operaciones sensibles.
+
+\subsection{Validar los flujos con usuarios}
+Recoger observaciones del personal académico y administrativo para ajustar inscripción, mensualidades, asistencia y reportes, y documentar las decisiones de negocio resultantes.
+
+\subsection{Mantener migraciones controladas}
+Respaldar datos, revisar cambios y confirmar compatibilidad antes de aplicar migraciones en producción. Las migraciones deben ejecutarse en orden y con verificación posterior de claves y restricciones.
+
+\subsection{Fortalecer la protección de datos}
+Evitar la exposición de credenciales y datos personales en registros, capturas, documentación y herramientas de soporte. Restringir el acceso a la auditoría y definir políticas de retención.
+
+\subsection{Ampliar los reportes}
+Incorporar reportes consolidados de asistencia, ocupación, mensualidades y rendimiento académico, con filtros por período, capacitación y paralelo, manteniendo la protección de datos personales.
+
+\subsection{Reforzar las pruebas}
+Ampliar la cobertura de pruebas de integración y de extremo a extremo para los flujos críticos, especialmente inscripción, pagos, asistencia y autorización.
+
+\section{Trabajo futuro}
+
+Se propone completar la estabilización y distribución del cliente Android; incorporar monitoreo y procesos de recuperación; ampliar los reportes institucionales; realizar pruebas de aceptación con los actores institucionales; consolidar el portal del apoderado; y planificar la migración controlada de datos históricos al esquema vigente. La priorización deberá considerar la validación institucional y la protección de los datos tratados.
+
+% =============================================================================
+\chapter*{Bibliografía}
+\addcontentsline{toc}{chapter}{Bibliografía}
+% =============================================================================
+
+\begin{thebibliography}{99}
+  \bibitem{react} Meta Open Source. (s. f.). \emph{React Documentation}. \url{https://react.dev/}
+  \bibitem{vite} Vite. (s. f.). \emph{Vite Documentation}. \url{https://vitejs.dev/}
+  \bibitem{router} Remix Software. (s. f.). \emph{React Router Documentation}. \url{https://reactrouter.com/}
+  \bibitem{node} OpenJS Foundation. (s. f.). \emph{Node.js Documentation}. \url{https://nodejs.org/docs/latest/api/}
+  \bibitem{express} OpenJS Foundation. (s. f.). \emph{Express Documentation}. \url{https://expressjs.com/}
+  \bibitem{postgres} PostgreSQL Global Development Group. (s. f.). \emph{PostgreSQL Documentation}. \url{https://www.postgresql.org/docs/}
+  \bibitem{zod} Colin McDonnell. (s. f.). \emph{Zod Documentation}. \url{https://zod.dev/}
+  \bibitem{qrcode} Soldair. (s. f.). \emph{node-qrcode}. \url{https://github.com/soldair/node-qrcode}
+  \bibitem{recharts} Recharts Group. (s. f.). \emph{Recharts Documentation}. \url{https://recharts.org/}
+  \bibitem{android} Android Developers. (s. f.). \emph{Jetpack Compose}. \url{https://developer.android.com/develop/ui/compose}
+  \bibitem{keystore} Android Developers. (s. f.). \emph{Android Keystore system}. \url{https://developer.android.com/privacy-and-security/keystore}
+  \bibitem{material3} Google. (s. f.). \emph{Material Design 3 for Android}. \url{https://developer.android.com/develop/ui/compose/designsystems/material3}
+  \bibitem{retrofit} Square. (s. f.). \emph{Retrofit}. \url{https://square.github.io/retrofit/}
+  \bibitem{zxing} ZXing Project. (s. f.). \emph{ZXing Barcode Scanning Library}. \url{https://github.com/zxing/zxing}
+  \bibitem{jwt} Auth0. (s. f.). \emph{Introduction to JSON Web Tokens}. \url{https://jwt.io/introduction}
+  \bibitem{vercel} Vercel. (s. f.). \emph{Rewrites}. \url{https://vercel.com/docs/rewrites}
+  \bibitem{vercelvite} Vercel. (s. f.). \emph{Configuring a Vite application}. \url{https://vercel.com/docs/frameworks/frontend/vite}
+\end{thebibliography}
+
+% =============================================================================
+\chapter*{Anexos}
+\addcontentsline{toc}{chapter}{Anexos}
+% =============================================================================
+
+\section*{A.1. Estado cualitativo del proyecto}
+\addcontentsline{toc}{section}{A.1. Estado cualitativo del proyecto}
+
+Al cierre de noviembre, la aplicación web se encuentra en producción; los módulos de gestión académica, inscripciones, estudiantes, mensualidades, pase de lista y llamar lista presentan avances funcionales integrados; el portal del estudiante se encuentra habilitado para consulta; y el cliente Android está integrado con la API y continúa en desarrollo. La distribución móvil, los reportes consolidados y el portal del apoderado se consideran trabajo futuro.
+
+\section*{A.2. Catálogo general de entidades}
+\addcontentsline{toc}{section}{A.2. Catálogo general de entidades}
+
+El esquema vigente comprende entidades para usuarios y roles, estudiantes y apoderados, asesores y administrativos, facultades, carreras y convocatorias, materias, capacitaciones y paralelos, asignaciones docentes por día, aulas, inscripciones, mensualidades, clases, asistencias, exámenes, contenidos, postulaciones y auditoría. La relación concreta entre entidades puede variar según las migraciones aplicadas en cada entorno. Este catálogo es descriptivo y no expone registros ni identificadores reales.
+
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.27\textwidth}>{\raggedright\arraybackslash}p{0.65\textwidth}@{}}
+  \toprule
+  \textbf{Ámbito} & \textbf{Entidades principales} \\
+  \midrule
+  \endhead
+  Identidad y acceso & usuarios, roles, usuario\_rol \\
+  Actores & estudiantes, apoderados, asesores, administrativos \\
+  Oferta académica & facultades, carreras, convocatorias, capacitaciones, materias \\
+  Organización & paralelos, aulas, paralelo\_materia\_asesor, materia\_capacitacion, materia\_facultad, materia\_asesor \\
+  Inscripción y pagos & inscripciones, mensualidades, postulaciones \\
+  Asistencia & clases, asistencias \\
+  Evaluación & examenes\_de\_ingreso, contenidos \\
+  Control & auditorias \\
+  \bottomrule
+\end{longtable}
+
+\emph{Tabla A.1. Catálogo descriptivo de entidades del esquema vigente.}
+
+\section*{A.3. Matriz resumida de roles y módulos}
+\addcontentsline{toc}{section}{A.3. Matriz resumida de roles y módulos}
+
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}p{0.34\textwidth}p{0.58\textwidth}@{}}
+  \toprule
+  \textbf{Módulo} & \textbf{Roles habilitados} \\
+  \midrule
+  \endhead
+  Panel de resumen & SysAdmin, Rooter, Gerencia \\
+  Usuarios y roles & SysAdmin, Rooter, Gerencia \\
+  Gestión académica & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Inscripciones (registro y reportes) & SysAdmin, Administración \\
+  Inscripciones (listado) & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Estudiantes & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Mensualidades & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Pase de lista & SysAdmin, Rooter, Gerencia, Cajero, Administración \\
+  Llamar lista & SysAdmin, Asesor, Asesor Coordinador \\
+  Mi información & Estudiante \\
+  Explorador de datos & SysAdmin \\
+  Perfil & Cualquier usuario autenticado \\
+  \bottomrule
+\end{longtable}
+
+\emph{Tabla A.2. Matriz resumida de acceso. La autorización efectiva se valida además en la API.}
+
+\section*{A.4. Consideraciones de confidencialidad}
+\addcontentsline{toc}{section}{A.4. Consideraciones de confidencialidad}
+
+Para la presentación académica se omiten credenciales, contraseñas, cadenas de conexión, claves de API, identificadores reales, datos personales o financieros, dominios privados, direcciones de infraestructura y datos de acceso. Capturas, diagramas y ejemplos deben revisarse con el mismo criterio antes de su entrega. La documentación técnica del repositorio puede contener nombres de tablas, rutas y componentes, pero no debe incluir valores operativos reservados ni información que permita identificar a estudiantes, apoderados o personal de la institución.
+
+\end{document}

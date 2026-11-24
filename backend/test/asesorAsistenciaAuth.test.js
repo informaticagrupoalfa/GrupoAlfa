@@ -27,6 +27,13 @@ test("asesor solo consulta estudiantes de un paralelo propio", async () => {
   assert.equal((await authorize("GET", "/llamar-lista/paralelos/9/estudiantes")).status, 200);
 });
 
+test("asesor solo consulta fotos de un paralelo propio", async () => {
+  pool.query = async () => ({ rows: [] });
+  assert.equal((await authorize("GET", "/llamar-lista/paralelos/9/fotos")).status, 403);
+  pool.query = async () => ({ rows: [{ "?column?": 1 }] });
+  assert.equal((await authorize("GET", "/llamar-lista/paralelos/9/fotos")).status, 200);
+});
+
 test("asesor consulta asistencia solo de su clase", async () => {
   pool.query = async () => ({ rows: [] });
   assert.equal((await authorize("GET", "/asistencias", { query: { id_clase: "3" } })).status, 403);

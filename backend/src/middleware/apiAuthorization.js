@@ -83,7 +83,7 @@ export const authorizeApi = (req, res, next) => {
       return next();
     }
 
-    const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/estudiantes$/.test(path);
+    const advisorListRoute = req.method === "GET" && /^\/llamar-lista\/paralelos\/\d+\/(estudiantes|fotos)$/.test(path);
     const advisorFichaRoute = req.method === "GET" && /^\/llamar-lista\/clases\/\d+\/estudiantes\/\d+\/ficha$/.test(path);
     const advisorClassMutation = ["PUT", "DELETE"].includes(req.method) && /^\/clases\/\d+$/.test(path);
     const advisorAttendanceMutation = ["PUT", "DELETE"].includes(req.method) && /^\/asistencias\/\d+$/.test(path);
@@ -92,7 +92,7 @@ export const authorizeApi = (req, res, next) => {
       && (ADVISOR_ROUTES.has(routeKey) || advisorListRoute || advisorFichaRoute || advisorClassMutation || advisorAttendanceMutation)) {
       try {
         if (advisorListRoute) {
-          const parallelId = Number(path.match(/\/paralelos\/(\d+)\/estudiantes$/)[1]);
+          const parallelId = Number(path.match(/\/paralelos\/(\d+)\/(?:estudiantes|fotos)$/)[1]);
           const { rows } = await pool.query(
             `SELECT 1 FROM paralelo_materia_asesor pma
              JOIN asesores a ON a.id_asesor = pma.id_asesor

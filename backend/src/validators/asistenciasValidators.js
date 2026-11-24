@@ -34,4 +34,7 @@ const asistenciaSchema = z.object({
 });
 
 export const createAsistenciaSchema = asistenciaSchema;
-export const updateAsistenciaSchema = asistenciaSchema.partial();
+export const updateAsistenciaSchema = asistenciaSchema.partial().extend({
+  permiso: z.boolean().nullable().optional(),
+  razon_permiso: z.string().trim().max(150, "La razón del permiso debe tener máximo 150 caracteres").nullable().optional(),
+});

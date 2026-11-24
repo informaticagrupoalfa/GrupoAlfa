@@ -13,17 +13,31 @@ export async function getAsignacionesAsesor(req, res, next) {
               pma.dia AS dias, pma.id_paralelo_materia,
               p.id_paralelo, p.nombre_paralelo, p.nivel, p.dias AS dias_paralelo,
               p.hora_inicio, p.hora_fin, aul.codigo AS aula_codigo,
+              p.id_capacitacion, to_jsonb(cap)->>'nombre' AS nombre_capacitacion,
               m.id_materia, m.nombre_materia,
               concat_ws(' ', u.nombre, u.apellido_paterno, u.apellido_materno) AS nombre_asesor
        FROM asesores a
        JOIN usuarios u ON u.id_usuario = a.id_usuario
        JOIN paralelo_materia_asesor pma ON pma.id_asesor = a.id_asesor
        JOIN paralelos p ON p.id_paralelo = pma.id_paralelo
+       LEFT JOIN capacitaciones cap ON cap.id_capacitacion = p.id_capacitacion
        LEFT JOIN aulas aul ON aul.id_aula = p.id_aula
        JOIN materias m ON m.id_materia = pma.id_materia
        ${allAssignments ? "WHERE pma.id_asesor IS NOT NULL" : "WHERE a.id_usuario = $1 AND pma.id_asesor IS NOT NULL"}
        ORDER BY p.nombre_paralelo, pma.dia, m.nombre_materia, nombre_asesor`,
       allAssignments ? [] : [req.user.id_usuario],
+    );
+    res.json(rows);
+  } catch (error) { next(error); }
+}
+
+export async function getFotosDelParalelo(req, res, next) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT e.id_estudiante, encode(e.foto, 'base64') AS foto_base64
+       FROM inscripciones i JOIN estudiantes e ON e.id_estudiante = i.id_estudiante
+       WHERE i.id_paralelo = $1 AND e.foto IS NOT NULL`,
+      [Number(req.params.id)],
     );
     res.json(rows);
   } catch (error) { next(error); }
@@ -51,7 +65,7 @@ export async function getClasesAsesor(req, res, next) {
   try {
     const allAssignments = canSeeAllAssignments(req);
     const { rows } = await pool.query(
-      `SELECT c.id_clase, c.inicioclase AS fecha,
+      `SELECT c.id_clase, c.inicioclase AS fecha, c.tema,
               c.id_asesor_paralelo_materia,
               p.nombre_paralelo,
               COALESCE(c.materia, m.nombre_materia) AS nombre_materia,
