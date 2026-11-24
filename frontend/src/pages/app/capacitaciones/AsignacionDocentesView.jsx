@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import TeacherAssignmentMatrix from "../../../components/features/capacitaciones/TeacherAssignmentMatrix"
 import { apiClient } from "../../../services/apiClient"
+import { capacitacionVigente } from "../../../utils/capacitacionVigente"
+import { horarioActual } from "../pase-lista/horarioActual"
 
 const initialData = {
   capacitaciones: [],
@@ -18,6 +20,13 @@ export default function AsignacionDocentesView() {
   const [message, setMessage] = useState("")
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [hoy, setHoy] = useState(() => horarioActual().fecha)
+
+  const datosVigentes = useMemo(() => {
+    const capacitaciones = data.capacitaciones.filter(c => capacitacionVigente(c, hoy))
+    const ids = new Set(capacitaciones.map(c => String(c.id_capacitacion)))
+    return { ...data, capacitaciones, paralelos: data.paralelos.filter(p => ids.has(String(p.id_capacitacion))) }
+  }, [data, hoy])
 
   const reload = async () => {
     const endpoints = ["capacitaciones", "configuracion-paralelos", "asesores", "asignaciones-docentes-paralelo"]
@@ -35,6 +44,20 @@ export default function AsignacionDocentesView() {
       .catch(error => setMessage(error.userMessage || "No se pudieron cargar las asignaciones."))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setHoy(horarioActual().fecha), 60000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (assignmentSlot && !datosVigentes.paralelos.some(p => String(p.id_paralelo) === String(assignmentSlot.parallel?.id_paralelo))) {
+      setAssignment(null)
+      setAssignmentSlot(null)
+      setPickedAdvisor(null)
+      setPickedSubjectId("")
+    }
+  }, [assignmentSlot, datosVigentes.paralelos])
 
   const clearSelection = () => {
     setAssignment(null)
@@ -63,6 +86,12 @@ export default function AsignacionDocentesView() {
 
   const saveAssignment = async () => {
     if (!assignmentSlot || !pickedAdvisor || !pickedSubjectId || busy) return
+    const capacitacion = data.capacitaciones.find(c => String(c.id_capacitacion) === String(assignmentSlot.parallel?.id_capacitacion))
+    if (!capacitacionVigente(capacitacion, horarioActual().fecha)) {
+      clearSelection()
+      setMessage("La capacitación ya no está activa o vigente.")
+      return
+    }
     setBusy(true)
     setMessage("")
     const wasEditing = Boolean(assignment)
@@ -107,7 +136,7 @@ export default function AsignacionDocentesView() {
   if (loading) return <p className="muted">Cargando asignaciones docentes…</p>
 
   return <TeacherAssignmentMatrix
-    data={data}
+    data={datosVigentes}
     assignment={assignment}
     assignmentSlot={assignmentSlot}
     pickedAdvisor={pickedAdvisor}

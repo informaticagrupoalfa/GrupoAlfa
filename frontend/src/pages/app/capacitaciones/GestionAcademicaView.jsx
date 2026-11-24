@@ -6,6 +6,8 @@ import FacultyCareersSection from "./FacultyCareersSection"
 import ScheduleMatrix from "../../../components/dashboard/ScheduleMatrix"
 import { formatConvocatoriaOption } from "../../../utils/convocatoriaOption"
 import { parseWeekdays } from "../../../utils/weekdays"
+import { horarioActual } from "../pase-lista/horarioActual"
+import { capacitacionVigente } from "../../../utils/capacitacionVigente"
 import "./GestionAcademicaView.css"
 
 const STEPS = [
@@ -51,6 +53,7 @@ export default function GestionAcademicaView() {
   const [search, setSearch] = useState("")
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const [hoy, setHoy] = useState(() => horarioActual().fecha)
   const current = STEPS.find(item => item.key === step)
 
   const reload = async () => {
@@ -59,6 +62,10 @@ export default function GestionAcademicaView() {
     setData({ facultades: values[0], carreras, convocatorias: values[1], capacitaciones: values[2], materias: values[3], aulas: values[4], materiasCapacitacion: values[5], paralelos: values[6] })
   }
   useEffect(() => { reload().catch(e => setMessage(e.userMessage || "No se pudieron cargar los datos.")) }, [])
+  useEffect(() => {
+    const timer = window.setInterval(() => setHoy(horarioActual().fecha), 60000)
+    return () => window.clearInterval(timer)
+  }, [])
   const rows = useMemo(() => (data[step] || []).filter(row => JSON.stringify(row).toLowerCase().includes(search.toLowerCase())), [data, step, search])
   const capacitacionesPorId = useMemo(() => new Map(data.capacitaciones.map(c => [String(c.id_capacitacion), c])), [data.capacitaciones])
   const scheduleParalelos = useMemo(() => {
@@ -141,7 +148,7 @@ export default function GestionAcademicaView() {
       <div className="setup-actions"><button className="subtle" type="button" onClick={startNew}>Limpiar</button><button type="submit" disabled={busy}>{busy?"Guardando…":record?"Guardar cambios":"Crear registro"}</button></div></form>{message&&<p className="setup-message" role="status">{message}</p>}
       {step === "facultades" && <FacultyCareersSection faculty={record} careers={data.carreras} faculties={data.facultades} onChanged={reload} />}
       <p className="editor-tip">{step==="paralelos"?"Al crear, se guardan el paralelo y sus materias. Después asigna un asesor para cada día de clase.":"Los registros relacionados aparecerán disponibles en los siguientes pasos."}</p>
-    </section><section className="setup-list"><div className="list-heading"><div><span className={`list-icon tone-${current.color}`}><Icon name={current.icon}/></span><div><h2>{current.label}</h2><p>{rows.length} registros</p></div></div><input type="search" placeholder={`Buscar ${current.label.toLowerCase()}…`} value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="setup-cards">{rows.map(row=>{const id=row[current.pk];const capacitacion=step==="paralelos"?capacitacionesPorId.get(String(row.id_capacitacion)):null;const estado=step==="capacitaciones"?row.activo:capacitacion?.activo;return <article key={id} className={`setup-card tone-${current.color} ${(step==="capacitaciones"||step==="paralelos") && typeof estado==="boolean"?(estado?"course-active":"course-inactive"):""} ${record?.[current.pk]===id?"selected":""}`}><button className="card-select" onClick={()=>select(row)}><span className="card-icon"><Icon name={current.icon}/></span><strong>{row[current.title]||`${current.label.slice(0,-1)} ${id}`}</strong><small>Registro #{id}</small>{step==="capacitaciones"&&<span className="card-meta">{row.activo?"Activa":"Inactiva"} · Precio: {row.precio ?? "—"}</span>}{step==="convocatorias"&&row.modalidad&&<span className="card-meta">Modalidad: {row.modalidad}</span>}{step==="convocatorias"&&<span className="card-meta">Vigencia: {row.vigencia?"Sí":"No"}</span>}{step==="paralelos"&&<span className="card-meta">{typeof estado==="boolean"?(estado?"Capacitación activa · ":"Capacitación inactiva · "):"Capacitación sin estado · "}{row.aula_codigo||"Aula pendiente"} · {row.hora_inicio||"Horario pendiente"}{row.asignaciones?.filter(a=>a.id_materia).length?` · ${row.asignaciones.filter(a=>a.id_materia).length} materia(s)`:""}</span>}</button><div className="card-actions"><button onClick={()=>select(row)}>Editar</button><button onClick={()=>remove(row)}>Eliminar</button></div></article>})}{rows.length===0&&<div className="no-records">Todavía no hay {current.label.toLowerCase()}. Usa el formulario para crear el primer registro.</div>}</div></section></div>
+    </section><section className="setup-list"><div className="list-heading"><div><span className={`list-icon tone-${current.color}`}><Icon name={current.icon}/></span><div><h2>{current.label}</h2><p>{rows.length} registros</p></div></div><input type="search" placeholder={`Buscar ${current.label.toLowerCase()}…`} value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="setup-cards">{rows.map(row=>{const id=row[current.pk];const capacitacion=step==="paralelos"?capacitacionesPorId.get(String(row.id_capacitacion)):null;const estado=step==="capacitaciones"?capacitacionVigente(row,hoy):capacitacion?capacitacionVigente(capacitacion,hoy):undefined;return <article key={id} className={`setup-card tone-${current.color} ${(step==="capacitaciones"||step==="paralelos") && typeof estado==="boolean"?(estado?"course-active":"course-inactive"):""} ${record?.[current.pk]===id?"selected":""}`}><button className="card-select" onClick={()=>select(row)}><span className="card-icon"><Icon name={current.icon}/></span><strong>{row[current.title]||`${current.label.slice(0,-1)} ${id}`}</strong><small>Registro #{id}</small>{step==="capacitaciones"&&<span className="card-meta">{estado?"Activa":"Inactiva"} · Precio: {row.precio ?? "—"}</span>}{step==="convocatorias"&&row.modalidad&&<span className="card-meta">Modalidad: {row.modalidad}</span>}{step==="convocatorias"&&<span className="card-meta">Vigencia: {row.vigencia?"Sí":"No"}</span>}{step==="paralelos"&&<span className="card-meta">{typeof estado==="boolean"?(estado?"Capacitación activa · ":"Capacitación inactiva · "):"Capacitación sin estado · "}{row.aula_codigo||"Aula pendiente"} · {row.hora_inicio||"Horario pendiente"}{row.asignaciones?.filter(a=>a.id_materia).length?` · ${row.asignaciones.filter(a=>a.id_materia).length} materia(s)`:""}</span>}</button><div className="card-actions"><button onClick={()=>select(row)}>Editar</button><button onClick={()=>remove(row)}>Eliminar</button></div></article>})}{rows.length===0&&<div className="no-records">Todavía no hay {current.label.toLowerCase()}. Usa el formulario para crear el primer registro.</div>}</div></section></div>
     <ScheduleMatrix aulas={data.aulas} paralelos={scheduleParalelos} />
   </main>
 }

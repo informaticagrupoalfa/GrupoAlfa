@@ -96,6 +96,14 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
     if (assignmentSlot) controlsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
   }, [assignmentSlot])
 
+  useEffect(() => {
+    if (courseFilter && !courseOptions.some(course => String(course.id_capacitacion) === courseFilter)) setCourseFilter("")
+  }, [courseFilter, courseOptions])
+
+  useEffect(() => {
+    if (facultyFilter && !faculties.some(([key]) => key === facultyFilter)) setFacultyFilter("")
+  }, [facultyFilter, faculties])
+
   const changeFaculty = value => {
     setFacultyFilter(value)
     setCourseFilter("")
@@ -217,7 +225,7 @@ export default function TeacherAssignmentMatrix({ data, assignment, assignmentSl
             </tbody>
           </table>
         </div>
-      ) : <p className="teacher-matrix-empty-state">{data.paralelos.length ? "No hay paralelos con días reconocibles para los filtros seleccionados." : "Crea un paralelo con materias y días para comenzar a asignar asesores."}</p>}
+      ) : <p className="teacher-matrix-empty-state">{data.paralelos.length ? "No hay paralelos con días reconocibles para los filtros seleccionados." : "No hay paralelos de capacitaciones activas y vigentes para asignar asesores."}</p>}
     </section>
   )
 }
