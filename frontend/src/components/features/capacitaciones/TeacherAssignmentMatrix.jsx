@@ -22,12 +22,12 @@ function formatDate(value, fallback = "sin fecha de inicio") {
 const facultyKey = course => course?.id_facultad == null ? "sin-facultad" : String(course.id_facultad)
 const facultyName = course => course?.nombre_facultad || "Facultad sin definir"
 const courseDates = course => `${formatDate(course?.fecha_inicio)} – ${formatDate(course?.fecha_fin, "sin fecha de fin")}`
-const courseLabel = course => `${facultyName(course)} · ${courseDates(course)} · #${course.id_capacitacion}`
+const courseLabel = course => `${course.nombre || `Capacitación #${course.id_capacitacion}`} · ${facultyName(course)} · ${courseDates(course)}`
 
 function ParallelInfo({ parallel, course }) {
   return <div className="teacher-parallel-info">
     <strong>{parallel.nombre_paralelo}</strong>
-    <span>Capacitación #{parallel.id_capacitacion} · {courseDates(course)}</span>
+    <span>{course?.nombre || `Capacitación #${parallel.id_capacitacion}`} · {courseDates(course)}</span>
     <span>{parallel.aula_codigo || "Sin aula"} · {parallel.modalidad || "Modalidad sin definir"}</span>
     <span className="teacher-parallel-capacity">Estudiantes: {parallel.total_estudiantes ?? 0} · Capacidad del aula: {parallel.aula_capacidad ?? "sin definir"}</span>
     <small>{facultyName(course)}</small>

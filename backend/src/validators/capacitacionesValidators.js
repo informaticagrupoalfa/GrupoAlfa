@@ -12,6 +12,7 @@ const fecha = (label) =>
     });
 
 const capacitacionSchema = z.object({
+  nombre: z.string().trim().min(1, "El nombre no puede estar vacío").optional(),
   id_convocatoria: z.coerce
     .number({ invalid_type_error: "El id_convocatoria debe ser numérico" })
     .int("El id_convocatoria debe ser un entero")

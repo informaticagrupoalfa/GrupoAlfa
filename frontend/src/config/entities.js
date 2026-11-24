@@ -112,6 +112,7 @@ export const ENTITIES = {
     pk: "id_capacitacion",
     columns: [
       { key: "id_capacitacion", label: "ID" },
+      { key: "nombre", label: "Nombre" },
       { key: "id_convocatoria", label: "Convocatoria (ID)", isForeign: true },
       { key: "fecha_inicio_convocatoria", label: "Inicio convocatoria", type: "date", isForeign: true },
       { key: "nombre_facultad", label: "Facultad", isForeign: true },
@@ -121,6 +122,7 @@ export const ENTITIES = {
       { key: "activo", label: "Activo", type: "checkbox" },
     ],
     fields: [
+      { name: "nombre", label: "Nombre", type: "text", required: true },
       { name: "id_convocatoria", label: "Convocatoria", type: "select", required: true, optionsEndpoint: "convocatorias", optionsValue: "id_convocatoria", optionLabel: formatConvocatoriaOption },
       { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
       { name: "fecha_fin", label: "Fecha de fin", type: "date", required: false },
@@ -151,7 +153,7 @@ export const ENTITIES = {
       { key: "activo", label: "Activo", type: "checkbox" },
     ],
     fields: [
-      { name: "id_capacitacion", label: "Capacitación", type: "select", required: true, optionsEndpoint: "capacitaciones", optionsValue: "id_capacitacion" },
+      { name: "id_capacitacion", label: "Capacitación", type: "select", required: true, optionsEndpoint: "capacitaciones", optionsValue: "id_capacitacion", optionLabel: (item) => item.nombre || `Capacitación ${item.id_capacitacion}` },
       { name: "id_aula", label: "Aula", type: "select", required: true, optionsEndpoint: "aulas", optionsValue: "id_aula" },
       { name: "nombre_paralelo", label: "Nombre del paralelo", type: "text", required: true, maxLength: 150 },
       { name: "nivel", label: "Nivel", type: "text", required: false, maxLength: 100 },

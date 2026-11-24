@@ -2,6 +2,7 @@ import { pool } from "../db.js";
 
 const SELECT_CAPACITACION = `
   SELECT c.id_capacitacion,
+         c.nombre,
          c.id_convocatoria,
          c.fecha_inicio,
          c.fecha_fin,
@@ -49,15 +50,15 @@ const checkConvocatoria = async (idConvocatoria) => {
 
 export const createCapacitacion = async (req, res, next) => {
   try {
-    const { id_convocatoria, fecha_inicio, fecha_fin, precio, activo } = req.body;
+    const { id_convocatoria, fecha_inicio, fecha_fin, precio, activo, nombre } = req.body;
     const fkError = await checkConvocatoria(id_convocatoria);
     if (fkError) return res.status(409).json({ error: fkError });
 
     const { rows } = await pool.query(
-      `INSERT INTO capacitaciones (id_convocatoria, fecha_inicio, fecha_fin, precio, activo)
-       VALUES ($1, $2, $3, $4, COALESCE($5, TRUE))
+      `INSERT INTO capacitaciones (id_convocatoria, fecha_inicio, fecha_fin, precio, activo, nombre)
+       VALUES ($1, $2, $3, $4, COALESCE($5, TRUE), $6)
        RETURNING id_capacitacion`,
-      [id_convocatoria, fecha_inicio, fecha_fin ?? null, precio, activo ?? null],
+      [id_convocatoria, fecha_inicio, fecha_fin ?? null, precio, activo ?? null, nombre ?? null],
     );
     res.status(201).json(await fetchCapacitacion(rows[0].id_capacitacion));
   } catch (error) {
@@ -73,7 +74,7 @@ export const updateCapacitacion = async (req, res, next) => {
     const fkError = await checkConvocatoria(req.body.id_convocatoria);
     if (fkError) return res.status(409).json({ error: fkError });
 
-    const allowed = ["id_convocatoria", "fecha_inicio", "fecha_fin", "precio", "activo"];
+    const allowed = ["id_convocatoria", "fecha_inicio", "fecha_fin", "precio", "activo", "nombre"];
     const entries = allowed
       .filter((column) => req.body[column] !== undefined)
       .map((column) => [column, req.body[column]]);

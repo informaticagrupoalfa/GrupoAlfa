@@ -4,7 +4,7 @@ const SELECT_PARALELO = `
   SELECT p.*,
          c.fecha_inicio AS capacitacion_fecha_inicio,
          f.nombre AS capacitacion_facultad,
-         CONCAT(c.fecha_inicio, ' — ', COALESCE(f.nombre, 'Sin facultad')) AS capacitacion_info,
+         COALESCE(NULLIF(c.nombre, ''), CONCAT(c.fecha_inicio, ' — ', COALESCE(f.nombre, 'Sin facultad'))) AS capacitacion_info,
          a.codigo AS aula_codigo,
          a.capacidad AS aula_capacidad
   FROM paralelos p

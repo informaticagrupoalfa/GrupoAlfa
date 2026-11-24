@@ -640,6 +640,7 @@ export default function InscripcionRegistroForm({
       nombre: form.nombre.trim(),
       fecha_nacimiento: textOrUndefined(form.fecha_nacimiento),
       correo_electronico: textOrUndefined(form.correo_electronico),
+      celular: textOrUndefined(form.celular),
       contraseña: form.contraseña,
       apoderado_ci: form.apoderado_ci,
       apoderado_correo_electronico: textOrUndefined(form.apoderado_correo_electronico),

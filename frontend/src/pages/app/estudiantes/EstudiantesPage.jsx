@@ -478,7 +478,7 @@ export default function EstudiantesPage() {
             <option value="">Todas</option>
             {capacitaciones.map((c) => (
               <option key={c.id_capacitacion} value={c.id_capacitacion}>
-                {c.nombre_facultad || `Capacitación ${c.id_capacitacion}`}
+                {c.nombre || `Capacitación ${c.id_capacitacion}`}
               </option>
             ))}
           </select>

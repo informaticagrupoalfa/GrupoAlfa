@@ -65,6 +65,8 @@ function useInscripcionCatalogos() {
 }
 
 function buildParalelosPorCarrera(carreras, convocatorias, capacitaciones, paralelos) {
+  const ahora = new Date()
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`
   const convocatoriasPorFacultad = new Map()
   convocatorias.forEach((convocatoria) => {
     const key = String(convocatoria.id_facultad)
@@ -74,7 +76,11 @@ function buildParalelosPorCarrera(carreras, convocatorias, capacitaciones, paral
 
   const capacitacionesPorConvocatoria = new Map()
   capacitaciones
-    .filter((capacitacion) => capacitacion.activo !== false)
+    .filter((capacitacion) => {
+      const inicio = fechaCorta(capacitacion.fecha_inicio)
+      const fin = fechaCorta(capacitacion.fecha_fin)
+      return capacitacion.activo === true && inicio && fin && inicio <= hoy && hoy <= fin
+    })
     .forEach((capacitacion) => {
       const key = String(capacitacion.id_convocatoria)
       if (!capacitacionesPorConvocatoria.has(key)) capacitacionesPorConvocatoria.set(key, [])
