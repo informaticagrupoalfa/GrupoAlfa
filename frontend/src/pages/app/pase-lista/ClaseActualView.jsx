@@ -29,7 +29,7 @@ export default function ClaseActualView() {
   const [assignments, setAssignments] = useState([])
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [students, setStudents] = useState([])
   const [photos, setPhotos] = useState({})
   const [attendances, setAttendances] = useState({})
@@ -40,6 +40,7 @@ export default function ClaseActualView() {
   const [dialog, setDialog] = useState(null)
   const [busy, setBusy] = useState(false)
   const [camera, setCamera] = useState(false)
+  const [cameraAvailability, setCameraAvailability] = useState("unknown")
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const cameraRequestRef = useRef(0)
@@ -51,6 +52,27 @@ export default function ClaseActualView() {
   useEffect(() => {
     const interval = window.setInterval(() => setClock(horarioActual()), 30000)
     return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const media = navigator.mediaDevices
+    if (!media?.enumerateDevices || !media?.getUserMedia) return undefined
+    let active = true
+    const checkCameras = async () => {
+      try {
+        const cameras = (await media.enumerateDevices()).filter(device => device.kind === "videoinput")
+        if (!active) return
+        if (!cameras.length) setCameraAvailability("missing")
+        else if (cameras.some(device => /back|rear|environment|trasera|posterior/i.test(device.label))) setCameraAvailability("available")
+        else if (cameras.every(device => device.label && /front|user|frontal|facetime/i.test(device.label))) setCameraAvailability("missing")
+        else setCameraAvailability("unknown")
+      } catch {
+        if (active) setCameraAvailability("unknown")
+      }
+    }
+    checkCameras()
+    media.addEventListener?.("devicechange", checkCameras)
+    return () => { active = false; media.removeEventListener?.("devicechange", checkCameras) }
   }, [])
 
   useEffect(() => {
@@ -72,6 +94,7 @@ export default function ClaseActualView() {
   const currentClass = assignment && classes.find(item => String(item.fecha).slice(0, 10) === clock.fecha && String(item.id_asesor_paralelo_materia) === String(assignment.id_asesor_paralelo_materia))
   const parallelId = assignment?.id_paralelo
   const classId = currentClass?.id_clase
+  const open = Boolean(classId)
   classRef.current = classId
 
   useEffect(() => {
@@ -85,10 +108,9 @@ export default function ClaseActualView() {
   }, [classId, parallelId])
 
   useEffect(() => {
-    setOpen(Boolean(classId))
     setTema(currentClass?.tema || "")
+    setEditing(false)
     setDialog(null)
-    setMessage("")
   }, [classId, currentClass?.tema, assignment?.id_asesor_paralelo_materia, clock.fecha])
 
   useEffect(() => {
@@ -116,13 +138,14 @@ export default function ClaseActualView() {
 
   const saveClass = async event => {
     event.preventDefault()
-    if (busy || !assignment) return
+    if (busy || !assignment || !tema.trim() || (classId && !editing)) return
     setBusy(true)
     setMessage("")
     try {
       if (classId) {
         const { data } = await apiClient.put("/clases/" + classId, { tema: tema.trim() })
         setClasses(current => current.map(item => item.id_clase === classId ? { ...item, tema: data.tema } : item))
+        setEditing(false)
         setMessage("Tema guardado.")
       } else {
         const { data } = await apiClient.post("/clases", {
@@ -189,12 +212,13 @@ export default function ClaseActualView() {
     catch { setMessage("El lector QR no está disponible en este navegador."); return }
     const requestId = ++cameraRequestRef.current
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
       if (requestId !== cameraRequestRef.current || !videoRef.current) {
         stream.getTracks().forEach(track => track.stop())
         return
       }
       streamRef.current = stream
+      setCameraAvailability("available")
       videoRef.current.srcObject = stream
       await videoRef.current.play()
       if (requestId !== cameraRequestRef.current) return
@@ -217,13 +241,20 @@ export default function ClaseActualView() {
         if (streamRef.current === stream) requestAnimationFrame(scanFrame)
       }
       requestAnimationFrame(scanFrame)
-    } catch {
+    } catch (error) {
       if (requestId !== cameraRequestRef.current) return
       streamRef.current?.getTracks().forEach(track => track.stop())
       streamRef.current = null
       if (videoRef.current) videoRef.current.srcObject = null
       setCamera(false)
-      setMessage("No se pudo abrir la cámara.")
+      if (error.name === "NotFoundError" || error.name === "OverconstrainedError" || error.name === "DevicesNotFoundError") {
+        setCameraAvailability("missing")
+        setMessage("No se encontró una cámara trasera.")
+      } else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        setMessage("No se permitió el acceso a la cámara. Revisa los permisos del navegador.")
+      } else {
+        setMessage("No se pudo abrir la cámara.")
+      }
     }
   }
 
@@ -239,13 +270,23 @@ export default function ClaseActualView() {
   return <section className="clase-actual llamar-panel">
     <div className="clase-actual-heading">
       <div><h2>{assignment?.nombre_paralelo || "Clase actual"}</h2><p>Asignación correspondiente al día y horario actuales.</p></div>
-      {assignment && !open && <button type="button" className="submit-button" onClick={() => setOpen(true)}>Crear clase</button>}
     </div>
     {loading && <p role="status">Cargando asignaciones…</p>}
     {!loading && !matching.length && <p>No tienes una asignación en este horario.</p>}
     {!loading && matching.length > 1 && <p role="alert">Tienes varias asignaciones en este horario. Solicita que se revise la programación antes de crear la clase.</p>}
     {message && <p className="clase-actual-message" role="status">{message}</p>}
-    {open && assignment && <form onSubmit={saveClass}>
+    {assignment && <form className="clase-actual-controls" onSubmit={saveClass}>
+      <label htmlFor="clase-actual-tema">Tema a avanzar
+        <input id="clase-actual-tema" value={tema} onChange={event => setTema(event.target.value)} maxLength={100} readOnly={Boolean(classId) && !editing} required />
+      </label>
+      {classId && !editing
+        ? <button type="button" className="submit-button" disabled={busy} onClick={() => setEditing(true)}>Modificar clase</button>
+        : <>
+          {classId && <button type="button" className="secondary-button" disabled={busy} onClick={() => { setTema(currentClass?.tema || ""); setEditing(false) }}>Cancelar</button>}
+          <button type="submit" className="submit-button" disabled={busy || !tema.trim()}>{busy ? "Guardando…" : classId ? "Guardar cambios" : "Crear clase"}</button>
+        </>}
+    </form>}
+    {open && assignment && <div>
       <div className="clase-actual-header">
         <div className="clase-actual-logo"><BrandLogo size={90} /></div>
         <div className="clase-actual-fields">
@@ -253,7 +294,7 @@ export default function ClaseActualView() {
         </div>
       </div>
       <div className="clase-actual-scanner">
-        <button type="button" className="secondary-button" disabled={!camera && (!classId || rosterLoading || Boolean(rosterError))} onClick={toggleCamera}>{camera ? "Cerrar cámara" : "Escanear QR de asistencia"}</button>
+        <button type="button" className="secondary-button clase-actual-camera-button" disabled={!camera && (cameraAvailability === "missing" || !classId || rosterLoading || Boolean(rosterError))} onClick={toggleCamera}>{camera ? "Cerrar cámara" : cameraAvailability === "missing" ? "Cámara no encontrada" : "Escanear QR de asistencia"}</button>
         <video ref={videoRef} className="llamar-video clase-actual-video" hidden={!camera} playsInline muted />
         {camera && <p>Apunta la cámara al QR del estudiante para registrar su asistencia.</p>}
       </div>
@@ -274,16 +315,13 @@ export default function ClaseActualView() {
         </table>
         {!students.length && <p>No hay estudiantes registrados en este paralelo.</p>}
       </div>}
-      {!classId && <p>Guarda la clase para habilitar el registro de asistencia.</p>}
       <div className="clase-actual-bottom">
         <label>Fecha<input type="date" value={clock.fecha} readOnly /></label>
-        <label>Tema avanzado<input value={tema} onChange={event => setTema(event.target.value)} maxLength={100} required /></label>
-        <button className="submit-button" type="submit" disabled={busy || rosterLoading || Boolean(rosterError)}>{busy ? "Guardando…" : classId ? "Guardar tema" : "Guardar clase"}</button>
       </div>
-    </form>}
+    </div>}
     {dialog && <FloatingAlert title={dialog.status === "permiso" ? "Motivo del permiso" : dialog.status === "presente" || dialog.status === "scanned" ? "Asistencia registrada" : "Confirmar asistencia"} onClose={() => setDialog(null)}>
       <p><strong>{nameOf(dialog.student)}</strong></p>
-      {dialog.status === "permiso" ? <p>{dialog.record.razon_permiso || "No se registró un motivo."}</p> : dialog.status === "presente" ? <p>El estudiante ya tiene asistencia registrada.</p> : dialog.status === "scanned" ? <><p>Asistencia registrada correctamente.</p>{dialog.verification && <p>{dialog.verification.mensualidad_vigente ? "Mensualidad vigente." : "Sin mensualidad vigente."}</p>}</> : <><p>¿Registrar la asistencia de este estudiante?</p><button type="button" className="submit-button" disabled={busy} onClick={() => register(dialog.student)}>Confirmar asistencia</button></>}
+      {dialog.status === "permiso" ? <p>{dialog.record.razon_permiso || "No se registró un motivo."}</p> : dialog.status === "presente" ? <p>El estudiante ya tiene asistencia registrada.</p> : dialog.status === "scanned" ? <><p>Asistencia registrada correctamente.</p>{dialog.verification && <p>{dialog.verification.mensualidad_vigente ? "Mensualidad vigente." : "Sin mensualidad vigente."}</p>}</> : <><p>¿Registrar la asistencia de este estudiante?</p><div className="clase-actual-confirm-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => setDialog(null)}>Cancelar</button><button type="button" className="submit-button" disabled={busy} onClick={() => register(dialog.student)}>{busy ? "Registrando…" : "Confirmar asistencia"}</button></div></>}
     </FloatingAlert>}
   </section>
 }

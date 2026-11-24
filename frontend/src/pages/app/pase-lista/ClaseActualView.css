@@ -2,6 +2,10 @@
 .clase-actual-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .clase-actual-heading h2 { margin: 0; font-size: 1.2rem; }
 .clase-actual-heading p, .clase-actual-message { margin: 5px 0; color: var(--ink-soft); }
+.clase-actual-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+.clase-actual-controls label { display: grid; gap: 5px; flex: 1 1 250px; font-weight: 600; }
+.clase-actual-controls input { width: 100%; min-width: 0; }
+.clase-actual-controls input[readonly] { background: #f2f3f4; }
 .clase-actual-header { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 18px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 10px; }
 .clase-actual-logo { display: flex; justify-content: center; align-items: center; }
 .clase-actual-logo img { object-fit: contain; max-width: 100%; }
@@ -12,6 +16,8 @@
 .clase-actual-scanner { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
 .clase-actual-scanner p { margin: 0; color: var(--ink-soft); }
 .clase-actual-video { max-width: 360px; }
+.clase-actual-camera-button:disabled { background: #e0e2e5; border-color: #c8cbd0; color: #656a70; cursor: not-allowed; }
+.clase-actual-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .clase-actual-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 14px 0 8px; font-size: .78rem; }
 .clase-actual-legend span:nth-child(1) { color: #616b75; }
 .clase-actual-legend span:nth-child(2) { color: #257a4a; }
@@ -25,12 +31,13 @@
 .clase-actual-ausente { background: #e6e8eb; }
 .clase-actual-presente { background: #d8efde; }
 .clase-actual-permiso { background: #fff0b6; }
+.clase-actual-table tbody tr { cursor: pointer; }
 .clase-actual-student { border: 0; padding: 4px 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .clase-actual-student:not(:disabled):hover { text-decoration: underline; }
 .clase-actual-student:disabled { cursor: default; }
 .clase-actual-student small { color: #555; }
 .clase-actual-table img, .clase-actual-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: #fff; }
-.clase-actual-bottom { display: grid; grid-template-columns: 165px minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-top: 16px; }
+.clase-actual-bottom { display: grid; grid-template-columns: minmax(0, 165px); gap: 12px; align-items: end; margin-top: 16px; }
 .clase-actual-bottom label { display: grid; gap: 5px; font-weight: 600; }
 .clase-actual-bottom input { width: 100%; min-width: 0; }
 @media (max-width: 650px) {
